@@ -1,12 +1,10 @@
 ---
 capability: user-profile
-change: user-registration
-synced: 2026-07-01
 ---
 
-# Delta — user-profile
+# User Profile — State
 
-## ADDED
+## Requirements
 
 ### Complete profile after first authentication
 
@@ -19,11 +17,3 @@ synced: 2026-07-01
 
 - Given a person who authenticated but has not provided a name and phone number, when they sign in again, then they are routed back to the complete-profile step instead of the home dashboard.
 - Given a person whose profile already has a name and phone number, when they sign in, then they land on the home dashboard without a profile step.
-
-## MODIFIED
-
-_None._
-
-## REMOVED
-
-_None._

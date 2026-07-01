@@ -1,12 +1,10 @@
 ---
 capability: registration
-change: user-registration
-synced: 2026-07-01
 ---
 
-# Delta — registration
+# Registration — State
 
-## ADDED
+## Requirements
 
 ### Sign up or sign in with a magic link
 
@@ -15,11 +13,3 @@ synced: 2026-07-01
 - Given a visitor who requested a link, when they open a valid link tied to an identity that already has an account, then they are signed in and proceed into the app.
 - Given a visitor with an expired link, when they open it, then they are prompted to request a new link and are not signed in.
 - Given a visitor with an already-used link, when they open it, then they are signed in.
-
-## MODIFIED
-
-_None._
-
-## REMOVED
-
-_None._
