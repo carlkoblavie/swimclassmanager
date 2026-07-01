@@ -1,0 +1,7 @@
+tasks:
+  - name: user-registration
+    description: Passwordless sign-up/sign-in via Google or magic link, with a required name/phone profile step before the dashboard.
+    track: brief
+  - name: club-roles
+    description: A signed-in person creates a club (name + location, multi-club, no duplicates) and becomes its Administrator; the club's role set is defined for later assignment.
+    track: brief
