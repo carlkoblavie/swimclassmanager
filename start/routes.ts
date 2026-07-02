@@ -16,6 +16,7 @@ router
   .renderInertia('home', {})
   .use(middleware.auth())
   .use(middleware.completeProfile())
+  .use(middleware.activeClub())
   .as('home')
 
 router
@@ -33,3 +34,11 @@ router
     router.post('logout', [controllers.Sessions, 'destroy'])
   })
   .use(middleware.auth())
+
+router
+  .group(() => {
+    router.get('clubs/create', [controllers.Clubs, 'create'])
+    router.post('clubs', [controllers.Clubs, 'store'])
+  })
+  .use(middleware.auth())
+  .use(middleware.completeProfile())

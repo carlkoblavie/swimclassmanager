@@ -1,5 +1,5 @@
 ---
-affects: [clubs, memberships]
+affects: [clubs, memberships, user-profile]
 briefed: 2026-07-01
 ---
 
@@ -30,14 +30,14 @@ This is the foundation the registration change deferred to: registration settles
 
 ## Decisions made
 
-| Decision | Alternatives | Why |
-| --- | --- | --- |
-| A person can run multiple clubs | One club per person | Operators run more than one location; a club typically maps to a single location/branch, so several are expected. |
-| Invitation-gated onboarding | Open self-signup with roles assigned afterward | The role document has the Administrator _add_ clients and generate their portals; non-admins belong to a club by invitation, not self-service. Self-signup yields an unaffiliated person who can create a club and become its Administrator; everyone else joins by invitation. |
-| Creator becomes Administrator only | Creator becomes Administrator + Head Coach | Keeps the two roles cleanly separate as the role document defines them; a Head Coach is assigned deliberately later, even if that is the founder themselves. |
-| Name and location both required | Name only / more fields at creation | Name identifies the club and location distinguishes one club from another; nothing else is needed to bring a club into being. |
-| Prevent same-name-same-location duplicates | Allow any duplicates | Two clubs identical in name and location are almost always a mistake; the same name at a different location is legitimate and stays allowed. |
-| First-run guides into club creation | Usable dashboard with zero clubs | With no club there is nothing to act on, so the person is guided straight to creating one rather than shown an empty dashboard. |
+| Decision                                   | Alternatives                                   | Why                                                                                                                                                                                                                                                                             |
+| ------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A person can run multiple clubs            | One club per person                            | Operators run more than one location; a club typically maps to a single location/branch, so several are expected.                                                                                                                                                               |
+| Invitation-gated onboarding                | Open self-signup with roles assigned afterward | The role document has the Administrator _add_ clients and generate their portals; non-admins belong to a club by invitation, not self-service. Self-signup yields an unaffiliated person who can create a club and become its Administrator; everyone else joins by invitation. |
+| Creator becomes Administrator only         | Creator becomes Administrator + Head Coach     | Keeps the two roles cleanly separate as the role document defines them; a Head Coach is assigned deliberately later, even if that is the founder themselves.                                                                                                                    |
+| Name and location both required            | Name only / more fields at creation            | Name identifies the club and location distinguishes one club from another; nothing else is needed to bring a club into being.                                                                                                                                                   |
+| Prevent same-name-same-location duplicates | Allow any duplicates                           | Two clubs identical in name and location are almost always a mistake; the same name at a different location is legitimate and stays allowed.                                                                                                                                    |
+| First-run guides into club creation        | Usable dashboard with zero clubs               | With no club there is nothing to act on, so the person is guided straight to creating one rather than shown an empty dashboard.                                                                                                                                                 |
 
 ## Constraints the journey places on implementation
 

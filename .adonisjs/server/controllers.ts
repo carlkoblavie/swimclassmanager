@@ -5,6 +5,7 @@
 
 export const controllers = {
   Accounts: () => import('#controllers/accounts_controller'),
+  Clubs: () => import('#controllers/clubs_controller'),
   Sessions: () => import('#controllers/sessions_controller'),
   SignInLinks: () => import('#controllers/sign_in_links_controller'),
 }

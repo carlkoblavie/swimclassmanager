@@ -48,6 +48,18 @@ const routes = {
     tokens: [{"old":"/logout","type":0,"val":"logout","end":""}],
     types: placeholder as Registry['sessions.destroy']['types'],
   },
+  'clubs.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/clubs/create',
+    tokens: [{"old":"/clubs/create","type":0,"val":"clubs","end":""},{"old":"/clubs/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['clubs.create']['types'],
+  },
+  'clubs.store': {
+    methods: ["POST"],
+    pattern: '/clubs',
+    tokens: [{"old":"/clubs","type":0,"val":"clubs","end":""}],
+    types: placeholder as Registry['clubs.store']['types'],
+  },
 } as const satisfies Record<string, AdonisEndpoint>
 
 export { routes }

@@ -7,8 +7,67 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class ClubSchema extends BaseModel {
+  static $columns = ['createdAt', 'createdByUserId', 'id', 'location', 'name', 'updatedAt'] as const
+  $columns = ClubSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdByUserId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare location: string
+  @column()
+  declare name: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class MembershipRoleSchema extends BaseModel {
+  static $columns = ['id', 'membershipId', 'roleId'] as const
+  $columns = MembershipRoleSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare membershipId: number
+  @column()
+  declare roleId: number
+}
+
+export class MembershipSchema extends BaseModel {
+  static $columns = ['clubId', 'createdAt', 'id', 'updatedAt', 'userId'] as const
+  $columns = MembershipSchema.$columns
+  @column()
+  declare clubId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare userId: number
+}
+
+export class RoleSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'name', 'permissions', 'updatedAt'] as const
+  $columns = RoleSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column()
+  declare permissions: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class UserSchema extends BaseModel {
   static $columns = [
+    'activeClubId',
     'country',
     'createdAt',
     'email',
@@ -19,6 +78,8 @@ export class UserSchema extends BaseModel {
     'updatedAt',
   ] as const
   $columns = UserSchema.$columns
+  @column()
+  declare activeClubId: number | null
   @column()
   declare country: string | null
   @column.dateTime({ autoCreate: true })

@@ -91,4 +91,28 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['destroy']>>>
     }
   }
+  'clubs.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/clubs/create'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['create']>>>
+    }
+  }
+  'clubs.store': {
+    methods: ["POST"]
+    pattern: '/clubs'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/club').storeClubValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/club').storeClubValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
 }

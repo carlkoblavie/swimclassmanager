@@ -23,7 +23,7 @@ test.group('Sessions store', (group) => {
     await page.assertExists(page.getByRole('button', { name: 'Logout' }))
   })
 
-  test('a valid link for an existing completed user signs in and lands on the dashboard', async ({
+  test('an existing completed user with no club signs in and lands on create-a-club', async ({
     visit,
     route,
     db,
@@ -36,7 +36,7 @@ test.group('Sessions store', (group) => {
 
     const page = await visit(url)
 
-    await page.assertPath(route('home'))
+    await page.assertPath(route('clubs.create'))
     await db.assertCount('users', 1)
     await page.assertExists(page.getByRole('button', { name: 'Logout' }))
   })

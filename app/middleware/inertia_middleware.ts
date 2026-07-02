@@ -1,10 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import Club from '#models/club'
 import UserTransformer from '#transformers/user_transformer'
+import ClubTransformer from '#transformers/club_transformer'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 
 export default class InertiaMiddleware extends BaseInertiaMiddleware {
-  share(ctx: HttpContext) {
+  async share(ctx: HttpContext) {
     /**
      * The share method is called everytime an Inertia page is rendered. In
      * certain cases, a page may get rendered before the session middleware
@@ -22,6 +24,12 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
     const success = session?.flashMessages.get('success') as string
 
     /**
+     * The active club is the club whose context the app is currently showing.
+     */
+    const activeClubId = auth?.user?.activeClubId
+    const activeClub = activeClubId ? await Club.find(activeClubId) : null
+
+    /**
      * Data shared with all Inertia pages. Make sure you are using
      * transformers for rich data-types like Models.
      */
@@ -32,6 +40,9 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
         success,
       }),
       user: ctx.inertia.always(auth?.user ? UserTransformer.transform(auth.user) : undefined),
+      activeClub: ctx.inertia.always(
+        activeClub ? ClubTransformer.transform(activeClub) : undefined
+      ),
     }
   }
 

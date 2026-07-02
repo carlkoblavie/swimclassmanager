@@ -47,6 +47,7 @@ router.use([
  * the routes or the routes group.
  */
 export const middleware = router.named({
+  activeClub: () => import('#middleware/active_club_middleware'),
   guest: () => import('#middleware/guest_middleware'),
   auth: () => import('#middleware/auth_middleware'),
   completeProfile: () => import('#middleware/complete_profile_middleware'),

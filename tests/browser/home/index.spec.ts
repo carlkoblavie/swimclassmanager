@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
+import { ClubFactory } from '#database/factories/club_factory'
 
 test.group('Home completion gate', (group) => {
   group.each.setup(() => testUtils.db().truncate())
@@ -18,7 +19,28 @@ test.group('Home completion gate', (group) => {
     await page.assertPath(route('accounts.edit'))
   })
 
-  test('an authenticated user with a completed profile sees the dashboard', async ({
+  test('a profile-complete user with an active club sees the dashboard', async ({
+    visit,
+    route,
+    browserContext,
+  }) => {
+    const user = await UserFactory.apply('completed').create()
+    const club = await ClubFactory.merge({
+      createdByUserId: user.id,
+      name: 'Aqua Swim Club',
+      location: 'Accra',
+    }).create()
+    user.activeClubId = club.id
+    await user.save()
+    await browserContext.loginAs(user)
+
+    const page = await visit(route('home'))
+
+    await page.assertPath(route('home'))
+    await page.assertVisible('text=Aqua Swim Club')
+  })
+
+  test('a profile-complete user with no active club is redirected to create a club', async ({
     visit,
     route,
     browserContext,
@@ -28,7 +50,6 @@ test.group('Home completion gate', (group) => {
 
     const page = await visit(route('home'))
 
-    await page.assertPath(route('home'))
-    await page.assertVisible('text=It works')
+    await page.assertPath(route('clubs.create'))
   })
 })

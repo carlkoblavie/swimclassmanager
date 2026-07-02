@@ -5,7 +5,7 @@ import { UserFactory } from '#database/factories/user_factory'
 test.group('Accounts update', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
-  test('completing the profile with name and phone lands on the dashboard ({country})')
+  test('completing the profile with name and phone lands on create-a-club ({country})')
     .with([{ country: 'Ghana' }, { country: undefined }])
     .run(async ({ visit, route, browserContext, db }, row) => {
       const user = await UserFactory.create()
@@ -19,8 +19,7 @@ test.group('Accounts update', (group) => {
       }
       await page.getByRole('button', { name: 'Complete profile' }).click()
 
-      await page.assertPath(route('home'))
-      await page.assertVisible('text=It works')
+      await page.assertPath(route('clubs.create'))
 
       const expected: Record<string, unknown> = {
         id: user.id,

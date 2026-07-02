@@ -1,12 +1,10 @@
 ---
 capability: memberships
-change: club-roles
-synced: 2026-07-01
 ---
 
-# Delta — memberships
+# Memberships — State
 
-## ADDED
+## Requirements
 
 ### Club creator becomes Administrator
 
@@ -22,11 +20,3 @@ synced: 2026-07-01
 
 - Given a person holds a role in a club, then that role applies only within that club.
 - Given a person holds roles in more than one club, then their standing in one club is independent of their standing in another.
-
-## MODIFIED
-
-_None._
-
-## REMOVED
-
-_None._

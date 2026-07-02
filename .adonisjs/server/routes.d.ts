@@ -11,22 +11,27 @@ export type ScannedRoutes = {
     'accounts.edit': { paramsTuple?: []; params?: {} }
     'accounts.update': { paramsTuple?: []; params?: {} }
     'sessions.destroy': { paramsTuple?: []; params?: {} }
+    'clubs.create': { paramsTuple?: []; params?: {} }
+    'clubs.store': { paramsTuple?: []; params?: {} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
     'sign_in_links.create': { paramsTuple?: []; params?: {} }
     'auth.verify': { paramsTuple?: []; params?: {} }
     'accounts.edit': { paramsTuple?: []; params?: {} }
+    'clubs.create': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
     'sign_in_links.create': { paramsTuple?: []; params?: {} }
     'auth.verify': { paramsTuple?: []; params?: {} }
     'accounts.edit': { paramsTuple?: []; params?: {} }
+    'clubs.create': { paramsTuple?: []; params?: {} }
   }
   POST: {
     'sign_in_links.store': { paramsTuple?: []; params?: {} }
     'sessions.destroy': { paramsTuple?: []; params?: {} }
+    'clubs.store': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }

@@ -1,12 +1,10 @@
 ---
 capability: clubs
-change: club-roles
-synced: 2026-07-01
 ---
 
-# Delta — clubs
+# Clubs — State
 
-## ADDED
+## Requirements
 
 ### Creating the first club
 
@@ -22,11 +20,3 @@ synced: 2026-07-01
 
 - Given a person already has a club with a given name and location, when they try to create another club with the same name and the same location, then they are told "You already have a club with this name and location." and no club is created.
 - Given a person already has a club with a given name, when they create another club with that same name but a different location, then the new club is created.
-
-## MODIFIED
-
-_None._
-
-## REMOVED
-
-_None._

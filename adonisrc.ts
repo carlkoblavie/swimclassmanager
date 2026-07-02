@@ -2,6 +2,7 @@ import { indexPages } from '@adonisjs/inertia'
 import { indexEntities } from '@adonisjs/core'
 import { defineConfig } from '@adonisjs/core/app'
 import { generateRegistry } from '@tuyau/core/hooks'
+import { indexPermissions } from '@adonisplus/permissions'
 
 export default defineConfig({
   /*
@@ -139,6 +140,7 @@ export default defineConfig({
       }),
       indexPages({ framework: 'react' }),
       generateRegistry(),
+      indexPermissions(),
     ],
     buildStarting: [() => import('@adonisjs/vite/build_hook')],
   },
