@@ -1,5 +1,6 @@
 import { Link } from '@adonisjs/inertia/react'
 import type { InertiaProps } from '~/types'
+import { Guard } from '~/utils/permissions'
 
 export default function Home({ activeClub }: InertiaProps) {
   return (
@@ -10,6 +11,10 @@ export default function Home({ activeClub }: InertiaProps) {
           <p>{activeClub.location}</p>
         </>
       )}
+
+      <Guard for="invitation.create">
+        <Link route="invitations.create">Invite member</Link>
+      </Guard>
 
       <Link route="clubs.create">Create a club</Link>
     </div>

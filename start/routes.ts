@@ -42,3 +42,16 @@ router
   })
   .use(middleware.auth())
   .use(middleware.completeProfile())
+
+router
+  .group(() => {
+    router.get('invitations/create', [controllers.Invitations, 'create'])
+    router.post('invitations', [controllers.Invitations, 'store'])
+  })
+  .use(middleware.auth())
+  .use(middleware.completeProfile())
+  .use(middleware.activeClub())
+  .use(middleware.authorize('invitation.create'))
+
+// Accept an invitation — open link, the token is the authority.
+router.get('invitations/:token', [controllers.Memberships, 'store'])

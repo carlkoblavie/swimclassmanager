@@ -24,6 +24,39 @@ export class ClubSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class InvitationSchema extends BaseModel {
+  static $columns = [
+    'acceptedAt',
+    'clubId',
+    'createdAt',
+    'email',
+    'expiresAt',
+    'id',
+    'roleId',
+    'token',
+    'updatedAt',
+  ] as const
+  $columns = InvitationSchema.$columns
+  @column.dateTime()
+  declare acceptedAt: DateTime | null
+  @column()
+  declare clubId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare email: string
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare roleId: number
+  @column()
+  declare token: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class MembershipRoleSchema extends BaseModel {
   static $columns = ['id', 'membershipId', 'roleId'] as const
   $columns = MembershipRoleSchema.$columns

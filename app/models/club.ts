@@ -3,6 +3,7 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { ClubSchema } from '#database/schema'
 import User from '#models/user'
 import Membership from '#models/membership'
+import Invitation from '#models/invitation'
 
 export default class Club extends ClubSchema {
   @belongsTo(() => User, { foreignKey: 'createdByUserId' })
@@ -10,4 +11,7 @@ export default class Club extends ClubSchema {
 
   @hasMany(() => Membership)
   declare memberships: HasMany<typeof Membership>
+
+  @hasMany(() => Invitation)
+  declare invitations: HasMany<typeof Invitation>
 }

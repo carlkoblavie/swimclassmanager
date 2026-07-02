@@ -60,6 +60,24 @@ const routes = {
     tokens: [{"old":"/clubs","type":0,"val":"clubs","end":""}],
     types: placeholder as Registry['clubs.store']['types'],
   },
+  'invitations.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/invitations/create',
+    tokens: [{"old":"/invitations/create","type":0,"val":"invitations","end":""},{"old":"/invitations/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['invitations.create']['types'],
+  },
+  'invitations.store': {
+    methods: ["POST"],
+    pattern: '/invitations',
+    tokens: [{"old":"/invitations","type":0,"val":"invitations","end":""}],
+    types: placeholder as Registry['invitations.store']['types'],
+  },
+  'memberships.store': {
+    methods: ["GET","HEAD"],
+    pattern: '/invitations/:token',
+    tokens: [{"old":"/invitations/:token","type":0,"val":"invitations","end":""},{"old":"/invitations/:token","type":1,"val":"token","end":""}],
+    types: placeholder as Registry['memberships.store']['types'],
+  },
 } as const satisfies Record<string, AdonisEndpoint>
 
 export { routes }

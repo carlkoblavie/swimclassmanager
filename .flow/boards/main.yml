@@ -5,3 +5,6 @@ tasks:
   - name: club-roles
     description: A signed-in person creates a club (name + location, multi-club, no duplicates) and becomes its Administrator; the club's role set is defined for later assignment.
     track: brief
+  - name: member-invitation
+    description: An Administrator or Head Coach invites people by email with a role; opening the emailed link signs the invitee in and joins the club with that role.
+    track: brief

@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import Club from '#models/club'
+import Membership from '#models/membership'
 import UserTransformer from '#transformers/user_transformer'
 import ClubTransformer from '#transformers/club_transformer'
+import { permissions } from '#start/permissions'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 
 export default class InertiaMiddleware extends BaseInertiaMiddleware {
@@ -11,28 +13,31 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
      * The share method is called everytime an Inertia page is rendered. In
      * certain cases, a page may get rendered before the session middleware
      * or the auth middleware are executed. For example: During a 404 request.
-     *
-     * In that case, we must always assume that HttpContext is not fully hydrated
-     * with all the properties
      */
     const { session, auth } = ctx as Partial<HttpContext>
 
-    /**
-     * Fetching the first error from the flash messages
-     */
     const error = session?.flashMessages.get('error') as string
     const success = session?.flashMessages.get('success') as string
 
-    /**
-     * The active club is the club whose context the app is currently showing.
-     */
     const activeClubId = auth?.user?.activeClubId
     const activeClub = activeClubId ? await Club.find(activeClubId) : null
 
     /**
-     * Data shared with all Inertia pages. Make sure you are using
-     * transformers for rich data-types like Models.
+     * The permission keys the current user holds through their active-club
+     * membership. Empty for guests or users without an active-club membership.
      */
+    let userPermissions: string[] = []
+    if (auth?.user && activeClubId) {
+      const membership = await Membership.query()
+        .where('clubId', activeClubId)
+        .where('userId', auth.user.id)
+        .first()
+      if (membership) {
+        const access = await permissions.createAccessFor(membership)
+        userPermissions = access.permissions()
+      }
+    }
+
     return {
       errors: ctx.inertia.always(this.getValidationErrors(ctx)),
       flash: ctx.inertia.always({
@@ -43,6 +48,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
       activeClub: ctx.inertia.always(
         activeClub ? ClubTransformer.transform(activeClub) : undefined
       ),
+      userPermissions: ctx.inertia.always(userPermissions),
     }
   }
 

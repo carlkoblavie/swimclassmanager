@@ -1,0 +1,16 @@
+@mjml()
+  <mjml>
+    <mj-body>
+      <mj-section>
+        <mj-column>
+          <mj-text font-size="20px" color="#333333">
+            You've been invited to join
+            {{ clubName }}
+          </mj-text>
+          <mj-text>You've been invited to join {{ clubName }} as {{ roleName }}.</mj-text>
+          <mj-button href="{{ acceptUrl }}">Accept invitation</mj-button>
+        </mj-column>
+      </mj-section>
+    </mj-body>
+  </mjml>
+@end

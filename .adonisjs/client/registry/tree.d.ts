@@ -21,4 +21,11 @@ export interface ApiDefinition {
     create: typeof routes['clubs.create']
     store: typeof routes['clubs.store']
   }
+  invitations: {
+    create: typeof routes['invitations.create']
+    store: typeof routes['invitations.store']
+  }
+  memberships: {
+    store: typeof routes['memberships.store']
+  }
 }
