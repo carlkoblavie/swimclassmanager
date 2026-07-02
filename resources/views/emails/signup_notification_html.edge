@@ -1,0 +1,66 @@
+@mjml()
+  <mjml>
+    <mj-body>
+      <mj-section>
+        <mj-column>
+          <mj-text font-size="20px" color="#333333">
+            New learn-to-swim sign-up for
+            {{ clubName }}
+          </mj-text>
+
+          <mj-text>
+            <strong>Contact</strong>
+            <br />
+            {{ contactName }}
+            <br />
+            {{ contactEmail }}
+            <br />
+            {{ contactPhone }}
+            @if(whatsapp)
+              <br />
+              WhatsApp:
+              {{ whatsapp }}
+            @end
+          </mj-text>
+          @if(message)
+            <mj-text>
+              <strong>Message</strong>
+              <br />
+              {{ message }}
+            </mj-text>
+          @end
+
+          <mj-text><strong>Learners</strong></mj-text>
+          @each(learner in learners)
+            <mj-text>
+              {{ learner.name }}
+               —
+              {{ learner.dateOfBirth }}
+               —
+              {{ learner.gender }}
+              <br />
+              
+              Nationality:
+              {{ learner.nationality }}
+              <br />
+              
+              Residential location:
+              {{ learner.residentialLocation }}
+              <br />
+              
+              Medical information:
+              {{ learner.medicalInfo }}
+              @if(learner.swimmingExperience)
+                <br />
+                Swimming experience:
+                {{ learner.swimmingExperience }}
+              @end
+            </mj-text>
+          @end
+
+          <mj-button href="{{ listUrl }}">View sign-ups</mj-button>
+        </mj-column>
+      </mj-section>
+    </mj-body>
+  </mjml>
+@end

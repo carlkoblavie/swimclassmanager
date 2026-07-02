@@ -1,8 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
+import string from '@adonisjs/core/helpers/string'
 import Club from '#models/club'
 import Role from '#models/role'
 import type User from '#models/user'
 import { RoleName } from '#values/role'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 export default class ClubFoundingService {
   /**
@@ -11,8 +13,9 @@ export default class ClubFoundingService {
    */
   async found(founder: User, data: { name: string; location: string }): Promise<Club> {
     return db.transaction(async (trx) => {
+      const slug = await this.uniqueSlug(data.name, trx)
       const club = await Club.create(
-        { name: data.name, location: data.location, createdByUserId: founder.id },
+        { name: data.name, location: data.location, slug, createdByUserId: founder.id },
         { client: trx }
       )
 
@@ -27,5 +30,22 @@ export default class ClubFoundingService {
 
       return club
     })
+  }
+
+  /**
+   * A URL-safe slug derived from the club name, made unique with a numeric
+   * suffix when the base slug is already taken.
+   */
+  private async uniqueSlug(name: string, trx: TransactionClientContract): Promise<string> {
+    const base = string.slug(name, { lower: true, strict: true })
+    let slug = base
+    let suffix = 2
+
+    while (await Club.findBy('slug', slug, { client: trx })) {
+      slug = `${base}-${suffix}`
+      suffix++
+    }
+
+    return slug
   }
 }

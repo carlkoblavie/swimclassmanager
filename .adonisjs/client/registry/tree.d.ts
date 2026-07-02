@@ -28,4 +28,9 @@ export interface ApiDefinition {
   memberships: {
     store: typeof routes['memberships.store']
   }
+  signups: {
+    create: typeof routes['signups.create']
+    store: typeof routes['signups.store']
+    index: typeof routes['signups.index']
+  }
 }

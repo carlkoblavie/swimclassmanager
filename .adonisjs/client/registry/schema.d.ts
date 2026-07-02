@@ -151,4 +151,40 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/memberships_controller').default['store']>>>
     }
   }
+  'signups.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/register/:slug'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { slug: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['create']>>>
+    }
+  }
+  'signups.store': {
+    methods: ["POST"]
+    pattern: '/register/:slug'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/signup').storeSignupValidator)>>
+      paramsTuple: [ParamValue]
+      params: { slug: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/signup').storeSignupValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'signups.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/signups'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['index']>>>
+    }
+  }
 }

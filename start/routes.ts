@@ -55,3 +55,19 @@ router
 
 // Accept an invitation — open link, the token is the authority.
 router.get('invitations/:token', [controllers.Memberships, 'store'])
+
+// Public learn-to-swim sign-up — no auth, club resolved by slug.
+router
+  .group(() => {
+    router.get('register/:slug', [controllers.Signups, 'create'])
+    router.post('register/:slug', [controllers.Signups, 'store'])
+  })
+  .where('slug', router.matchers.slug())
+
+// Admin sign-ups list — active-club scoped, permission-gated.
+router
+  .get('signups', [controllers.Signups, 'index'])
+  .use(middleware.auth())
+  .use(middleware.completeProfile())
+  .use(middleware.activeClub())
+  .use(middleware.authorize('signup.view'))

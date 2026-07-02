@@ -16,6 +16,9 @@ export type ScannedRoutes = {
     'invitations.create': { paramsTuple?: []; params?: {} }
     'invitations.store': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
+    'signups.create': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'signups.store': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'signups.index': { paramsTuple?: []; params?: {} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -25,6 +28,8 @@ export type ScannedRoutes = {
     'clubs.create': { paramsTuple?: []; params?: {} }
     'invitations.create': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
+    'signups.create': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'signups.index': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
@@ -34,12 +39,15 @@ export type ScannedRoutes = {
     'clubs.create': { paramsTuple?: []; params?: {} }
     'invitations.create': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
+    'signups.create': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'signups.index': { paramsTuple?: []; params?: {} }
   }
   POST: {
     'sign_in_links.store': { paramsTuple?: []; params?: {} }
     'sessions.destroy': { paramsTuple?: []; params?: {} }
     'clubs.store': { paramsTuple?: []; params?: {} }
     'invitations.store': { paramsTuple?: []; params?: {} }
+    'signups.store': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }

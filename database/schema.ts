@@ -8,7 +8,15 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class ClubSchema extends BaseModel {
-  static $columns = ['createdAt', 'createdByUserId', 'id', 'location', 'name', 'updatedAt'] as const
+  static $columns = [
+    'createdAt',
+    'createdByUserId',
+    'id',
+    'location',
+    'name',
+    'slug',
+    'updatedAt',
+  ] as const
   $columns = ClubSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -20,6 +28,8 @@ export class ClubSchema extends BaseModel {
   declare location: string
   @column()
   declare name: string
+  @column()
+  declare slug: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -53,6 +63,45 @@ export class InvitationSchema extends BaseModel {
   declare roleId: number
   @column()
   declare token: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class LearnerSchema extends BaseModel {
+  static $columns = [
+    'createdAt',
+    'dateOfBirth',
+    'gender',
+    'id',
+    'medicalInfo',
+    'name',
+    'nationality',
+    'residentialLocation',
+    'signupId',
+    'swimmingExperience',
+    'updatedAt',
+  ] as const
+  $columns = LearnerSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.date()
+  declare dateOfBirth: DateTime
+  @column()
+  declare gender: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare medicalInfo: string
+  @column()
+  declare name: string
+  @column()
+  declare nationality: string
+  @column()
+  declare residentialLocation: string
+  @column()
+  declare signupId: number
+  @column()
+  declare swimmingExperience: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -96,6 +145,39 @@ export class RoleSchema extends BaseModel {
   declare permissions: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class SignupSchema extends BaseModel {
+  static $columns = [
+    'clubId',
+    'contactEmail',
+    'contactName',
+    'contactPhone',
+    'createdAt',
+    'id',
+    'message',
+    'updatedAt',
+    'whatsapp',
+  ] as const
+  $columns = SignupSchema.$columns
+  @column()
+  declare clubId: number
+  @column()
+  declare contactEmail: string
+  @column()
+  declare contactName: string
+  @column()
+  declare contactPhone: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare message: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare whatsapp: string | null
 }
 
 export class UserSchema extends BaseModel {

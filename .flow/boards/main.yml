@@ -8,3 +8,6 @@ tasks:
   - name: member-invitation
     description: An Administrator or Head Coach invites people by email with a role; opening the emailed link signs the invitee in and joins the club with that role.
     track: brief
+  - name: register-learner
+    description: A public, per-club learn-to-swim sign-up form (fixed fields, 1+ learners, no login) that prospects fill; each sign-up emails and lists for the club's Administrator and Head Coach.
+    track: brief
