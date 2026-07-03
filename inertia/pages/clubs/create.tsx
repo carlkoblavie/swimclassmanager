@@ -1,48 +1,27 @@
 import { Form } from '@adonisjs/inertia/react'
+import { Button, Container, Stack, Text, TextInput, Title } from '@mantine/core'
 
 export default function CreateClub() {
   return (
-    <div className="form-container">
-      <div>
-        <h1>Create a club</h1>
-        <p>Set up a club to get started.</p>
-      </div>
+    <Container size="xs" py="xl">
+      <Stack gap="lg">
+        <div>
+          <Title order={1}>Create a club</Title>
+          <Text c="dimmed">Set up a club to get started.</Text>
+        </div>
 
-      <div>
         <Form route="clubs.store">
           {({ errors, processing }) => (
-            <>
-              <div>
-                <label htmlFor="name">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  id="name"
-                  data-invalid={errors.name ? 'true' : undefined}
-                />
-                {errors.name && <div>{errors.name}</div>}
-              </div>
-
-              <div>
-                <label htmlFor="location">Location</label>
-                <input
-                  type="text"
-                  name="location"
-                  id="location"
-                  data-invalid={errors.location ? 'true' : undefined}
-                />
-                {errors.location && <div>{errors.location}</div>}
-              </div>
-
-              <div>
-                <button type="submit" className="button" disabled={processing}>
-                  Create club
-                </button>
-              </div>
-            </>
+            <Stack gap="md">
+              <TextInput label="Name" name="name" error={errors.name} />
+              <TextInput label="Location" name="location" error={errors.location} />
+              <Button type="submit" loading={processing}>
+                Create club
+              </Button>
+            </Stack>
           )}
         </Form>
-      </div>
-    </div>
+      </Stack>
+    </Container>
   )
 }

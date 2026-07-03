@@ -1,3 +1,4 @@
+import { Badge, Card, Divider, Group, Stack, Text } from '@mantine/core'
 import type { Data } from '@generated/data'
 
 type Props = {
@@ -8,34 +9,56 @@ export default function SignupCard({ signup }: Props) {
   const learners = signup.learners ?? []
 
   return (
-    <article>
-      <h2>{signup.contactName}</h2>
-      <p>{signup.contactEmail}</p>
-      <p>{signup.contactPhone}</p>
-      {signup.whatsapp && <p>WhatsApp: {signup.whatsapp}</p>}
-      {signup.message && <p>{signup.message}</p>}
-      <p>Received {signup.createdAt.formatted}</p>
+    <Card withBorder radius="md" padding="lg">
+      <Stack gap="xs">
+        <Group justify="space-between" wrap="nowrap">
+          <Text fw={600} size="lg">
+            {signup.contactName}
+          </Text>
+          <Text size="sm" c="dimmed">
+            {signup.createdAt.formatted}
+          </Text>
+        </Group>
 
-      <h3>Learners</h3>
-      <ul>
-        {learners.map((learner) => (
-          <li key={learner.id}>
-            <strong>{learner.name}</strong> — {learner.dateOfBirth.formatted} — {learner.gender}
-            <br />
-            Nationality: {learner.nationality}
-            <br />
-            Residential location: {learner.residentialLocation}
-            <br />
-            Medical information: {learner.medicalInfo}
-            {learner.swimmingExperience && (
-              <>
-                <br />
-                Swimming experience: {learner.swimmingExperience}
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-    </article>
+        <Group gap="lg">
+          <Text size="sm">{signup.contactEmail}</Text>
+          <Text size="sm">{signup.contactPhone}</Text>
+          {signup.whatsapp && <Text size="sm">WhatsApp: {signup.whatsapp}</Text>}
+        </Group>
+
+        {signup.message && (
+          <Text size="sm" c="dimmed">
+            {signup.message}
+          </Text>
+        )}
+
+        <Divider label={`Learners (${learners.length})`} labelPosition="left" />
+
+        <Stack gap="sm">
+          {learners.map((learner) => (
+            <div key={learner.id}>
+              <Group gap="xs">
+                <Text fw={500}>
+                  {learner.firstName} {learner.lastName}
+                </Text>
+                <Badge variant="light" size="sm">
+                  {learner.gender}
+                </Badge>
+                <Text size="sm" c="dimmed">
+                  {learner.dateOfBirth.formatted}
+                </Text>
+              </Group>
+              <Text size="sm">
+                Nationality: {learner.nationality} · Location: {learner.residentialLocation}
+              </Text>
+              <Text size="sm">Medical: {learner.medicalInfo}</Text>
+              {learner.swimmingExperience && (
+                <Text size="sm">Experience: {learner.swimmingExperience}</Text>
+              )}
+            </div>
+          ))}
+        </Stack>
+      </Stack>
+    </Card>
   )
 }

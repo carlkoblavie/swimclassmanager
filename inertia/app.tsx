@@ -1,14 +1,17 @@
+import '@mantine/core/styles.css'
 import './css/app.css'
 import { type ReactElement } from 'react'
 import { client } from './client'
+import { theme } from '~/theme'
 import Layout from '~/layouts/default'
 import { type Data } from '@generated/data'
 import { createRoot } from 'react-dom/client'
+import { MantineProvider } from '@mantine/core'
 import { createInertiaApp } from '@inertiajs/react'
 import { TuyauProvider } from '@adonisjs/inertia/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 
-const appName = import.meta.env.VITE_APP_NAME || 'AdonisJS'
+const appName = import.meta.env.VITE_APP_NAME || 'Swim Class Manager'
 
 createInertiaApp({
   title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -21,9 +24,11 @@ createInertiaApp({
   },
   setup({ el, App, props }) {
     createRoot(el).render(
-      <TuyauProvider client={client}>
-        <App {...props} />
-      </TuyauProvider>
+      <MantineProvider theme={theme} defaultColorScheme="light">
+        <TuyauProvider client={client}>
+          <App {...props} />
+        </TuyauProvider>
+      </MantineProvider>
     )
   },
   progress: {

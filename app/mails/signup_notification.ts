@@ -13,7 +13,7 @@ export default class SignupNotificationMail extends BaseMail {
 
   prepare() {
     const learners = this.signup.learners.map((learner) => ({
-      name: learner.name,
+      name: `${learner.firstName} ${learner.lastName}`,
       dateOfBirth: learner.dateOfBirth.toFormat('dd LLL yyyy'),
       gender: learner.gender,
       nationality: learner.nationality,

@@ -71,10 +71,11 @@ export class LearnerSchema extends BaseModel {
   static $columns = [
     'createdAt',
     'dateOfBirth',
+    'firstName',
     'gender',
     'id',
+    'lastName',
     'medicalInfo',
-    'name',
     'nationality',
     'residentialLocation',
     'signupId',
@@ -87,13 +88,15 @@ export class LearnerSchema extends BaseModel {
   @column.date()
   declare dateOfBirth: DateTime
   @column()
+  declare firstName: string
+  @column()
   declare gender: string
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare medicalInfo: string
+  declare lastName: string
   @column()
-  declare name: string
+  declare medicalInfo: string
   @column()
   declare nationality: string
   @column()

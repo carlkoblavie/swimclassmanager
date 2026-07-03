@@ -1,8 +1,11 @@
+import '@mantine/core/styles.css'
 import { client } from '~/client'
+import { theme } from '~/theme'
 import { type ReactElement } from 'react'
 import Layout from '~/layouts/default'
 import { type Data } from '@generated/data'
 import ReactDOMServer from 'react-dom/server'
+import { MantineProvider } from '@mantine/core'
 import { createInertiaApp } from '@inertiajs/react'
 import { TuyauProvider } from '@adonisjs/inertia/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
@@ -20,9 +23,11 @@ export default function render(page: any) {
     },
     setup: ({ App, props }) => {
       return (
-        <TuyauProvider client={client}>
-          <App {...props} />
-        </TuyauProvider>
+        <MantineProvider theme={theme} defaultColorScheme="light">
+          <TuyauProvider client={client}>
+            <App {...props} />
+          </TuyauProvider>
+        </MantineProvider>
       )
     },
   })
