@@ -69,7 +69,7 @@ test.group('Memberships store', (group) => {
     const page = await visit(route('memberships.store', { token: invitation.token }))
 
     await page.assertPath(route('home'))
-    await page.assertVisible('text=Aqua Swim Club')
+    await page.assertVisible(page.getByRole('heading', { name: 'Aqua Swim Club' }))
     await page.assertExists(page.getByRole('button', { name: 'Logout' }))
     await db.assertHas('memberships', { club_id: club.id, user_id: invitee.id })
     await db.assertHas('users', { id: invitee.id, active_club_id: club.id })

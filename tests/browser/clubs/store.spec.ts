@@ -30,7 +30,7 @@ test.group('Clubs store', (group) => {
     await page.getByRole('button', { name: 'Create club' }).click()
 
     await page.assertPath(route('home'))
-    await page.assertVisible('text=Aqua Swim Club')
+    await page.assertVisible(page.getByRole('heading', { name: 'Aqua Swim Club' }))
     await page.assertVisible('text=Accra')
 
     const club = await Club.findByOrFail('name', 'Aqua Swim Club')
@@ -153,7 +153,7 @@ test.group('Clubs store', (group) => {
     await page.getByRole('button', { name: 'Create club' }).click()
 
     await page.assertPath(route('home'))
-    await page.assertVisible('text=Tornado Club')
+    await page.assertVisible(page.getByRole('heading', { name: 'Tornado Club' }))
 
     const second = await Club.findByOrFail('name', 'Tornado Club')
     await db.assertHas('users', { id: user.id, active_club_id: second.id })

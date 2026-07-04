@@ -7,6 +7,33 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class ClubLevelSettingSchema extends BaseModel {
+  static $columns = [
+    'available',
+    'clubId',
+    'createdAt',
+    'fee',
+    'id',
+    'levelId',
+    'updatedAt',
+  ] as const
+  $columns = ClubLevelSettingSchema.$columns
+  @column()
+  declare available: boolean
+  @column()
+  declare clubId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare fee: number | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare levelId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class ClubSchema extends BaseModel {
   static $columns = [
     'createdAt',
@@ -109,6 +136,39 @@ export class LearnerSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class LevelSchema extends BaseModel {
+  static $columns = [
+    'ageGroup',
+    'capacity',
+    'createdAt',
+    'defaultFee',
+    'description',
+    'id',
+    'name',
+    'programId',
+    'updatedAt',
+  ] as const
+  $columns = LevelSchema.$columns
+  @column()
+  declare ageGroup: string
+  @column()
+  declare capacity: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare defaultFee: number
+  @column()
+  declare description: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column()
+  declare programId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class MembershipRoleSchema extends BaseModel {
   static $columns = ['id', 'membershipId', 'roleId'] as const
   $columns = MembershipRoleSchema.$columns
@@ -133,6 +193,21 @@ export class MembershipSchema extends BaseModel {
   declare updatedAt: DateTime | null
   @column()
   declare userId: number
+}
+
+export class ProgramSchema extends BaseModel {
+  static $columns = ['createdAt', 'description', 'id', 'name', 'updatedAt'] as const
+  $columns = ProgramSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class RoleSchema extends BaseModel {

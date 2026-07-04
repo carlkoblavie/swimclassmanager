@@ -71,3 +71,20 @@ router
   .use(middleware.completeProfile())
   .use(middleware.activeClub())
   .use(middleware.authorize('signup.view'))
+
+// Swim programs — shared catalog (all members view; Admin/Head Coach manage)
+// plus each club's per-level fee/availability settings.
+router
+  .group(() => {
+    router
+      .resource('programs', controllers.Programs)
+      .except(['show'])
+      .use(['create', 'store', 'edit', 'update', 'destroy'], middleware.authorize('program.manage'))
+
+    router
+      .patch('levels/:id/settings', [controllers.LevelSettings, 'update'])
+      .use(middleware.authorize('program.manage'))
+  })
+  .use(middleware.auth())
+  .use(middleware.completeProfile())
+  .use(middleware.activeClub())

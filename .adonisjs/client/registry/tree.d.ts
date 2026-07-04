@@ -33,4 +33,15 @@ export interface ApiDefinition {
     store: typeof routes['signups.store']
     index: typeof routes['signups.index']
   }
+  programs: {
+    index: typeof routes['programs.index']
+    create: typeof routes['programs.create']
+    store: typeof routes['programs.store']
+    edit: typeof routes['programs.edit']
+    update: typeof routes['programs.update']
+    destroy: typeof routes['programs.destroy']
+  }
+  levelSettings: {
+    update: typeof routes['level_settings.update']
+  }
 }

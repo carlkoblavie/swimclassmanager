@@ -90,6 +90,12 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
               {activeClub.name}
             </Text>
             <NavLink component={Link} route="home" label="Dashboard" active={url === '/'} />
+            <NavLink
+              component={Link}
+              route="programs.index"
+              label="Programs"
+              active={url.startsWith('/programs')}
+            />
             <Guard for="signup.view">
               <NavLink
                 component={Link}

@@ -37,7 +37,7 @@ test.group('Home completion gate', (group) => {
     const page = await visit(route('home'))
 
     await page.assertPath(route('home'))
-    await page.assertVisible('text=Aqua Swim Club')
+    await page.assertVisible(page.getByRole('heading', { name: 'Aqua Swim Club' }))
   })
 
   test('a profile-complete user with no active club is redirected to create a club', async ({

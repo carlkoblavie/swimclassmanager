@@ -187,4 +187,88 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['index']>>>
     }
   }
+  'programs.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/programs'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['index']>>>
+    }
+  }
+  'programs.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/programs/create'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['create']>>>
+    }
+  }
+  'programs.store': {
+    methods: ["POST"]
+    pattern: '/programs'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/program').storeProgramValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/program').storeProgramValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'programs.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/programs/:id/edit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['edit']>>>
+    }
+  }
+  'programs.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/programs/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/program').updateProgramValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/program').updateProgramValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'programs.destroy': {
+    methods: ["DELETE"]
+    pattern: '/programs/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['destroy']>>>
+    }
+  }
+  'level_settings.update': {
+    methods: ["PATCH"]
+    pattern: '/levels/:id/settings'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/level_setting').updateLevelSettingsValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/level_setting').updateLevelSettingsValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/level_settings_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/level_settings_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
 }

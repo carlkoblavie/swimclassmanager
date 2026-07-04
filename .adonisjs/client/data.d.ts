@@ -9,6 +9,8 @@ import type { InferSharedProps } from '@adonisjs/inertia/types'
 import type AccountTransformer from '#transformers/account_transformer'
 import type ClubTransformer from '#transformers/club_transformer'
 import type LearnerTransformer from '#transformers/learner_transformer'
+import type LevelTransformer from '#transformers/level_transformer'
+import type ProgramTransformer from '#transformers/program_transformer'
 import type SignupTransformer from '#transformers/signup_transformer'
 import type UserTransformer from '#transformers/user_transformer'
 import type InertiaMiddleware from '#middleware/inertia_middleware'
@@ -25,6 +27,14 @@ export namespace Data {
   export type Learner = InferData<LearnerTransformer>
   export namespace Learner {
     export type Variants = InferVariants<LearnerTransformer>
+  }
+  export type Level = InferData<LevelTransformer>
+  export namespace Level {
+    export type Variants = InferVariants<LevelTransformer>
+  }
+  export type Program = InferData<ProgramTransformer>
+  export namespace Program {
+    export type Variants = InferVariants<ProgramTransformer>
   }
   export type Signup = InferData<SignupTransformer>
   export namespace Signup {

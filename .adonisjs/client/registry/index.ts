@@ -96,6 +96,48 @@ const routes = {
     tokens: [{"old":"/signups","type":0,"val":"signups","end":""}],
     types: placeholder as Registry['signups.index']['types'],
   },
+  'programs.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/programs',
+    tokens: [{"old":"/programs","type":0,"val":"programs","end":""}],
+    types: placeholder as Registry['programs.index']['types'],
+  },
+  'programs.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/programs/create',
+    tokens: [{"old":"/programs/create","type":0,"val":"programs","end":""},{"old":"/programs/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['programs.create']['types'],
+  },
+  'programs.store': {
+    methods: ["POST"],
+    pattern: '/programs',
+    tokens: [{"old":"/programs","type":0,"val":"programs","end":""}],
+    types: placeholder as Registry['programs.store']['types'],
+  },
+  'programs.edit': {
+    methods: ["GET","HEAD"],
+    pattern: '/programs/:id/edit',
+    tokens: [{"old":"/programs/:id/edit","type":0,"val":"programs","end":""},{"old":"/programs/:id/edit","type":1,"val":"id","end":""},{"old":"/programs/:id/edit","type":0,"val":"edit","end":""}],
+    types: placeholder as Registry['programs.edit']['types'],
+  },
+  'programs.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/programs/:id',
+    tokens: [{"old":"/programs/:id","type":0,"val":"programs","end":""},{"old":"/programs/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['programs.update']['types'],
+  },
+  'programs.destroy': {
+    methods: ["DELETE"],
+    pattern: '/programs/:id',
+    tokens: [{"old":"/programs/:id","type":0,"val":"programs","end":""},{"old":"/programs/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['programs.destroy']['types'],
+  },
+  'level_settings.update': {
+    methods: ["PATCH"],
+    pattern: '/levels/:id/settings',
+    tokens: [{"old":"/levels/:id/settings","type":0,"val":"levels","end":""},{"old":"/levels/:id/settings","type":1,"val":"id","end":""},{"old":"/levels/:id/settings","type":0,"val":"settings","end":""}],
+    types: placeholder as Registry['level_settings.update']['types'],
+  },
 } as const satisfies Record<string, AdonisEndpoint>
 
 export { routes }

@@ -19,6 +19,13 @@ export type ScannedRoutes = {
     'signups.create': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'signups.store': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
+    'programs.index': { paramsTuple?: []; params?: {} }
+    'programs.create': { paramsTuple?: []; params?: {} }
+    'programs.store': { paramsTuple?: []; params?: {} }
+    'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'programs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -30,6 +37,9 @@ export type ScannedRoutes = {
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
+    'programs.index': { paramsTuple?: []; params?: {} }
+    'programs.create': { paramsTuple?: []; params?: {} }
+    'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
@@ -41,6 +51,9 @@ export type ScannedRoutes = {
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
+    'programs.index': { paramsTuple?: []; params?: {} }
+    'programs.create': { paramsTuple?: []; params?: {} }
+    'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   POST: {
     'sign_in_links.store': { paramsTuple?: []; params?: {} }
@@ -48,9 +61,18 @@ export type ScannedRoutes = {
     'clubs.store': { paramsTuple?: []; params?: {} }
     'invitations.store': { paramsTuple?: []; params?: {} }
     'signups.store': { paramsTuple: [ParamValue]; params: {'slug': ParamValue} }
+    'programs.store': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }
+    'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+  }
+  PUT: {
+    'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+  }
+  DELETE: {
+    'programs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

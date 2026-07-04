@@ -11,3 +11,6 @@ tasks:
   - name: register-learner
     description: A public, per-club learn-to-swim sign-up form (fixed fields, 1+ learners, no login) that prospects fill; each sign-up emails and lists for the club's Administrator and Head Coach.
     track: brief
+  - name: swim-programs
+    description: A shared platform-wide catalog of swim programs, each with 1+ age/skill levels (name, age group, description, fee, capacity); every club can view, and each club sets its own per-level fee and availability. Admin/Head Coach manage; all members view.
+    track: brief

@@ -8,6 +8,9 @@ export const permissions = definePermissions({
   signup: {
     view: 'View learn-to-swim sign-ups',
   },
+  program: {
+    manage: 'Manage swim programs and levels',
+  },
 })
 
 export type PermissionKey = ReturnType<typeof permissions.keys>[number]
@@ -20,9 +23,11 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
   [RoleName.ADMINISTRATOR]: [
     permissions.getKey('invitation.create'),
     permissions.getKey('signup.view'),
+    permissions.getKey('program.manage'),
   ],
   [RoleName.HEAD_COACH]: [
     permissions.getKey('invitation.create'),
     permissions.getKey('signup.view'),
+    permissions.getKey('program.manage'),
   ],
 }
