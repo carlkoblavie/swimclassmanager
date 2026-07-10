@@ -1,6 +1,7 @@
 ---
 capability: programs
 change: swim-programs
+synced: 2026-07-10
 ---
 
 # Delta — programs

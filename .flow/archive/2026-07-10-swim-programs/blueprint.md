@@ -83,6 +83,7 @@ Reads: migrations.md, models.md
 `node ace make:migration create_club_level_settings_table --create=club_level_settings`
 
 Migration files (ordered):
+
 - `..._create_programs_table.ts` — `programs`; unique index on `name`, two explicit timestamps.
 - `..._create_levels_table.ts` — `levels`; `program_id` FK → `programs.id` `onDelete('CASCADE')`, `program_id` index, `default_fee`/`capacity` integers, timestamps.
 - `..._create_club_level_settings_table.ts` — `club_level_settings`; `club_id` FK → `clubs.id` and `level_id` FK → `levels.id`, both `onDelete('CASCADE')`; `available` boolean `defaultTo(true)`; `fee` nullable integer; composite unique `(club_id, level_id)`; timestamps.
@@ -90,6 +91,7 @@ Migration files (ordered):
 `node ace make:model Program` · `node ace make:model Level` · `node ace make:model ClubLevelSetting`
 
 Model files:
+
 - `app/models/program.ts` (new) — `Program extends ProgramSchema`. `@hasMany(() => Level)` `declare levels`.
 - `app/models/level.ts` (new) — `Level extends LevelSchema`. `@belongsTo(() => Program)` `declare program`; `@hasMany(() => ClubLevelSetting)` `declare clubLevelSettings`.
 - `app/models/club_level_setting.ts` (new) — `ClubLevelSetting extends ClubLevelSettingSchema`. `@belongsTo(() => Level)` `declare level`; `@belongsTo(() => Club)` `declare club`.
@@ -153,9 +155,7 @@ export const updateProgramValidator = vine.withMetaData<{ programId: number }>()
       },
     }),
   description: vine.string().trim().minLength(1).maxLength(2000),
-  levels: vine
-    .array(vine.object({ id: vine.number().optional(), ...levelObject }))
-    .minLength(1),
+  levels: vine.array(vine.object({ id: vine.number().optional(), ...levelObject })).minLength(1),
 })
 ```
 
@@ -169,6 +169,7 @@ export const updateLevelSettingsValidator = vine.create({
 ```
 
 ### Business rules
+
 - **≥1 level** per program. Owner: the `.minLength(1)` array rule (store + update).
 - **Case-insensitive unique program name**, excluding self on update. Owner: the validator `unique` rule (`caseInsensitive: true` + `filter` on update).
 - **Fee cedis → minor units** conversion. Owner: `ProgramAuthoringService` (level fees) and `LevelSettingsController.update` (override fee).

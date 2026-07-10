@@ -1,10 +1,12 @@
 ---
 capability: memberships
+change: organisations-and-schools
+synced: 2026-07-10
 ---
 
-# Memberships — State
+# Delta — memberships
 
-## Requirements
+## ADDED
 
 ### School creator becomes Administrator
 
@@ -28,3 +30,17 @@ capability: memberships
 - Given a brand-new invitee with no completed profile, when they accept an invitation, then they complete their profile before reaching the school dashboard.
 - Given a person accepts an invitation to a school, when they join, then that school and its organisation become active and they land on its dashboard, even if they already belong to other schools or organisations.
 - Given a person is already a member of a school, when a link for an already-accepted invitation to that school is opened again, then no duplicate membership is created.
+
+## MODIFIED
+
+_None._
+
+## REMOVED
+
+### Club creator becomes Administrator
+
+### Club role set is defined
+
+### Club-scoped role membership
+
+### Joining a club by invitation

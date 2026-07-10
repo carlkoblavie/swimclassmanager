@@ -25,27 +25,27 @@ Reads: testing.md
 
 > This is the scope inventory for this change — every behavior the change makes observable, with a coverage decision per row. It is not the test list.
 
-| Observable behavior | Decision | Notes |
-| --- | --- | --- |
-| Programs list shows each program with its levels (name, age group, description, capacity) and each level's fee as "GHS X.XX" | add | — |
-| An empty catalog shows a "no programs yet" message | add | — |
-| Creating a program with 1+ levels persists it and its levels (fee stored as minor units) and lands on the list with a confirmation | add | — |
-| Creating with a duplicate program name (case-insensitive) is rejected and nothing is created | add | — |
-| Creating a program with no level is rejected | add | — |
-| Creating with a missing required field, a negative fee, or a non-positive/non-whole capacity is rejected | add | — |
-| The edit form is prefilled with the program and its levels (fee shown in cedis) | add | — |
-| Editing a program updates its name/description and an existing level | add | — |
-| Editing adds a new level to a program | add | — |
-| Editing removes a level from a program | add | — |
-| Editing to leave a program with zero levels is rejected | add | — |
-| Renaming a program to an existing name (case-insensitive) is rejected | add | — |
-| Removing a program deletes it, its levels, and its club settings, with a confirmation | add | — |
-| Setting a club's fee override changes that club's fee only; another club still sees the default | add | — |
-| Turning a level's availability off applies to that club only; another club still sees it available | add | — |
-| Clearing a club's fee override restores the platform default | add | — |
-| A non-manager member does not see the create/edit/remove/settings controls | add | — |
-| A non-manager visiting a manage route is denied | add | — |
-| A non-manager submitting a manage action (store/update/destroy/settings) is blocked | skip | unreachable via UI — controls hidden + routes gated; covered by the manage-route-denied row |
+| Observable behavior                                                                                                                | Decision | Notes                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| Programs list shows each program with its levels (name, age group, description, capacity) and each level's fee as "GHS X.XX"       | add      | —                                                                                           |
+| An empty catalog shows a "no programs yet" message                                                                                 | add      | —                                                                                           |
+| Creating a program with 1+ levels persists it and its levels (fee stored as minor units) and lands on the list with a confirmation | add      | —                                                                                           |
+| Creating with a duplicate program name (case-insensitive) is rejected and nothing is created                                       | add      | —                                                                                           |
+| Creating a program with no level is rejected                                                                                       | add      | —                                                                                           |
+| Creating with a missing required field, a negative fee, or a non-positive/non-whole capacity is rejected                           | add      | —                                                                                           |
+| The edit form is prefilled with the program and its levels (fee shown in cedis)                                                    | add      | —                                                                                           |
+| Editing a program updates its name/description and an existing level                                                               | add      | —                                                                                           |
+| Editing adds a new level to a program                                                                                              | add      | —                                                                                           |
+| Editing removes a level from a program                                                                                             | add      | —                                                                                           |
+| Editing to leave a program with zero levels is rejected                                                                            | add      | —                                                                                           |
+| Renaming a program to an existing name (case-insensitive) is rejected                                                              | add      | —                                                                                           |
+| Removing a program deletes it, its levels, and its club settings, with a confirmation                                              | add      | —                                                                                           |
+| Setting a club's fee override changes that club's fee only; another club still sees the default                                    | add      | —                                                                                           |
+| Turning a level's availability off applies to that club only; another club still sees it available                                 | add      | —                                                                                           |
+| Clearing a club's fee override restores the platform default                                                                       | add      | —                                                                                           |
+| A non-manager member does not see the create/edit/remove/settings controls                                                         | add      | —                                                                                           |
+| A non-manager visiting a manage route is denied                                                                                    | add      | —                                                                                           |
+| A non-manager submitting a manage action (store/update/destroy/settings) is blocked                                                | skip     | unreachable via UI — controls hidden + routes gated; covered by the manage-route-denied row |
 
 ## Test list (ordered)
 
@@ -78,6 +78,7 @@ Reads: testing.md
 Shared manager setup (unless noted): `group.each.setup` truncates the DB then runs `seedRoles()`; a `UserFactory.apply('completed')` user is joined to a `ClubFactory` club as `Administrator` via `joinClub`, then `browserContext.loginAs(user)` before the first visit. "Manager" = Administrator or Head Coach (both hold `program.manage`). Adding/editing a level is driven through the **Add/Edit level pop up** (fill → confirm) before submitting the program form.
 
 ### Test 1 — creates a program with levels and lands on the list
+
 - **Surface:** ProgramsController.store
 - **Suite:** browser
 - **Setup:** Factories: UserFactory('completed'), ClubFactory. Auth: manager (Administrator), loginAs. Other: seedRoles.
@@ -90,6 +91,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** locks create + nested-level persistence + the cedis→minor-units conversion (50 → 5000).
 
 ### Test 2 — rejects a duplicate program name (case-insensitive) and creates nothing
+
 - **Surface:** ProgramsController.store
 - **Suite:** browser
 - **Setup:** manager; an existing `ProgramFactory` program named "Learn to Swim".
@@ -102,6 +104,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** case-insensitive unique program name (validator `unique` with `caseInsensitive`).
 
 ### Test 3 — rejects a program with no level
+
 - **Surface:** ProgramsController.store
 - **Suite:** browser
 - **Setup:** manager.
@@ -114,6 +117,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** `levels` `minLength(1)` rule; requires the summary to be emptiable (contract).
 
 ### Test 4 — rejects an invalid submission ({case})
+
 - **Surface:** ProgramsController.store
 - **Suite:** browser
 - **Setup:** manager. Parameterized rows: `{ case: 'missing program name' }`, `{ case: 'negative fee' }`, `{ case: 'non-whole capacity' }`.
@@ -126,6 +130,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** server value rules — name required, `fee` `min(0)`, `capacity` `withoutDecimals().positive()`.
 
 ### Test 5 — lists programs with their levels and each level's fee
+
 - **Surface:** ProgramsController.index
 - **Suite:** browser
 - **Setup:** manager (any member suffices); a `ProgramFactory` "Learn to Swim" with a `LevelFactory` "Beginners" (`default_fee` 5000, `capacity` 10), no club settings.
@@ -136,6 +141,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** index render + default-fee formatting (minor units → "GHS 50.00").
 
 ### Test 6 — shows an empty-catalog message
+
 - **Surface:** ProgramsController.index
 - **Suite:** browser
 - **Setup:** a member (any role) with an active club; no programs.
@@ -146,6 +152,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** empty-catalog branch.
 
 ### Test 7 — a level's fee and availability reflect the viewing club, not another club's settings
+
 - **Surface:** ProgramsController.index
 - **Suite:** browser
 - **Setup:** two clubs A and B; a program with a level (`default_fee` 5000); a `ClubLevelSettingFactory` row for **club A** (`fee` 4000, `available` false). `userB` is a member of **club B** (joinClub, any role, active club B); loginAs userB.
@@ -156,6 +163,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** per-club resolution — the index preloads only the viewing club's `club_level_settings`; another club's override must not leak.
 
 ### Test 8 — edit form is prefilled with the program and its levels
+
 - **Surface:** ProgramsController.edit
 - **Suite:** browser
 - **Setup:** manager; a program "Learn to Swim" + level "Beginners" (`default_fee` 5000).
@@ -166,6 +174,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** `forEdit` transformer variant emits `default_fee` back in cedis for prefill.
 
 ### Test 9 — edits a program's name/description and an existing level
+
 - **Surface:** ProgramsController.update
 - **Suite:** browser
 - **Setup:** manager; program "Learn to Swim" + level "Beginners" (`default_fee` 5000).
@@ -177,6 +186,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** update + reconcile of an existing level (matched by id).
 
 ### Test 10 — adds a level to a program
+
 - **Surface:** ProgramsController.update
 - **Suite:** browser
 - **Setup:** manager; program with one level "Beginners".
@@ -188,6 +198,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** reconcile — a level without an id is created.
 
 ### Test 11 — removes a level from a program
+
 - **Surface:** ProgramsController.update
 - **Suite:** browser
 - **Setup:** manager; program with two levels "Beginners" and "Intermediate".
@@ -199,6 +210,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** reconcile — an existing level absent from the payload is deleted.
 
 ### Test 12 — rejects leaving a program with zero levels
+
 - **Surface:** ProgramsController.update
 - **Suite:** browser
 - **Setup:** manager; program with one level "Beginners".
@@ -211,6 +223,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** ≥1-level invariant enforced on update.
 
 ### Test 13 — rejects renaming to an existing program name (case-insensitive)
+
 - **Surface:** ProgramsController.update
 - **Suite:** browser
 - **Setup:** manager; two programs "Learn to Swim" (with a level) and "Adult Lessons".
@@ -223,6 +236,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** unique-name rule with self excluded via `meta.programId`.
 
 ### Test 14 — removes a program with its levels and club settings
+
 - **Surface:** ProgramsController.destroy
 - **Suite:** browser
 - **Setup:** manager; program + level; a `ClubLevelSettingFactory` row for the manager's club on that level.
@@ -234,6 +248,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** destroy cascades to levels and their club settings.
 
 ### Test 15 — setting a club's fee override updates that club's displayed fee
+
 - **Surface:** LevelSettingsController.update
 - **Suite:** browser
 - **Setup:** manager (Administrator of club A); program + level (`default_fee` 5000), no existing setting.
@@ -245,6 +260,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** `level_settings.update` upserts the active club's fee override (cedis → minor units).
 
 ### Test 16 — turning a level's availability off updates that club's display
+
 - **Surface:** LevelSettingsController.update
 - **Suite:** browser
 - **Setup:** manager (club A); program + level.
@@ -256,6 +272,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** `level_settings.update` sets the active club's availability.
 
 ### Test 17 — clearing a fee override restores the default
+
 - **Surface:** LevelSettingsController.update
 - **Suite:** browser
 - **Setup:** manager (club A); program + level (`default_fee` 5000); an existing `ClubLevelSettingFactory` row for club A with `fee` 4000.
@@ -267,6 +284,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** a null fee clears the override; display falls back to the level default.
 
 ### Test 18 — a non-manager member does not see the manage controls
+
 - **Surface:** ProgramsController.index (Guard)
 - **Suite:** browser
 - **Setup:** a `Parent` member of a club (joinClub, active club); a seeded program with a level.
@@ -277,6 +295,7 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 - **Why:** `<Guard for="program.manage">` hides management affordances from non-managers.
 
 ### Test 19 — a non-manager is denied a manage route ({route})
+
 - **Surface:** ProgramsController.create / .edit (authorize middleware)
 - **Suite:** browser
 - **Setup:** a `Parent` member of a club; for the `edit` row, a seeded program. Parameterized rows: `{ route: 'programs.create' }`, `{ route: 'programs.edit' }`.
@@ -291,12 +310,12 @@ Shared manager setup (unless noted): `group.each.setup` truncates the DB then ru
 
 Reads: testing.md
 
-| Test | Factory | Existing / New |
-| --- | --- | --- |
-| All | UserFactory, ClubFactory | existing (ClubFactory needs a `slug` default — see Pre-implementation requirements) |
-| T2, T5, T7, T8–T14, T18, T19 | ProgramFactory | new |
-| T5, T7, T8–T14 | LevelFactory | new |
-| T7, T14, T17 | ClubLevelSettingFactory | new |
+| Test                         | Factory                  | Existing / New                                                                      |
+| ---------------------------- | ------------------------ | ----------------------------------------------------------------------------------- |
+| All                          | UserFactory, ClubFactory | existing (ClubFactory needs a `slug` default — see Pre-implementation requirements) |
+| T2, T5, T7, T8–T14, T18, T19 | ProgramFactory           | new                                                                                 |
+| T5, T7, T8–T14               | LevelFactory             | new                                                                                 |
+| T7, T14, T17                 | ClubLevelSettingFactory  | new                                                                                 |
 
 Helpers (existing): `seedRoles` (grants `program.manage` via `rolePermissions`), `joinClub` (membership + role + active club).
 
@@ -309,7 +328,7 @@ None. This change sends no mail, emits no events, and wraps no external IO — n
 ## Order rationale
 
 - The `store` happy path (T1) leads: it is the thinnest slice that builds the models, service, validator, and create surface end to end; every later read/edit test depends on that machinery.
-- The two-club isolation test (T7) sits with the index surface because its observable outcome is what the *viewing* club renders; it seeds the other club's override via a factory rather than a second session.
+- The two-club isolation test (T7) sits with the index surface because its observable outcome is what the _viewing_ club renders; it seeds the other club's override via a factory rather than a second session.
 
 ## Runner-model risks
 

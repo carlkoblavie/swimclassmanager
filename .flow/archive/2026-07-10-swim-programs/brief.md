@@ -32,18 +32,18 @@ A club member opens their club's **Programs** area. Every member can view what t
 
 ## Decisions made
 
-| Decision | Alternatives | Why |
-| --- | --- | --- |
-| Platform-wide shared program catalog | Per-club independent programs | The same programs recur across clubs; defining each once means every club benefits and no one re-authors duplicates. |
-| Two levels: a program with one or more levels | Flat, single-level offerings | A broad program spans several targeted levels (age / skill); the two-level shape matches how clubs describe their offerings. |
-| Level definition shared; **fee and availability per club** | Everything shared / everything per-club | The offering is standard across clubs, but price and staffing vary by club location. |
-| Availability toggled **per level** | Per whole program | A club may be able to staff some levels but not others; per-level control matches "no personnel yet" precisely. |
-| **Any** Administrator or Head Coach may edit or remove a shared program | Only the club that created it | The catalog is communal — no single club owns a shared program. |
-| **Unique** program names across the platform | Allow duplicates / silently reuse by name | One shared catalog needs exactly one entry per program; duplicates would fragment it. |
-| **All members view**, Administrator/Head Coach manage | Administrator/Head Coach only / public | Members should see what their club offers; managing stays with the club's leaders. |
-| Sub-item is a **"level"** | "variation" / "class" / "session" | Clubs think in age / skill levels; "class" and "session" are reserved for a later scheduling layer. |
-| **Skills deferred** to a future class/session layer beneath a level | Skills on the program or level now | Skills describe what a specific class or session develops; they belong one layer deeper, in a later change. |
-| Single-level programs are **not** collapsed into one item | Collapse a one-level program into a single item | Dropped for simplicity — a program is always shown as a program with its levels, even when there is one. |
+| Decision                                                                | Alternatives                                    | Why                                                                                                                          |
+| ----------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Platform-wide shared program catalog                                    | Per-club independent programs                   | The same programs recur across clubs; defining each once means every club benefits and no one re-authors duplicates.         |
+| Two levels: a program with one or more levels                           | Flat, single-level offerings                    | A broad program spans several targeted levels (age / skill); the two-level shape matches how clubs describe their offerings. |
+| Level definition shared; **fee and availability per club**              | Everything shared / everything per-club         | The offering is standard across clubs, but price and staffing vary by club location.                                         |
+| Availability toggled **per level**                                      | Per whole program                               | A club may be able to staff some levels but not others; per-level control matches "no personnel yet" precisely.              |
+| **Any** Administrator or Head Coach may edit or remove a shared program | Only the club that created it                   | The catalog is communal — no single club owns a shared program.                                                              |
+| **Unique** program names across the platform                            | Allow duplicates / silently reuse by name       | One shared catalog needs exactly one entry per program; duplicates would fragment it.                                        |
+| **All members view**, Administrator/Head Coach manage                   | Administrator/Head Coach only / public          | Members should see what their club offers; managing stays with the club's leaders.                                           |
+| Sub-item is a **"level"**                                               | "variation" / "class" / "session"               | Clubs think in age / skill levels; "class" and "session" are reserved for a later scheduling layer.                          |
+| **Skills deferred** to a future class/session layer beneath a level     | Skills on the program or level now              | Skills describe what a specific class or session develops; they belong one layer deeper, in a later change.                  |
+| Single-level programs are **not** collapsed into one item               | Collapse a one-level program into a single item | Dropped for simplicity — a program is always shown as a program with its levels, even when there is one.                     |
 
 ## Constraints the journey places on implementation
 
