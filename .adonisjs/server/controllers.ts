@@ -5,11 +5,12 @@
 
 export const controllers = {
   Accounts: () => import('#controllers/accounts_controller'),
-  Clubs: () => import('#controllers/clubs_controller'),
+  ActiveSchools: () => import('#controllers/active_schools_controller'),
   Invitations: () => import('#controllers/invitations_controller'),
   LevelSettings: () => import('#controllers/level_settings_controller'),
   Memberships: () => import('#controllers/memberships_controller'),
   Programs: () => import('#controllers/programs_controller'),
+  Schools: () => import('#controllers/schools_controller'),
   Sessions: () => import('#controllers/sessions_controller'),
   SignInLinks: () => import('#controllers/sign_in_links_controller'),
   Signups: () => import('#controllers/signups_controller'),

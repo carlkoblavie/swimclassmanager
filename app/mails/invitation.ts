@@ -6,7 +6,7 @@ export default class InvitationMail extends BaseMail {
   constructor(
     private email: string,
     private token: string,
-    private clubName: string,
+    private schoolName: string,
     private roleName: string
   ) {
     super()
@@ -21,15 +21,15 @@ export default class InvitationMail extends BaseMail {
 
     this.message
       .to(this.email)
-      .subject(`You've been invited to join ${this.clubName}`)
+      .subject(`You've been invited to join ${this.schoolName}`)
       .htmlView('emails/invitation_html', {
         acceptUrl,
-        clubName: this.clubName,
+        schoolName: this.schoolName,
         roleName: this.roleName,
       })
       .textView('emails/invitation_text', {
         acceptUrl,
-        clubName: this.clubName,
+        schoolName: this.schoolName,
         roleName: this.roleName,
       })
   }

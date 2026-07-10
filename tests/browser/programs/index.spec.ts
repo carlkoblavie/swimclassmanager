@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
-import { ClubFactory } from '#database/factories/club_factory'
+import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { LevelFactory } from '#database/factories/level_factory'
-import { ClubLevelSettingFactory } from '#database/factories/club_level_setting_factory'
-import { seedRoles, joinClub } from '#tests/helpers'
+import { SchoolLevelSettingFactory } from '#database/factories/school_level_setting_factory'
+import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 
 test.group('Programs index', (group) => {
@@ -21,8 +21,8 @@ test.group('Programs index', (group) => {
     browserContext,
   }) => {
     const user = await UserFactory.apply('completed').create()
-    const club = await ClubFactory.merge({ createdByUserId: user.id }).create()
-    await joinClub(user, club, RoleName.ADMINISTRATOR)
+    const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
+    await joinSchool(user, school, RoleName.ADMINISTRATOR)
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     await LevelFactory.merge({
       programId: program.id,
@@ -42,37 +42,37 @@ test.group('Programs index', (group) => {
 
   test('shows an empty-catalog message', async ({ visit, route, browserContext }) => {
     const user = await UserFactory.apply('completed').create()
-    const club = await ClubFactory.merge({ createdByUserId: user.id }).create()
-    await joinClub(user, club, RoleName.ADMINISTRATOR)
+    const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
+    await joinSchool(user, school, RoleName.ADMINISTRATOR)
     await browserContext.loginAs(user)
 
     const page = await visit(route('programs.index'))
     await page.assertVisible('text=No programs yet')
   })
 
-  test('a level fee and availability reflect the viewing club, not another club', async ({
+  test('a level fee and availability reflect the viewing school, not another school', async ({
     visit,
     route,
     browserContext,
   }) => {
     const owner = await UserFactory.apply('completed').create()
-    const clubA = await ClubFactory.merge({ createdByUserId: owner.id }).create()
-    const clubB = await ClubFactory.merge({ createdByUserId: owner.id }).create()
+    const schoolA = await SchoolFactory.merge({ createdByUserId: owner.id }).create()
+    const schoolB = await SchoolFactory.merge({ createdByUserId: owner.id }).create()
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await LevelFactory.merge({
       programId: program.id,
       name: 'Beginners',
       defaultFee: 5000,
     }).create()
-    await ClubLevelSettingFactory.merge({
-      clubId: clubA.id,
+    await SchoolLevelSettingFactory.merge({
+      schoolId: schoolA.id,
       levelId: level.id,
       fee: 4000,
       available: false,
     }).create()
 
     const userB = await UserFactory.apply('completed').create()
-    await joinClub(userB, clubB, RoleName.PARENT)
+    await joinSchool(userB, schoolB, RoleName.PARENT)
     await browserContext.loginAs(userB)
 
     const page = await visit(route('programs.index'))

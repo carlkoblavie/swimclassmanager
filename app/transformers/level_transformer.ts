@@ -1,6 +1,6 @@
 import { BaseTransformer } from '@adonisjs/core/transformers'
 import type Level from '#models/level'
-import type ClubLevelSetting from '#models/club_level_setting'
+import type SchoolLevelSetting from '#models/school_level_setting'
 
 function formatCedis(minorUnits: number): string {
   return `GHS ${(minorUnits / 100).toFixed(2)}`
@@ -9,13 +9,13 @@ function formatCedis(minorUnits: number): string {
 export default class LevelTransformer extends BaseTransformer<Level> {
   constructor(
     resource: Level,
-    protected clubId: number
+    protected schoolId: number
   ) {
     super(resource)
   }
 
   toObject() {
-    const settings = (this.resource.clubLevelSettings ?? []) as unknown as ClubLevelSetting[]
+    const settings = (this.resource.schoolLevelSettings ?? []) as unknown as SchoolLevelSetting[]
     const setting = settings[0]
     const effectiveFee = setting?.fee ?? this.resource.defaultFee
     const available = setting?.available ?? true

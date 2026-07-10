@@ -7,10 +7,11 @@
 import type { InferData, InferVariants } from '@adonisjs/core/types/transformers'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
 import type AccountTransformer from '#transformers/account_transformer'
-import type ClubTransformer from '#transformers/club_transformer'
 import type LearnerTransformer from '#transformers/learner_transformer'
 import type LevelTransformer from '#transformers/level_transformer'
+import type OrganisationTransformer from '#transformers/organisation_transformer'
 import type ProgramTransformer from '#transformers/program_transformer'
+import type SchoolTransformer from '#transformers/school_transformer'
 import type SignupTransformer from '#transformers/signup_transformer'
 import type UserTransformer from '#transformers/user_transformer'
 import type InertiaMiddleware from '#middleware/inertia_middleware'
@@ -20,10 +21,6 @@ export namespace Data {
   export namespace Account {
     export type Variants = InferVariants<AccountTransformer>
   }
-  export type Club = InferData<ClubTransformer>
-  export namespace Club {
-    export type Variants = InferVariants<ClubTransformer>
-  }
   export type Learner = InferData<LearnerTransformer>
   export namespace Learner {
     export type Variants = InferVariants<LearnerTransformer>
@@ -32,9 +29,17 @@ export namespace Data {
   export namespace Level {
     export type Variants = InferVariants<LevelTransformer>
   }
+  export type Organisation = InferData<OrganisationTransformer>
+  export namespace Organisation {
+    export type Variants = InferVariants<OrganisationTransformer>
+  }
   export type Program = InferData<ProgramTransformer>
   export namespace Program {
     export type Variants = InferVariants<ProgramTransformer>
+  }
+  export type School = InferData<SchoolTransformer>
+  export namespace School {
+    export type Variants = InferVariants<SchoolTransformer>
   }
   export type Signup = InferData<SignupTransformer>
   export namespace Signup {

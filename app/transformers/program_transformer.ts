@@ -6,7 +6,7 @@ import type Level from '#models/level'
 export default class ProgramTransformer extends BaseTransformer<Program> {
   constructor(
     resource: Program,
-    protected clubId: number
+    protected schoolId: number
   ) {
     super(resource)
   }
@@ -14,7 +14,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
   toObject() {
     return {
       ...this.pick(this.resource, ['id', 'name', 'description']),
-      levels: LevelTransformer.transform(this.whenLoaded(this.resource.levels), this.clubId),
+      levels: LevelTransformer.transform(this.whenLoaded(this.resource.levels), this.schoolId),
     }
   }
 

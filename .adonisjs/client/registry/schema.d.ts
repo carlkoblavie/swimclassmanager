@@ -91,28 +91,40 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['destroy']>>>
     }
   }
-  'clubs.create': {
+  'schools.create': {
     methods: ["GET","HEAD"]
-    pattern: '/clubs/create'
+    pattern: '/schools/create'
     types: {
       body: {}
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['create']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['create']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['create']>>>
     }
   }
-  'clubs.store': {
+  'schools.store': {
     methods: ["POST"]
-    pattern: '/clubs'
+    pattern: '/schools'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/club').storeClubValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/school').storeSchoolValidator)>>
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/club').storeClubValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+      query: ExtractQuery<InferInput<(typeof import('#validators/school').storeSchoolValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'active_schools.update': {
+    methods: ["PATCH"]
+    pattern: '/active-school'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/active_school').updateActiveSchoolValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/active_school').updateActiveSchoolValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/active_schools_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/active_schools_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'invitations.create': {
@@ -153,11 +165,11 @@ export interface Registry {
   }
   'signups.create': {
     methods: ["GET","HEAD"]
-    pattern: '/register/:slug'
+    pattern: '/register/:organisationSlug/:schoolSlug'
     types: {
       body: {}
-      paramsTuple: [ParamValue]
-      params: { slug: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['create']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['create']>>>
@@ -165,11 +177,11 @@ export interface Registry {
   }
   'signups.store': {
     methods: ["POST"]
-    pattern: '/register/:slug'
+    pattern: '/register/:organisationSlug/:schoolSlug'
     types: {
       body: ExtractBody<InferInput<(typeof import('#validators/signup').storeSignupValidator)>>
-      paramsTuple: [ParamValue]
-      params: { slug: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue }
       query: ExtractQuery<InferInput<(typeof import('#validators/signup').storeSignupValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }

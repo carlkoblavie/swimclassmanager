@@ -1,15 +1,19 @@
 import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
-import { ClubSchema } from '#database/schema'
+import { SchoolSchema } from '#database/schema'
 import User from '#models/user'
 import Membership from '#models/membership'
 import Invitation from '#models/invitation'
 import Signup from '#models/signup'
-import ClubLevelSetting from '#models/club_level_setting'
+import SchoolLevelSetting from '#models/school_level_setting'
+import Organisation from '#models/organisation'
 
-export default class Club extends ClubSchema {
+export default class School extends SchoolSchema {
   @belongsTo(() => User, { foreignKey: 'createdByUserId' })
   declare creator: BelongsTo<typeof User>
+
+  @belongsTo(() => Organisation)
+  declare organisation: BelongsTo<typeof Organisation>
 
   @hasMany(() => Membership)
   declare memberships: HasMany<typeof Membership>
@@ -20,6 +24,6 @@ export default class Club extends ClubSchema {
   @hasMany(() => Signup)
   declare signups: HasMany<typeof Signup>
 
-  @hasMany(() => ClubLevelSetting)
-  declare levelSettings: HasMany<typeof ClubLevelSetting>
+  @hasMany(() => SchoolLevelSetting)
+  declare levelSettings: HasMany<typeof SchoolLevelSetting>
 }

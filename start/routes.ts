@@ -16,7 +16,7 @@ router
   .renderInertia('home', {})
   .use(middleware.auth())
   .use(middleware.completeProfile())
-  .use(middleware.activeClub())
+  .use(middleware.activeSchool())
   .as('home')
 
 router
@@ -37,11 +37,17 @@ router
 
 router
   .group(() => {
-    router.get('clubs/create', [controllers.Clubs, 'create'])
-    router.post('clubs', [controllers.Clubs, 'store'])
+    router.get('schools/create', [controllers.Schools, 'create'])
+    router.post('schools', [controllers.Schools, 'store'])
   })
   .use(middleware.auth())
   .use(middleware.completeProfile())
+
+router
+  .patch('active-school', [controllers.ActiveSchools, 'update'])
+  .use(middleware.auth())
+  .use(middleware.completeProfile())
+  .use(middleware.activeSchool())
 
 router
   .group(() => {
@@ -50,30 +56,31 @@ router
   })
   .use(middleware.auth())
   .use(middleware.completeProfile())
-  .use(middleware.activeClub())
+  .use(middleware.activeSchool())
   .use(middleware.authorize('invitation.create'))
 
 // Accept an invitation — open link, the token is the authority.
 router.get('invitations/:token', [controllers.Memberships, 'store'])
 
-// Public learn-to-swim sign-up — no auth, club resolved by slug.
+// Public learn-to-swim sign-up — no auth, school resolved by organisation + school slugs.
 router
   .group(() => {
-    router.get('register/:slug', [controllers.Signups, 'create'])
-    router.post('register/:slug', [controllers.Signups, 'store'])
+    router.get('register/:organisationSlug/:schoolSlug', [controllers.Signups, 'create'])
+    router.post('register/:organisationSlug/:schoolSlug', [controllers.Signups, 'store'])
   })
-  .where('slug', router.matchers.slug())
+  .where('organisationSlug', router.matchers.slug())
+  .where('schoolSlug', router.matchers.slug())
 
-// Admin sign-ups list — active-club scoped, permission-gated.
+// Admin sign-ups list — active-school scoped, permission-gated.
 router
   .get('signups', [controllers.Signups, 'index'])
   .use(middleware.auth())
   .use(middleware.completeProfile())
-  .use(middleware.activeClub())
+  .use(middleware.activeSchool())
   .use(middleware.authorize('signup.view'))
 
 // Swim programs — shared catalog (all members view; Admin/Head Coach manage)
-// plus each club's per-level fee/availability settings.
+// plus each school's per-level fee/availability settings.
 router
   .group(() => {
     router
@@ -87,4 +94,4 @@ router
   })
   .use(middleware.auth())
   .use(middleware.completeProfile())
-  .use(middleware.activeClub())
+  .use(middleware.activeSchool())

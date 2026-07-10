@@ -23,7 +23,7 @@ export default function LevelSettingsControl({ level }: { level: Data.Level }) {
     <form onSubmit={submit}>
       <Group gap="sm" mt="sm" align="flex-end">
         <TextInput
-          label="Your club's fee (GHS)"
+          label="Your school's fee (GHS)"
           type="number"
           size="xs"
           w={170}

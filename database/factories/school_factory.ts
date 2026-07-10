@@ -1,8 +1,8 @@
 import factory from '@adonisjs/lucid/factories'
-import Club from '#models/club'
+import School from '#models/school'
 
-export const ClubFactory = factory
-  .define(Club, async ({ faker }) => {
+export const SchoolFactory = factory
+  .define(School, async ({ faker }) => {
     const name = faker.company.name()
     return {
       name,

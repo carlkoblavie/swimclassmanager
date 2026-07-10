@@ -1,10 +1,10 @@
 import { belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import { ClubLevelSettingSchema } from '#database/schema'
-import Club from '#models/club'
+import { SchoolLevelSettingSchema } from '#database/schema'
+import School from '#models/school'
 import Level from '#models/level'
 
-export default class ClubLevelSetting extends ClubLevelSettingSchema {
+export default class SchoolLevelSetting extends SchoolLevelSettingSchema {
   // SQLite stores booleans as 0/1; coerce so reads are real booleans and
   // writes bind an integer (better-sqlite3 cannot bind a JS boolean).
   @column({
@@ -13,8 +13,8 @@ export default class ClubLevelSetting extends ClubLevelSettingSchema {
   })
   declare available: boolean
 
-  @belongsTo(() => Club)
-  declare club: BelongsTo<typeof Club>
+  @belongsTo(() => School)
+  declare school: BelongsTo<typeof School>
 
   @belongsTo(() => Level)
   declare level: BelongsTo<typeof Level>

@@ -12,6 +12,7 @@ import {
   Button,
   Container,
   Group,
+  NativeSelect,
   NavLink,
   Stack,
   Text,
@@ -64,10 +65,10 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
   const { url } = usePage()
   useFlashToasts(children)
 
-  const { user, activeClub } = children.props
+  const { user, activeOrganisation, activeSchool, availableSchools } = children.props
 
-  // Signed into a club → full app shell with a sidebar.
-  if (activeClub) {
+  // Signed into a school → full app shell with a sidebar.
+  if (activeSchool) {
     return (
       <AppShell
         header={{ height: 60 }}
@@ -86,9 +87,36 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
 
         <AppShell.Navbar p="md">
           <Stack gap={4}>
-            <Text size="xs" tt="uppercase" c="dimmed" fw={700} mb={4}>
-              {activeClub.name}
+            {activeOrganisation && (
+              <Text size="xs" tt="uppercase" c="dimmed" fw={700}>
+                {activeOrganisation.name}
+              </Text>
+            )}
+            <Text size="sm" fw={700} mb={4}>
+              {activeSchool.name}
             </Text>
+            {availableSchools.length > 1 && (
+              <Form route="active_schools.update">
+                {({ processing }) => (
+                  <Group gap="xs" align="end" mb="sm">
+                    <NativeSelect
+                      flex={1}
+                      size="xs"
+                      label="Switch school"
+                      name="schoolId"
+                      defaultValue={String(activeSchool.id)}
+                      data={availableSchools.map((school) => ({
+                        value: String(school.id),
+                        label: school.name,
+                      }))}
+                    />
+                    <Button type="submit" size="xs" variant="light" loading={processing}>
+                      Switch
+                    </Button>
+                  </Group>
+                )}
+              </Form>
+            )}
             <NavLink component={Link} route="home" label="Dashboard" active={url === '/'} />
             <NavLink
               component={Link}
@@ -114,9 +142,9 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
             </Guard>
             <NavLink
               component={Link}
-              route="clubs.create"
-              label="Create a club"
-              active={url.startsWith('/clubs')}
+              route="schools.create"
+              label="Create a school"
+              active={url.startsWith('/schools')}
             />
           </Stack>
         </AppShell.Navbar>

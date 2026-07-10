@@ -3,20 +3,32 @@ import type { InertiaProps } from '~/types'
 import { Guard } from '~/utils/permissions'
 import ShareSignupLink from '~/components/share_signup_link'
 
-export default function Home({ activeClub }: InertiaProps) {
+export default function Home({ activeOrganisation, activeSchool }: InertiaProps) {
   return (
     <Container size="md" py="xl">
       <Stack gap="xl">
-        {activeClub && (
+        {activeSchool && (
           <div>
-            <Title order={1}>{activeClub.name}</Title>
+            {activeOrganisation && (
+              <Text c="dimmed" fw={600} tt="uppercase" size="sm">
+                {activeOrganisation.name}
+              </Text>
+            )}
+            <Title order={1}>{activeSchool.name}</Title>
             <Text c="dimmed" size="lg">
-              {activeClub.location}
+              {activeSchool.location}
             </Text>
           </div>
         )}
 
-        <Guard for="signup.view">{activeClub && <ShareSignupLink slug={activeClub.slug} />}</Guard>
+        <Guard for="signup.view">
+          {activeOrganisation && activeSchool && (
+            <ShareSignupLink
+              organisationSlug={activeOrganisation.slug}
+              schoolSlug={activeSchool.slug}
+            />
+          )}
+        </Guard>
       </Stack>
     </Container>
   )

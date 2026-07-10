@@ -18,12 +18,18 @@ import type { InertiaProps } from '~/types'
 import LearnerModal, { type LearnerDraft } from '~/components/learner_modal'
 
 type PageProps = InertiaProps<{
-  club: { name: string }
-  slug: string
+  school: { name: string }
+  organisationSlug: string
+  schoolSlug: string
   genders: string[]
 }>
 
-export default function RegisterLearner({ club, slug, genders }: PageProps) {
+export default function RegisterLearner({
+  school,
+  organisationSlug,
+  schoolSlug,
+  genders,
+}: PageProps) {
   const [learners, setLearners] = useState<LearnerDraft[]>([])
   const [opened, { open, close }] = useDisclosure(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -48,11 +54,11 @@ export default function RegisterLearner({ club, slug, genders }: PageProps) {
     <Container size="sm" py="xl">
       <Stack gap="lg">
         <div>
-          <Title order={1}>Sign up with {club.name}</Title>
+          <Title order={1}>Sign up with {school.name}</Title>
           <Text c="dimmed">Register a learner for lessons — no account needed.</Text>
         </div>
 
-        <Form route="signups.store" routeParams={{ slug }}>
+        <Form route="signups.store" routeParams={{ organisationSlug, schoolSlug }}>
           {({ errors, processing }) => (
             <Stack gap="lg">
               <Stack gap="md">

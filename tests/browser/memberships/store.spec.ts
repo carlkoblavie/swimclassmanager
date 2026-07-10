@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
-import { ClubFactory } from '#database/factories/club_factory'
+import { SchoolFactory } from '#database/factories/school_factory'
 import { InvitationFactory } from '#database/factories/invitation_factory'
-import { seedRoles, joinClub } from '#tests/helpers'
+import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import Role from '#models/role'
 import User from '#models/user'
@@ -23,10 +23,10 @@ test.group('Memberships store', (group) => {
     assert,
   }) => {
     const founder = await UserFactory.create()
-    const club = await ClubFactory.merge({ createdByUserId: founder.id }).create()
+    const school = await SchoolFactory.merge({ createdByUserId: founder.id }).create()
     const teacher = await Role.findByOrFail('name', RoleName.TEACHER)
     const invitation = await InvitationFactory.merge({
-      clubId: club.id,
+      schoolId: school.id,
       roleId: teacher.id,
       email: 'invitee@example.com',
     }).create()
@@ -38,30 +38,30 @@ test.group('Memberships store', (group) => {
     await page.assertExists(page.getByRole('button', { name: 'Logout' }))
 
     const user = await User.findByOrFail('email', 'invitee@example.com')
-    await db.assertHas('users', { id: user.id, active_club_id: club.id })
+    await db.assertHas('users', { id: user.id, active_school_id: school.id })
     const membership = await Membership.query()
-      .where('club_id', club.id)
+      .where('school_id', school.id)
       .where('user_id', user.id)
       .firstOrFail()
     await membership.load('roles')
     assert.isTrue(membership.roles.some((role) => role.name === RoleName.TEACHER))
   })
 
-  test('a valid token for an existing completed user signs in, joins, and lands on the club dashboard', async ({
+  test('a valid token for an existing completed user signs in, joins, and lands on the school dashboard', async ({
     visit,
     route,
     db,
   }) => {
     const founder = await UserFactory.create()
-    const club = await ClubFactory.merge({
+    const school = await SchoolFactory.merge({
       createdByUserId: founder.id,
-      name: 'Aqua Swim Club',
+      name: 'Aqua Swim School',
       location: 'Accra',
     }).create()
     const invitee = await UserFactory.apply('completed').create()
     const teacher = await Role.findByOrFail('name', RoleName.TEACHER)
     const invitation = await InvitationFactory.merge({
-      clubId: club.id,
+      schoolId: school.id,
       roleId: teacher.id,
       email: invitee.email,
     }).create()
@@ -69,10 +69,10 @@ test.group('Memberships store', (group) => {
     const page = await visit(route('memberships.store', { token: invitation.token }))
 
     await page.assertPath(route('home'))
-    await page.assertVisible(page.getByRole('heading', { name: 'Aqua Swim Club' }))
+    await page.assertVisible(page.getByRole('heading', { name: 'Aqua Swim School' }))
     await page.assertExists(page.getByRole('button', { name: 'Logout' }))
-    await db.assertHas('memberships', { club_id: club.id, user_id: invitee.id })
-    await db.assertHas('users', { id: invitee.id, active_club_id: club.id })
+    await db.assertHas('memberships', { school_id: school.id, user_id: invitee.id })
+    await db.assertHas('users', { id: invitee.id, active_school_id: school.id })
   })
 
   test('an expired invitation link shows the expired message and does not join', async ({
@@ -81,10 +81,10 @@ test.group('Memberships store', (group) => {
     db,
   }) => {
     const founder = await UserFactory.create()
-    const club = await ClubFactory.merge({ createdByUserId: founder.id }).create()
+    const school = await SchoolFactory.merge({ createdByUserId: founder.id }).create()
     const teacher = await Role.findByOrFail('name', RoleName.TEACHER)
     const invitation = await InvitationFactory.apply('expired')
-      .merge({ clubId: club.id, roleId: teacher.id, email: 'ghost@example.com' })
+      .merge({ schoolId: school.id, roleId: teacher.id, email: 'ghost@example.com' })
       .create()
 
     const page = await visit(route('memberships.store', { token: invitation.token }))
@@ -105,11 +105,11 @@ test.group('Memberships store', (group) => {
   }) => {
     const invitee = await UserFactory.apply('completed').create()
     const founder = await UserFactory.create()
-    const club = await ClubFactory.merge({ createdByUserId: founder.id }).create()
+    const school = await SchoolFactory.merge({ createdByUserId: founder.id }).create()
     const teacher = await Role.findByOrFail('name', RoleName.TEACHER)
-    await joinClub(invitee, club, RoleName.TEACHER)
+    await joinSchool(invitee, school, RoleName.TEACHER)
     const invitation = await InvitationFactory.apply('accepted')
-      .merge({ clubId: club.id, roleId: teacher.id, email: invitee.email })
+      .merge({ schoolId: school.id, roleId: teacher.id, email: invitee.email })
       .create()
 
     const page = await visit(route('memberships.store', { token: invitation.token }))
@@ -125,10 +125,10 @@ test.group('Memberships store', (group) => {
     db,
   }) => {
     const founder = await UserFactory.create()
-    const club = await ClubFactory.merge({ createdByUserId: founder.id }).create()
+    const school = await SchoolFactory.merge({ createdByUserId: founder.id }).create()
     const teacher = await Role.findByOrFail('name', RoleName.TEACHER)
     const invitation = await InvitationFactory.merge({
-      clubId: club.id,
+      schoolId: school.id,
       roleId: teacher.id,
       email: 'invitee@example.com',
     }).create()

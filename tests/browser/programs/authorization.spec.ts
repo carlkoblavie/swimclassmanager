@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
-import { ClubFactory } from '#database/factories/club_factory'
+import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { LevelFactory } from '#database/factories/level_factory'
-import { seedRoles, joinClub } from '#tests/helpers'
+import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 
 test.group('Programs authorization', (group) => {
@@ -20,8 +20,8 @@ test.group('Programs authorization', (group) => {
     browserContext,
   }) => {
     const member = await UserFactory.apply('completed').create()
-    const club = await ClubFactory.merge({ createdByUserId: member.id }).create()
-    await joinClub(member, club, RoleName.PARENT)
+    const school = await SchoolFactory.merge({ createdByUserId: member.id }).create()
+    await joinSchool(member, school, RoleName.PARENT)
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
     await browserContext.loginAs(member)
@@ -39,8 +39,8 @@ test.group('Programs authorization', (group) => {
     ])
     .run(async ({ visit, route, browserContext }, row) => {
       const member = await UserFactory.apply('completed').create()
-      const club = await ClubFactory.merge({ createdByUserId: member.id }).create()
-      await joinClub(member, club, RoleName.PARENT)
+      const school = await SchoolFactory.merge({ createdByUserId: member.id }).create()
+      await joinSchool(member, school, RoleName.PARENT)
       const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
       await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
       await browserContext.loginAs(member)

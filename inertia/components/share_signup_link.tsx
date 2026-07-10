@@ -3,11 +3,12 @@ import { Button, Card, Code, Group, Stack, Text } from '@mantine/core'
 import { urlFor } from '~/client'
 
 type Props = {
-  slug: string
+  organisationSlug: string
+  schoolSlug: string
 }
 
-export default function ShareSignupLink({ slug }: Props) {
-  const path = urlFor('signups.create', { slug })
+export default function ShareSignupLink({ organisationSlug, schoolSlug }: Props) {
+  const path = urlFor('signups.create', { organisationSlug, schoolSlug })
   const [copied, setCopied] = useState(false)
 
   const copy = () => {

@@ -17,9 +17,12 @@ export interface ApiDefinition {
   sessions: {
     destroy: typeof routes['sessions.destroy']
   }
-  clubs: {
-    create: typeof routes['clubs.create']
-    store: typeof routes['clubs.store']
+  schools: {
+    create: typeof routes['schools.create']
+    store: typeof routes['schools.store']
+  }
+  activeSchools: {
+    update: typeof routes['active_schools.update']
   }
   invitations: {
     create: typeof routes['invitations.create']

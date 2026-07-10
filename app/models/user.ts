@@ -2,18 +2,25 @@ import { DateTime } from 'luxon'
 import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { UserSchema } from '#database/schema'
-import Club from '#models/club'
+import School from '#models/school'
 import Membership from '#models/membership'
+import Organisation from '#models/organisation'
 
 export default class User extends UserSchema {
   @hasMany(() => Membership)
   declare memberships: HasMany<typeof Membership>
 
-  @hasMany(() => Club, { foreignKey: 'createdByUserId' })
-  declare createdClubs: HasMany<typeof Club>
+  @hasMany(() => Organisation, { foreignKey: 'createdByUserId' })
+  declare createdOrganisations: HasMany<typeof Organisation>
 
-  @belongsTo(() => Club, { foreignKey: 'activeClubId' })
-  declare activeClub: BelongsTo<typeof Club>
+  @hasMany(() => School, { foreignKey: 'createdByUserId' })
+  declare createdSchools: HasMany<typeof School>
+
+  @belongsTo(() => Organisation, { foreignKey: 'activeOrganisationId' })
+  declare activeOrganisation: BelongsTo<typeof Organisation>
+
+  @belongsTo(() => School, { foreignKey: 'activeSchoolId' })
+  declare activeSchool: BelongsTo<typeof School>
 
   get initials() {
     const [first, last] = this.fullName ? this.fullName.split(' ') : this.email.split('@')

@@ -1,16 +1,16 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
-import { ClubFactory } from '#database/factories/club_factory'
+import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
-import { seedRoles, joinClub } from '#tests/helpers'
+import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import type User from '#models/user'
 
 async function manager(): Promise<User> {
   const user = await UserFactory.apply('completed').create()
-  const club = await ClubFactory.merge({ createdByUserId: user.id }).create()
-  await joinClub(user, club, RoleName.ADMINISTRATOR)
+  const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
+  await joinSchool(user, school, RoleName.ADMINISTRATOR)
   return user
 }
 

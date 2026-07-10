@@ -3,13 +3,16 @@ import { RoleName } from '#values/role'
 
 export const permissions = definePermissions({
   invitation: {
-    create: 'Invite members to the club',
+    create: 'Invite members to the school',
   },
   signup: {
     view: 'View learn-to-swim sign-ups',
   },
   program: {
     manage: 'Manage swim programs and levels',
+  },
+  school: {
+    create: 'Create schools in an organisation',
   },
 })
 
@@ -24,10 +27,12 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
     permissions.getKey('invitation.create'),
     permissions.getKey('signup.view'),
     permissions.getKey('program.manage'),
+    permissions.getKey('school.create'),
   ],
   [RoleName.HEAD_COACH]: [
     permissions.getKey('invitation.create'),
     permissions.getKey('signup.view'),
     permissions.getKey('program.manage'),
+    permissions.getKey('school.create'),
   ],
 }

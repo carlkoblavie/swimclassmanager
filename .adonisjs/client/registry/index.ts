@@ -48,17 +48,23 @@ const routes = {
     tokens: [{"old":"/logout","type":0,"val":"logout","end":""}],
     types: placeholder as Registry['sessions.destroy']['types'],
   },
-  'clubs.create': {
+  'schools.create': {
     methods: ["GET","HEAD"],
-    pattern: '/clubs/create',
-    tokens: [{"old":"/clubs/create","type":0,"val":"clubs","end":""},{"old":"/clubs/create","type":0,"val":"create","end":""}],
-    types: placeholder as Registry['clubs.create']['types'],
+    pattern: '/schools/create',
+    tokens: [{"old":"/schools/create","type":0,"val":"schools","end":""},{"old":"/schools/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['schools.create']['types'],
   },
-  'clubs.store': {
+  'schools.store': {
     methods: ["POST"],
-    pattern: '/clubs',
-    tokens: [{"old":"/clubs","type":0,"val":"clubs","end":""}],
-    types: placeholder as Registry['clubs.store']['types'],
+    pattern: '/schools',
+    tokens: [{"old":"/schools","type":0,"val":"schools","end":""}],
+    types: placeholder as Registry['schools.store']['types'],
+  },
+  'active_schools.update': {
+    methods: ["PATCH"],
+    pattern: '/active-school',
+    tokens: [{"old":"/active-school","type":0,"val":"active-school","end":""}],
+    types: placeholder as Registry['active_schools.update']['types'],
   },
   'invitations.create': {
     methods: ["GET","HEAD"],
@@ -80,14 +86,14 @@ const routes = {
   },
   'signups.create': {
     methods: ["GET","HEAD"],
-    pattern: '/register/:slug',
-    tokens: [{"old":"/register/:slug","type":0,"val":"register","end":""},{"old":"/register/:slug","type":1,"val":"slug","end":""}],
+    pattern: '/register/:organisationSlug/:schoolSlug',
+    tokens: [{"old":"/register/:organisationSlug/:schoolSlug","type":0,"val":"register","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"organisationSlug","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"schoolSlug","end":""}],
     types: placeholder as Registry['signups.create']['types'],
   },
   'signups.store': {
     methods: ["POST"],
-    pattern: '/register/:slug',
-    tokens: [{"old":"/register/:slug","type":0,"val":"register","end":""},{"old":"/register/:slug","type":1,"val":"slug","end":""}],
+    pattern: '/register/:organisationSlug/:schoolSlug',
+    tokens: [{"old":"/register/:organisationSlug/:schoolSlug","type":0,"val":"register","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"organisationSlug","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"schoolSlug","end":""}],
     types: placeholder as Registry['signups.store']['types'],
   },
   'signups.index': {

@@ -7,18 +7,20 @@ import { storeProgramValidator, updateProgramValidator } from '#validators/progr
 
 export default class ProgramsController {
   async index({ auth, inertia }: HttpContext) {
-    const clubId = auth.getUserOrFail().activeClubId!
+    const schoolId = auth.getUserOrFail().activeSchoolId!
 
     const programs = await Program.query()
       .preload('levels', (levelsQuery) =>
         levelsQuery
-          .preload('clubLevelSettings', (settingsQuery) => settingsQuery.where('clubId', clubId))
+          .preload('schoolLevelSettings', (settingsQuery) =>
+            settingsQuery.where('schoolId', schoolId)
+          )
           .orderBy('id')
       )
       .orderBy('name')
 
     return inertia.render('programs/index', {
-      programs: ProgramTransformer.transform(programs, clubId),
+      programs: ProgramTransformer.transform(programs, schoolId),
     })
   }
 
@@ -36,7 +38,7 @@ export default class ProgramsController {
   }
 
   async edit({ params, auth, inertia }: HttpContext) {
-    const clubId = auth.getUserOrFail().activeClubId!
+    const schoolId = auth.getUserOrFail().activeSchoolId!
 
     const program = await Program.query()
       .where('id', params.id)
@@ -44,7 +46,7 @@ export default class ProgramsController {
       .firstOrFail()
 
     return inertia.render('programs/edit', {
-      program: ProgramTransformer.transform(program, clubId).useVariant('forEdit'),
+      program: ProgramTransformer.transform(program, schoolId).useVariant('forEdit'),
     })
   }
 

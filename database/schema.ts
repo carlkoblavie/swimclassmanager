@@ -7,77 +7,21 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-export class ClubLevelSettingSchema extends BaseModel {
-  static $columns = [
-    'available',
-    'clubId',
-    'createdAt',
-    'fee',
-    'id',
-    'levelId',
-    'updatedAt',
-  ] as const
-  $columns = ClubLevelSettingSchema.$columns
-  @column()
-  declare available: boolean
-  @column()
-  declare clubId: number
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column()
-  declare fee: number | null
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare levelId: number
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class ClubSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'createdByUserId',
-    'id',
-    'location',
-    'name',
-    'slug',
-    'updatedAt',
-  ] as const
-  $columns = ClubSchema.$columns
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column()
-  declare createdByUserId: number
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare location: string
-  @column()
-  declare name: string
-  @column()
-  declare slug: string
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
 export class InvitationSchema extends BaseModel {
   static $columns = [
     'acceptedAt',
-    'clubId',
     'createdAt',
     'email',
     'expiresAt',
     'id',
     'roleId',
+    'schoolId',
     'token',
     'updatedAt',
   ] as const
   $columns = InvitationSchema.$columns
   @column.dateTime()
   declare acceptedAt: DateTime | null
-  @column()
-  declare clubId: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -88,6 +32,8 @@ export class InvitationSchema extends BaseModel {
   declare id: number
   @column()
   declare roleId: number
+  @column()
+  declare schoolId: number
   @column()
   declare token: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -181,18 +127,45 @@ export class MembershipRoleSchema extends BaseModel {
 }
 
 export class MembershipSchema extends BaseModel {
-  static $columns = ['clubId', 'createdAt', 'id', 'updatedAt', 'userId'] as const
+  static $columns = ['createdAt', 'id', 'schoolId', 'updatedAt', 'userId'] as const
   $columns = MembershipSchema.$columns
-  @column()
-  declare clubId: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
   declare id: number
+  @column()
+  declare schoolId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
   @column()
   declare userId: number
+}
+
+export class OrganisationSchema extends BaseModel {
+  static $columns = [
+    'createdAt',
+    'createdByUserId',
+    'id',
+    'isPremium',
+    'name',
+    'slug',
+    'updatedAt',
+  ] as const
+  $columns = OrganisationSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdByUserId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isPremium: boolean
+  @column()
+  declare name: string
+  @column()
+  declare slug: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class ProgramSchema extends BaseModel {
@@ -225,21 +198,76 @@ export class RoleSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class SchoolLevelSettingSchema extends BaseModel {
+  static $columns = [
+    'available',
+    'createdAt',
+    'fee',
+    'id',
+    'levelId',
+    'schoolId',
+    'updatedAt',
+  ] as const
+  $columns = SchoolLevelSettingSchema.$columns
+  @column()
+  declare available: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare fee: number | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare levelId: number
+  @column()
+  declare schoolId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class SchoolSchema extends BaseModel {
+  static $columns = [
+    'createdAt',
+    'createdByUserId',
+    'id',
+    'location',
+    'name',
+    'organisationId',
+    'slug',
+    'updatedAt',
+  ] as const
+  $columns = SchoolSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdByUserId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare location: string
+  @column()
+  declare name: string
+  @column()
+  declare organisationId: number
+  @column()
+  declare slug: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class SignupSchema extends BaseModel {
   static $columns = [
-    'clubId',
     'contactEmail',
     'contactName',
     'contactPhone',
     'createdAt',
     'id',
     'message',
+    'schoolId',
     'updatedAt',
     'whatsapp',
   ] as const
   $columns = SignupSchema.$columns
-  @column()
-  declare clubId: number
   @column()
   declare contactEmail: string
   @column()
@@ -252,6 +280,8 @@ export class SignupSchema extends BaseModel {
   declare id: number
   @column()
   declare message: string | null
+  @column()
+  declare schoolId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
   @column()
@@ -260,7 +290,8 @@ export class SignupSchema extends BaseModel {
 
 export class UserSchema extends BaseModel {
   static $columns = [
-    'activeClubId',
+    'activeOrganisationId',
+    'activeSchoolId',
     'country',
     'createdAt',
     'email',
@@ -272,7 +303,9 @@ export class UserSchema extends BaseModel {
   ] as const
   $columns = UserSchema.$columns
   @column()
-  declare activeClubId: number | null
+  declare activeOrganisationId: number | null
+  @column()
+  declare activeSchoolId: number | null
   @column()
   declare country: string | null
   @column.dateTime({ autoCreate: true })
