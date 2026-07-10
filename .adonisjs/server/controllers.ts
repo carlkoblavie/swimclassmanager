@@ -5,10 +5,10 @@
 
 export const controllers = {
   Accounts: () => import('#controllers/accounts_controller'),
-  Clubs: () => import('#controllers/clubs_controller'),
   Invitations: () => import('#controllers/invitations_controller'),
   Memberships: () => import('#controllers/memberships_controller'),
   Sessions: () => import('#controllers/sessions_controller'),
   SignInLinks: () => import('#controllers/sign_in_links_controller'),
   Signups: () => import('#controllers/signups_controller'),
+  Clubs: () => import('#controllers/clubs_controller'),
 }
