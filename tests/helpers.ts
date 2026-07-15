@@ -36,6 +36,7 @@ export async function joinSchool(
   const role = await Role.findByOrFail('name', roleName)
   await membership.related('roles').attach([role.id])
 
+  user.activeOrganisationId = school.organisationId
   user.activeSchoolId = school.id
   await user.save()
 

@@ -144,6 +144,48 @@ const routes = {
     tokens: [{"old":"/levels/:id/settings","type":0,"val":"levels","end":""},{"old":"/levels/:id/settings","type":1,"val":"id","end":""},{"old":"/levels/:id/settings","type":0,"val":"settings","end":""}],
     types: placeholder as Registry['level_settings.update']['types'],
   },
+  'swimming_classes.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes',
+    tokens: [{"old":"/classes","type":0,"val":"classes","end":""}],
+    types: placeholder as Registry['swimming_classes.index']['types'],
+  },
+  'swimming_classes.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes/create',
+    tokens: [{"old":"/classes/create","type":0,"val":"classes","end":""},{"old":"/classes/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['swimming_classes.create']['types'],
+  },
+  'swimming_classes.store': {
+    methods: ["POST"],
+    pattern: '/classes',
+    tokens: [{"old":"/classes","type":0,"val":"classes","end":""}],
+    types: placeholder as Registry['swimming_classes.store']['types'],
+  },
+  'swimming_classes.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes/:id',
+    tokens: [{"old":"/classes/:id","type":0,"val":"classes","end":""},{"old":"/classes/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swimming_classes.show']['types'],
+  },
+  'swimming_classes.edit': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes/:id/edit',
+    tokens: [{"old":"/classes/:id/edit","type":0,"val":"classes","end":""},{"old":"/classes/:id/edit","type":1,"val":"id","end":""},{"old":"/classes/:id/edit","type":0,"val":"edit","end":""}],
+    types: placeholder as Registry['swimming_classes.edit']['types'],
+  },
+  'swimming_classes.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/classes/:id',
+    tokens: [{"old":"/classes/:id","type":0,"val":"classes","end":""},{"old":"/classes/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swimming_classes.update']['types'],
+  },
+  'swimming_class_sessions.update': {
+    methods: ["PATCH"],
+    pattern: '/class-sessions/:id',
+    tokens: [{"old":"/class-sessions/:id","type":0,"val":"class-sessions","end":""},{"old":"/class-sessions/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swimming_class_sessions.update']['types'],
+  },
 } as const satisfies Record<string, AdonisEndpoint>
 
 export { routes }

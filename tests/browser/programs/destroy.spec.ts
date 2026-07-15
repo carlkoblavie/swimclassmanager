@@ -3,8 +3,8 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
-import { LevelFactory } from '#database/factories/level_factory'
-import { SchoolLevelSettingFactory } from '#database/factories/school_level_setting_factory'
+import Level from '#models/level'
+import SchoolLevelSetting from '#models/school_level_setting'
 import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 
@@ -25,12 +25,19 @@ test.group('Programs destroy', (group) => {
     const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
     await joinSchool(user, school, RoleName.ADMINISTRATOR)
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
-    const level = await LevelFactory.merge({ programId: program.id }).create()
-    await SchoolLevelSettingFactory.merge({
+    const level = await Level.create({
+      programId: program.id,
+      name: 'Beginners',
+      ageGroup: '4-7',
+      description: 'Intro level.',
+      defaultFee: 5000,
+      capacity: 10,
+    })
+    await SchoolLevelSetting.create({
       schoolId: school.id,
       levelId: level.id,
       fee: 4000,
-    }).create()
+    })
     await browserContext.loginAs(user)
 
     const page = await visit(route('programs.index'))

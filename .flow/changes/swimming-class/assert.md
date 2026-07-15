@@ -1,3 +1,7 @@
+---
+built: 2026-07-15
+---
+
 # Swimming Class — Test Plan
 
 > Stack: AdonisJS + Inertia React

@@ -27,6 +27,13 @@ export type ScannedRoutes = {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'programs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.index': { paramsTuple?: []; params?: {} }
+    'swimming_classes.create': { paramsTuple?: []; params?: {} }
+    'swimming_classes.store': { paramsTuple?: []; params?: {} }
+    'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_class_sessions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -41,6 +48,10 @@ export type ScannedRoutes = {
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.index': { paramsTuple?: []; params?: {} }
+    'swimming_classes.create': { paramsTuple?: []; params?: {} }
+    'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   HEAD: {
     'home': { paramsTuple?: []; params?: {} }
@@ -55,6 +66,10 @@ export type ScannedRoutes = {
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.index': { paramsTuple?: []; params?: {} }
+    'swimming_classes.create': { paramsTuple?: []; params?: {} }
+    'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   POST: {
     'sign_in_links.store': { paramsTuple?: []; params?: {} }
@@ -63,15 +78,19 @@ export type ScannedRoutes = {
     'invitations.store': { paramsTuple?: []; params?: {} }
     'signups.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'programs.store': { paramsTuple?: []; params?: {} }
+    'swimming_classes.store': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }
     'active_schools.update': { paramsTuple?: []; params?: {} }
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_class_sessions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PUT: {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   DELETE: {
     'programs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

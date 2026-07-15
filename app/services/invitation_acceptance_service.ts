@@ -22,6 +22,14 @@ export default class InvitationAcceptanceService {
       )
       await membership.related('roles').sync([invitation.roleId], false)
 
+      await trx
+        .from('swimming_classes')
+        .where('pending_instructor_invitation_id', invitation.id)
+        .update({
+          instructor_membership_id: membership.id,
+          pending_instructor_invitation_id: null,
+        })
+
       const school = await School.findOrFail(invitation.schoolId, { client: trx })
 
       user.useTransaction(trx)

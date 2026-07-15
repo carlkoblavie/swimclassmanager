@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
-import { seedRoles } from '#tests/helpers'
+import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import School from '#models/school'
 import Membership from '#models/membership'
@@ -25,7 +25,8 @@ test.group('Schools store', (group) => {
     await browserContext.loginAs(user)
 
     const page = await visit(route('schools.create'))
-    await page.getByLabel('Name').fill('Aqua Swim School')
+    await page.getByLabel('Organisation name').fill('Aqua Swim Organisation')
+    await page.getByLabel('School name').fill('Aqua Swim School')
     await page.getByLabel('Location').fill('Accra')
     await page.getByRole('button', { name: 'Create school' }).click()
 
@@ -48,10 +49,10 @@ test.group('Schools store', (group) => {
   test('rejects a submission missing a required field and creates no school ({field})')
     .with([
       {
-        field: 'name',
+        field: 'school name',
         fillName: false,
         fillLocation: true,
-        error: 'The name field must be defined',
+        error: 'The schoolName field must be defined',
       },
       {
         field: 'location',
@@ -65,8 +66,9 @@ test.group('Schools store', (group) => {
       await browserContext.loginAs(user)
 
       const page = await visit(route('schools.create'))
+      await page.getByLabel('Organisation name').fill('Aqua Swim Organisation')
       if (row.fillName) {
-        await page.getByLabel('Name').fill('Aqua Swim School')
+        await page.getByLabel('School name').fill('Aqua Swim School')
       }
       if (row.fillLocation) {
         await page.getByLabel('Location').fill('Accra')
@@ -85,15 +87,16 @@ test.group('Schools store', (group) => {
     db,
   }) => {
     const user = await UserFactory.apply('completed').create()
-    await SchoolFactory.merge({
+    const existing = await SchoolFactory.merge({
       createdByUserId: user.id,
       name: 'Aqua Swim School',
       location: 'Accra',
     }).create()
+    await joinSchool(user, existing, RoleName.ADMINISTRATOR)
     await browserContext.loginAs(user)
 
     const page = await visit(route('schools.create'))
-    await page.getByLabel('Name').fill('aqua swim school')
+    await page.getByLabel('School name').fill('aqua swim school')
     await page.getByLabel('Location').fill('ACCRA')
     await page.getByRole('button', { name: 'Create school' }).click()
 
@@ -109,15 +112,16 @@ test.group('Schools store', (group) => {
     db,
   }) => {
     const user = await UserFactory.apply('completed').create()
-    await SchoolFactory.merge({
+    const existing = await SchoolFactory.merge({
       createdByUserId: user.id,
       name: 'Aqua Swim School',
       location: 'Accra',
     }).create()
+    await joinSchool(user, existing, RoleName.ADMINISTRATOR)
     await browserContext.loginAs(user)
 
     const page = await visit(route('schools.create'))
-    await page.getByLabel('Name').fill('Aqua Swim School')
+    await page.getByLabel('School name').fill('Aqua Swim School')
     await page.getByLabel('Location').fill('Kumasi')
     await page.getByRole('button', { name: 'Create school' }).click()
 
@@ -143,12 +147,11 @@ test.group('Schools store', (group) => {
       name: 'Aqua Swim School',
       location: 'Accra',
     }).create()
-    user.activeSchoolId = first.id
-    await user.save()
+    await joinSchool(user, first, RoleName.ADMINISTRATOR)
     await browserContext.loginAs(user)
 
     const page = await visit(route('schools.create'))
-    await page.getByLabel('Name').fill('Tornado School')
+    await page.getByLabel('School name').fill('Tornado School')
     await page.getByLabel('Location').fill('Kumasi')
     await page.getByRole('button', { name: 'Create school' }).click()
 

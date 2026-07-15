@@ -3,6 +3,9 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { InvitationFactory } from '#database/factories/invitation_factory'
+import { ProgramFactory } from '#database/factories/program_factory'
+import { LevelFactory } from '#database/factories/level_factory'
+import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import Role from '#models/role'
@@ -144,5 +147,53 @@ test.group('Memberships store', (group) => {
     )
     await db.assertMissing('users', { email: 'invitee@example.com' })
     await db.assertCount('memberships', 0)
+  })
+
+  test('accepting a pending instructor invitation makes the Teacher the active class instructor', async ({
+    visit,
+    route,
+    db,
+    assert,
+  }) => {
+    const founder = await UserFactory.create()
+    const school = await SchoolFactory.merge({ createdByUserId: founder.id }).create()
+    const invitee = await UserFactory.apply('completed')
+      .merge({ email: 'teacher@example.com' })
+      .create()
+    const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER)
+    const invitation = await InvitationFactory.merge({
+      schoolId: school.id,
+      roleId: teacherRole.id,
+      email: invitee.email,
+      inviteeName: 'Pending Coach',
+    }).create()
+    const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
+    const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
+    const swimmingClass = await SwimmingClassFactory.merge({
+      schoolId: school.id,
+      levelId: level.id,
+      pendingInstructorInvitationId: invitation.id,
+      instructorMembershipId: null,
+      code: 'PENDING-INSTRUCTOR',
+      name: 'Pending Instructor Class',
+    }).create()
+
+    const page = await visit(route('memberships.store', { token: invitation.token }))
+
+    await page.assertPath(route('home'))
+    await page.assertExists(page.getByRole('button', { name: 'Logout' }))
+    const membership = await Membership.query()
+      .where('schoolId', school.id)
+      .where('userId', invitee.id)
+      .firstOrFail()
+    await membership.load('roles')
+    assert.isTrue(membership.roles.some((role) => role.name === RoleName.TEACHER))
+    await invitation.refresh()
+    assert.isNotNull(invitation.acceptedAt)
+    await db.assertHas('swimming_classes', {
+      id: swimmingClass.id,
+      instructor_membership_id: membership.id,
+      pending_instructor_invitation_id: null,
+    })
   })
 })

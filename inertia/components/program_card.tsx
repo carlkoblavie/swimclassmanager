@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react'
+import { Link } from '@adonisjs/inertia/react'
 import { Badge, Button, Card, Group, Stack, Text } from '@mantine/core'
 import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
@@ -65,9 +66,23 @@ export default function ProgramCard({ program }: { program: Data.Program }) {
               <Text size="sm">
                 Capacity: {level.capacity} · {level.fee.formatted}
               </Text>
-              <Guard for="program.manage">
-                <LevelSettingsControl level={level} />
-              </Guard>
+              <Group justify="space-between" align="center" mt="sm">
+                <Guard for="program.manage">
+                  <LevelSettingsControl level={level} />
+                </Guard>
+                {level.available && (
+                  <Guard for="class.manage">
+                    <Button
+                      component={Link}
+                      href={urlFor('swimming_classes.create', {}, { qs: { levelId: level.id } })}
+                      size="xs"
+                      variant="light"
+                    >
+                      Create class
+                    </Button>
+                  </Guard>
+                )}
+              </Group>
             </Card>
           ))}
         </Stack>

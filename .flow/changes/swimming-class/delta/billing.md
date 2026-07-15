@@ -1,6 +1,7 @@
 ---
 capability: billing
 change: swimming-class
+synced: 2026-07-15
 ---
 
 # Delta — billing

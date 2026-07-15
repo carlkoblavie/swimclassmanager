@@ -95,3 +95,24 @@ router
   .use(middleware.auth())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
+
+// Swimming classes — school-scoped class series and generated sessions.
+router
+  .group(() => {
+    router
+      .resource('classes', controllers.SwimmingClasses)
+      .except(['destroy'])
+      .as('swimming_classes')
+      .where('id', router.matchers.number())
+      .use(['index', 'show'], middleware.authorize('class.view'))
+      .use(['create', 'store', 'edit', 'update'], middleware.authorize('class.manage'))
+
+    router
+      .patch('class-sessions/:id', [controllers.SwimmingClassSessions, 'update'])
+      .as('swimming_class_sessions.update')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('class.manage'))
+  })
+  .use(middleware.auth())
+  .use(middleware.completeProfile())
+  .use(middleware.activeSchool())

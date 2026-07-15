@@ -1,5 +1,6 @@
 ---
 planned: 2026-07-10
+built: 2026-07-15
 ---
 
 # Swimming Class — Implementation Plan

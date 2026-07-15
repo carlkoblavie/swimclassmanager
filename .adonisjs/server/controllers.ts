@@ -14,4 +14,6 @@ export const controllers = {
   Sessions: () => import('#controllers/sessions_controller'),
   SignInLinks: () => import('#controllers/sign_in_links_controller'),
   Signups: () => import('#controllers/signups_controller'),
+  SwimmingClassSessions: () => import('#controllers/swimming_class_sessions_controller'),
+  SwimmingClasses: () => import('#controllers/swimming_classes_controller'),
 }

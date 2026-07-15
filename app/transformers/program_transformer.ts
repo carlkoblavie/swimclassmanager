@@ -12,14 +12,18 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
   }
 
   toObject() {
+    const preloaded = this.resource.$preloaded as { levels?: Level[] }
+    const levels = preloaded.levels ?? this.resource.levels ?? []
+
     return {
       ...this.pick(this.resource, ['id', 'name', 'description']),
-      levels: LevelTransformer.transform(this.whenLoaded(this.resource.levels), this.schoolId),
+      levels: LevelTransformer.transform(levels, this.schoolId),
     }
   }
 
   forEdit() {
-    const levels = (this.resource.levels ?? []) as unknown as Level[]
+    const preloaded = this.resource.$preloaded as { levels?: Level[] }
+    const levels = preloaded.levels ?? this.resource.levels ?? []
     return {
       ...this.pick(this.resource, ['id', 'name', 'description']),
       levels: levels.map((level) => ({
