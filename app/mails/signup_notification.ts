@@ -4,7 +4,7 @@ import type Signup from '#models/signup'
 export default class SignupNotificationMail extends BaseMail {
   constructor(
     private recipientEmail: string,
-    private clubName: string,
+    private schoolName: string,
     private signup: Signup,
     private listUrl: string
   ) {
@@ -13,7 +13,7 @@ export default class SignupNotificationMail extends BaseMail {
 
   prepare() {
     const learners = this.signup.learners.map((learner) => ({
-      name: learner.name,
+      name: `${learner.firstName} ${learner.lastName}`,
       dateOfBirth: learner.dateOfBirth.toFormat('dd LLL yyyy'),
       gender: learner.gender,
       nationality: learner.nationality,
@@ -23,7 +23,7 @@ export default class SignupNotificationMail extends BaseMail {
     }))
 
     const data = {
-      clubName: this.clubName,
+      schoolName: this.schoolName,
       listUrl: this.listUrl,
       contactName: this.signup.contactName,
       contactEmail: this.signup.contactEmail,
@@ -35,7 +35,7 @@ export default class SignupNotificationMail extends BaseMail {
 
     this.message
       .to(this.recipientEmail)
-      .subject(`New learn-to-swim sign-up for ${this.clubName}`)
+      .subject(`New learn-to-swim sign-up for ${this.schoolName}`)
       .htmlView('emails/signup_notification_html', data)
       .textView('emails/signup_notification_text', data)
   }

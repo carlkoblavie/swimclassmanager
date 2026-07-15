@@ -1,4 +1,5 @@
 import { Link } from '@adonisjs/inertia/react'
+import { Button, Container, Group, Stack, Text, Title } from '@mantine/core'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import SignupCard from '~/components/signup_card'
@@ -9,15 +10,25 @@ type PageProps = InertiaProps<{
 
 export default function SignupsIndex({ signups }: PageProps) {
   return (
-    <div>
-      <h1>Sign-ups</h1>
-      <Link route="home">Back to dashboard</Link>
+    <Container size="md" py="xl">
+      <Stack gap="lg">
+        <Group justify="space-between">
+          <Title order={1}>Sign-ups</Title>
+          <Button component={Link} route="home" variant="subtle">
+            Back to dashboard
+          </Button>
+        </Group>
 
-      {signups.length === 0 ? (
-        <p>No sign-ups yet.</p>
-      ) : (
-        signups.map((signup) => <SignupCard key={signup.id} signup={signup} />)
-      )}
-    </div>
+        {signups.length === 0 ? (
+          <Text c="dimmed">No sign-ups yet.</Text>
+        ) : (
+          <Stack gap="md">
+            {signups.map((signup) => (
+              <SignupCard key={signup.id} signup={signup} />
+            ))}
+          </Stack>
+        )}
+      </Stack>
+    </Container>
   )
 }

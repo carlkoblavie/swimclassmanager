@@ -6,7 +6,8 @@ export default class LearnerTransformer extends BaseTransformer<Learner> {
     return {
       ...this.pick(this.resource, [
         'id',
-        'name',
+        'firstName',
+        'lastName',
         'gender',
         'nationality',
         'residentialLocation',

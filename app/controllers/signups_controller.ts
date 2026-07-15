@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import Club from '#models/club'
+import School from '#models/school'
 import Signup from '#models/signup'
 import SignupCaptureService from '#services/signup_capture_service'
 import SignupTransformer from '#transformers/signup_transformer'
@@ -9,11 +9,12 @@ import { Gender } from '#values/gender'
 
 export default class SignupsController {
   async create({ params, inertia }: HttpContext) {
-    const club = await Club.findByOrFail('slug', params.slug)
+    const school = await this.resolveSchool(params.organisationSlug, params.schoolSlug)
 
     return inertia.render('signups/create', {
-      club: { name: club.name },
-      slug: club.slug,
+      school: { name: school.name },
+      organisationSlug: params.organisationSlug,
+      schoolSlug: school.slug,
       genders: [Gender.MALE, Gender.FEMALE],
     })
   }
@@ -23,25 +24,37 @@ export default class SignupsController {
     { params, request, response, session }: HttpContext,
     signupCapture: SignupCaptureService
   ) {
-    const club = await Club.findByOrFail('slug', params.slug)
+    const school = await this.resolveSchool(params.organisationSlug, params.schoolSlug)
     const payload = await request.validateUsing(storeSignupValidator)
 
-    await signupCapture.capture(club, payload)
+    await signupCapture.capture(school, payload)
 
     session.flash('success', 'Your sign-up has been received.')
-    return response.redirect().toRoute('signups.create', { slug: club.slug })
+    return response.redirect().toRoute('signups.create', {
+      organisationSlug: params.organisationSlug,
+      schoolSlug: school.slug,
+    })
   }
 
   async index({ auth, inertia }: HttpContext) {
     const user = auth.getUserOrFail()
 
     const signups = await Signup.query()
-      .where('clubId', user.activeClubId!)
+      .where('schoolId', user.activeSchoolId!)
       .preload('learners')
       .orderBy('created_at', 'desc')
 
     return inertia.render('signups/index', {
       signups: SignupTransformer.transform(signups),
     })
+  }
+
+  private async resolveSchool(organisationSlug: string, schoolSlug: string): Promise<School> {
+    return School.query()
+      .where('slug', schoolSlug)
+      .whereHas('organisation', (organisationQuery) => {
+        organisationQuery.where('slug', organisationSlug)
+      })
+      .firstOrFail()
   }
 }

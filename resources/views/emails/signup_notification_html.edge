@@ -5,7 +5,7 @@
         <mj-column>
           <mj-text font-size="20px" color="#333333">
             New learn-to-swim sign-up for
-            {{ clubName }}
+            {{ schoolName }}
           </mj-text>
 
           <mj-text>
@@ -34,21 +34,51 @@
           @each(learner in learners)
             <mj-text>
               {{ learner.name }}
+              
+              
+              
                —
+
+
+
               {{ learner.dateOfBirth }}
+              
+              
+              
                —
+
+
+
               {{ learner.gender }}
               <br />
               
+              
+              
+              
               Nationality:
+
+
+
               {{ learner.nationality }}
               <br />
               
+              
+              
+              
               Residential location:
+
+
+
               {{ learner.residentialLocation }}
               <br />
               
+              
+              
+              
               Medical information:
+
+
+
               {{ learner.medicalInfo }}
               @if(learner.swimmingExperience)
                 <br />

@@ -10,7 +10,8 @@ export const storeSignupValidator = vine.create({
   learners: vine
     .array(
       vine.object({
-        name: vine.string().trim().minLength(1).maxLength(120),
+        firstName: vine.string().trim().minLength(1).maxLength(80),
+        lastName: vine.string().trim().minLength(1).maxLength(80),
         dateOfBirth: vine.date(),
         gender: vine.enum([Gender.MALE, Gender.FEMALE]),
         nationality: vine.string().trim().minLength(1).maxLength(80),
