@@ -5,6 +5,11 @@ import type School from '#models/school'
 import Role from '#models/role'
 import Membership from '#models/membership'
 import type User from '#models/user'
+import LevelStage from '#models/level_stage'
+import LevelStageActivity from '#models/level_stage_activity'
+import LevelStageSkill from '#models/level_stage_skill'
+import { ProgramFactory } from '#database/factories/program_factory'
+import { LevelFactory } from '#database/factories/level_factory'
 
 /**
  * Idempotently ensure the default role catalog exists with each role's
@@ -41,4 +46,45 @@ export async function joinSchool(
   await user.save()
 
   return membership
+}
+
+/**
+ * Seed an active program with one level, one stage, one skill, and one drill —
+ * the minimum curriculum a day-based class can be created against.
+ */
+export async function seedCurriculum(
+  names: {
+    program?: string
+    level?: string
+    stage?: string
+    skill?: string
+    activity?: string
+  } = {}
+) {
+  const program = await ProgramFactory.merge({ name: names.program ?? 'Aquatic Program' }).create()
+  const level = await LevelFactory.merge({
+    programId: program.id,
+    name: names.level ?? 'Aquatic therapy',
+    capacity: 10,
+  }).create()
+  const stage = await LevelStage.create({
+    levelId: level.id,
+    name: names.stage ?? 'Waist movement',
+    position: 1,
+    description: null,
+  })
+  const skill = await LevelStageSkill.create({
+    levelStageId: stage.id,
+    name: names.skill ?? 'Hip rotation',
+    passCriteria: 'Smooth circles both directions',
+    description: null,
+  })
+  const activity = await LevelStageActivity.create({
+    levelStageSkillId: skill.id,
+    name: names.activity ?? 'Standing twists',
+    description: null,
+    applicationNotes: null,
+  })
+
+  return { program, level, stage, skill, activity }
 }

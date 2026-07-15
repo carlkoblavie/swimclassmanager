@@ -25,18 +25,21 @@ async function uniqueProgramName(value: unknown, _options: undefined, field: Fie
 const uniqueProgramNameRule = vine.createRule(uniqueProgramName)
 
 const stageObject = {
+  id: vine.number().optional(),
   name: vine.string().trim().minLength(1).maxLength(120),
   position: vine.number().withoutDecimals().positive(),
   description: vine.string().trim().maxLength(2000).nullable().optional(),
   skills: vine
     .array(
       vine.object({
+        id: vine.number().optional(),
         name: vine.string().trim().minLength(1).maxLength(120),
         passCriteria: vine.string().trim().minLength(1).maxLength(255),
         description: vine.string().trim().maxLength(2000).nullable().optional(),
         activities: vine
           .array(
             vine.object({
+              id: vine.number().optional(),
               name: vine.string().trim().minLength(1).maxLength(120),
               description: vine.string().trim().maxLength(2000).nullable().optional(),
               applicationNotes: vine.string().trim().maxLength(2000).nullable().optional(),

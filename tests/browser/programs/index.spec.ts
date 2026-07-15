@@ -4,6 +4,7 @@ import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import Level from '#models/level'
+import LevelStage from '#models/level_stage'
 import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import SchoolLevelSetting from '#models/school_level_setting'
@@ -85,11 +86,10 @@ test.group('Programs index', (group) => {
     await page.assertNotExists('text=Unavailable')
   })
 
-  test('class managers can start a class from an available program level', async ({
+  test('class managers can open the inline class builder from an available level', async ({
     visit,
     route,
     browserContext,
-    assert,
   }) => {
     const manager = await UserFactory.apply('completed').create()
     const school = await SchoolFactory.merge({ createdByUserId: manager.id }).create()
@@ -103,14 +103,20 @@ test.group('Programs index', (group) => {
       defaultFee: 5000,
       capacity: 8,
     })
+    await LevelStage.create({
+      levelId: level.id,
+      name: 'Water Discovery',
+      position: 1,
+      description: null,
+    })
     await browserContext.loginAs(manager)
 
     const page = await visit(route('programs.index'))
-    await page.getByRole('link', { name: 'Create class' }).click()
+    await page.getByRole('button', { name: 'Create class' }).click()
 
-    await page.assertPath(route('swimming_classes.create'))
-    await page.assertVisible(page.getByRole('heading', { name: 'Create a class' }))
-    assert.equal(await page.getByLabel('Program level').inputValue(), String(level.id))
+    await page.assertPath(route('programs.index'))
+    await page.assertVisible(page.getByLabel('Base class name'))
+    await page.assertVisible(page.getByRole('button', { name: 'Create 1 class' }))
   })
 
   test('unavailable levels and non-managers have no program-level create-class link')
@@ -144,6 +150,6 @@ test.group('Programs index', (group) => {
 
       await page.assertVisible('text=Learn to Swim')
       await page.assertVisible('text=Beginners')
-      await page.assertNotExists(page.getByRole('link', { name: 'Create class' }))
+      await page.assertNotExists(page.getByRole('button', { name: 'Create class' }))
     })
 })

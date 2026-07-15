@@ -2,12 +2,14 @@ import { type ChangeEvent, useState } from 'react'
 import { Button, Card, Group, Stack, Text, Textarea, TextInput } from '@mantine/core'
 
 export type StageActivityDraft = {
+  id?: number
   name: string
   description: string
   applicationNotes: string
 }
 
 export type StageSkillDraft = {
+  id?: number
   name: string
   passCriteria: string
   description: string
@@ -15,6 +17,7 @@ export type StageSkillDraft = {
 }
 
 export type StageDraft = {
+  id?: number
   name: string
   position: string // as entered
   description: string

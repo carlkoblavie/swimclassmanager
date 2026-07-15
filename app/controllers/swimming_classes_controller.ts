@@ -3,34 +3,34 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Level from '#models/level'
 import Membership from '#models/membership'
 import School from '#models/school'
-import Skill from '#models/skill'
 import SwimmingClass from '#models/swimming_class'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
 import LevelTransformer from '#transformers/level_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
-import SkillTransformer from '#transformers/skill_transformer'
 import SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import {
-  storeSwimmingClassValidator,
+  storeSwimmingClassesValidator,
   updateSwimmingClassValidator,
 } from '#validators/swimming_class'
 import { RoleName } from '#values/role'
 
 export default class SwimmingClassesController {
   /**
-   * Display a list of resource
+   * Display the school's day-based classes
    */
   async index({ auth, inertia }: HttpContext) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
     const classes = await SwimmingClass.query()
       .where('schoolId', schoolId)
       .preload('level', (levelQuery) => levelQuery.preload('program'))
+      .preload('levelStage')
       .preload('instructorMembership', (membershipQuery) =>
         membershipQuery.preload('user').preload('roles')
       )
       .preload('pendingInstructorInvitation')
-      .preload('sessions', (sessionsQuery) => sessionsQuery.orderBy('startsAt'))
-      .orderBy('startDate')
+      .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
+      .orderBy('weekday')
+      .orderBy('startTime')
 
     return inertia.render('classes/index', {
       classes: SwimmingClassTransformer.transform(classes),
@@ -38,54 +38,7 @@ export default class SwimmingClassesController {
   }
 
   /**
-   * Display form to create a new record
-   */
-  async create({ auth, inertia, request }: HttpContext) {
-    const schoolId = auth.getUserOrFail().activeSchoolId!
-
-    const school = await School.query().where('id', schoolId).preload('organisation').firstOrFail()
-
-    const levels = await Level.query()
-      .whereHas('program', (programQuery) => programQuery.whereNotNull('activatedAt'))
-      .preload('program')
-      .preload('schoolLevelSettings', (settingsQuery) => settingsQuery.where('schoolId', schoolId))
-      .orderBy('name')
-
-    const availableLevels = levels.filter((level) => {
-      const setting = level.schoolLevelSettings?.[0]
-      return setting?.available ?? true
-    })
-
-    const requestedLevelId = Number(request.input('levelId'))
-    const preselectedLevelId = availableLevels.some((level) => level.id === requestedLevelId)
-      ? requestedLevelId
-      : undefined
-
-    const instructorMemberships = await Membership.query()
-      .where('schoolId', schoolId)
-      .whereHas('roles', (rolesQuery) => {
-        rolesQuery.whereIn('name', [RoleName.TEACHER, RoleName.HEAD_COACH])
-      })
-      .preload('user')
-      .preload('roles')
-      .orderBy('id')
-
-    const skills = await Skill.query()
-      .withScopes((scopes) => scopes.availableToSchool(school))
-      .orderBy('name')
-
-    return inertia.render('classes/create', {
-      levelOptions: LevelTransformer.transform(availableLevels, schoolId).useVariant(
-        'forClassOption'
-      ),
-      instructorOptions: MembershipTransformer.transform(instructorMemberships),
-      skillOptions: SkillTransformer.transform(skills),
-      preselectedLevelId,
-    })
-  }
-
-  /**
-   * Handle form submission for the create action
+   * Create one class per submitted day (from the inline builder on programs)
    */
   @inject()
   async store(
@@ -93,26 +46,20 @@ export default class SwimmingClassesController {
     authoring: ClassSeriesAuthoringService
   ) {
     const user = auth.getUserOrFail()
-    const school = await School.query()
-      .where('id', user.activeSchoolId!)
-      .preload('organisation')
-      .firstOrFail()
-    const payload = await request.validateUsing(storeSwimmingClassValidator, {
-      meta: { schoolId: school.id },
-    })
+    const school = await School.findOrFail(user.activeSchoolId!)
+    const payload = await request.validateUsing(storeSwimmingClassesValidator)
 
-    const swimmingClass = await authoring.create(school, user, payload)
+    const classes = await authoring.createMany(school, payload)
 
     session.flash(
       'success',
-      payload.instructorMode === 'invite' ? 'Class created. Teacher invited.' : 'Class created.'
+      classes.length === 1 ? 'Class created.' : `${classes.length} classes created.`
     )
-
-    return response.redirect().toRoute('swimming_classes.show', { id: swimmingClass.id })
+    return response.redirect().toRoute('programs.index')
   }
 
   /**
-   * Show individual record
+   * Show individual class
    */
   async show({ auth, inertia, params }: HttpContext) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
@@ -120,12 +67,15 @@ export default class SwimmingClassesController {
       .where('id', params.id)
       .where('schoolId', schoolId)
       .preload('level', (levelQuery) => levelQuery.preload('program'))
+      .preload('levelStage')
       .preload('instructorMembership', (membershipQuery) =>
         membershipQuery.preload('user').preload('roles')
       )
       .preload('pendingInstructorInvitation')
-      .preload('stages', (stagesQuery) => stagesQuery.preload('skills').orderBy('position'))
-      .preload('sessions', (sessionsQuery) => sessionsQuery.orderBy('startsAt'))
+      .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
+      .preload('classActivities', (activitiesQuery) =>
+        activitiesQuery.preload('levelStageActivity')
+      )
       .firstOrFail()
 
     return inertia.render('classes/show', {
@@ -134,35 +84,35 @@ export default class SwimmingClassesController {
   }
 
   /**
-   * Edit individual record
+   * Edit a class: schedule, curriculum, location, and instructor
    */
   async edit({ auth, inertia, params }: HttpContext) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
-    const school = await School.query().where('id', schoolId).preload('organisation').firstOrFail()
-
     const swimmingClass = await SwimmingClass.query()
       .where('id', params.id)
       .where('schoolId', schoolId)
       .preload('level', (levelQuery) => levelQuery.preload('program'))
+      .preload('levelStage')
       .preload('instructorMembership', (membershipQuery) =>
         membershipQuery.preload('user').preload('roles')
       )
       .preload('pendingInstructorInvitation')
-      .preload('weekdays')
-      .preload('stages', (stagesQuery) => stagesQuery.preload('skills').orderBy('position'))
-      .preload('sessions', (sessionsQuery) => sessionsQuery.orderBy('startsAt'))
+      .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
+      .preload('classActivities', (activitiesQuery) =>
+        activitiesQuery.preload('levelStageActivity')
+      )
       .firstOrFail()
 
-    const levels = await Level.query()
-      .whereHas('program', (programQuery) => programQuery.whereNotNull('activatedAt'))
+    const level = await Level.query()
+      .where('id', swimmingClass.levelId)
       .preload('program')
       .preload('schoolLevelSettings', (settingsQuery) => settingsQuery.where('schoolId', schoolId))
-      .orderBy('name')
-
-    const availableLevels = levels.filter((level) => {
-      const setting = level.schoolLevelSettings?.[0]
-      return setting?.available ?? true
-    })
+      .preload('stages', (stagesQuery) =>
+        stagesQuery
+          .preload('skills', (skillsQuery) => skillsQuery.preload('activities'))
+          .orderBy('position')
+      )
+      .firstOrFail()
 
     const instructorMemberships = await Membership.query()
       .where('schoolId', schoolId)
@@ -173,57 +123,15 @@ export default class SwimmingClassesController {
       .preload('roles')
       .orderBy('id')
 
-    const skills = await Skill.query()
-      .withScopes((scopes) => scopes.availableToSchool(school))
-      .orderBy('name')
-
-    const weekdays = swimmingClass.$preloaded.weekdays as unknown as { weekday: number }[]
-    const stages = swimmingClass.$preloaded.stages as unknown as {
-      id: number
-      name: string
-      position: number
-      $preloaded: { skills?: Skill[] }
-    }[]
-    const pendingInvitation = swimmingClass.$preloaded.pendingInstructorInvitation as unknown as
-      | { inviteeName?: string | null; inviteePhone?: string | null; email: string }
-      | undefined
-
     return inertia.render('classes/edit', {
       swimmingClass: SwimmingClassTransformer.transform(swimmingClass),
-      levelOptions: LevelTransformer.transform(availableLevels, schoolId).useVariant(
-        'forClassOption'
-      ),
+      level: LevelTransformer.transform(level, schoolId),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
-      skillOptions: SkillTransformer.transform(skills),
-      initial: {
-        code: swimmingClass.code,
-        name: swimmingClass.name,
-        levelId: swimmingClass.levelId,
-        startDate: swimmingClass.startDate.toISODate() ?? undefined,
-        endDate: swimmingClass.endDate.toISODate() ?? undefined,
-        weekdays: weekdays.map((weekday) => weekday.weekday),
-        startTime: swimmingClass.startTime,
-        endTime: swimmingClass.endTime,
-        capacity: swimmingClass.capacity,
-        location: swimmingClass.location,
-        instructorMode: swimmingClass.pendingInstructorInvitationId ? 'invite' : 'existing',
-        instructorMembershipId: swimmingClass.instructorMembershipId ?? undefined,
-        inviteTeacherName: pendingInvitation?.inviteeName ?? undefined,
-        inviteTeacherPhone: pendingInvitation?.inviteePhone ?? undefined,
-        inviteTeacherEmail: pendingInvitation?.email,
-        stages: stages.map((stage) => ({
-          id: stage.id,
-          name: stage.name,
-          position: stage.position,
-          skillIds: (stage.$preloaded.skills ?? []).map((skill) => skill.id),
-          newSkills: [],
-        })),
-      },
     })
   }
 
   /**
-   * Handle form submission for the edit action
+   * Update or cancel a class
    */
   @inject()
   async update(
@@ -231,10 +139,7 @@ export default class SwimmingClassesController {
     authoring: ClassSeriesAuthoringService
   ) {
     const user = auth.getUserOrFail()
-    const school = await School.query()
-      .where('id', user.activeSchoolId!)
-      .preload('organisation')
-      .firstOrFail()
+    const school = await School.findOrFail(user.activeSchoolId!)
     const swimmingClass = await SwimmingClass.query()
       .where('id', params.id)
       .where('schoolId', school.id)
@@ -246,22 +151,13 @@ export default class SwimmingClassesController {
       return response.redirect().toRoute('swimming_classes.show', { id: swimmingClass.id })
     }
 
-    const payload = await request.validateUsing(updateSwimmingClassValidator, {
-      meta: { schoolId: school.id, classId: swimmingClass.id },
-    })
-
-    await authoring.update(swimmingClass, school, user, payload)
+    const payload = await request.validateUsing(updateSwimmingClassValidator)
+    await authoring.update(swimmingClass, school, payload)
 
     session.flash(
       'success',
       payload.instructorMode === 'invite' ? 'Class updated. Teacher invited.' : 'Class updated.'
     )
-
     return response.redirect().toRoute('swimming_classes.show', { id: swimmingClass.id })
   }
-
-  /**
-   * Delete record
-   */
-  async destroy({}: HttpContext) {}
 }

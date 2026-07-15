@@ -22,14 +22,17 @@ export default function EditProgram({ program }: PageProps) {
         defaultFee: String(level.defaultFee),
         capacity: String(level.capacity),
         stages: level.stages.map((stage) => ({
+          id: stage.id,
           name: stage.name,
           position: String(stage.position),
           description: stage.description ?? '',
           skills: stage.skills.map((skill) => ({
+            id: skill.id,
             name: skill.name,
             passCriteria: skill.passCriteria,
             description: skill.description ?? '',
             activities: skill.activities.map((activity) => ({
+              id: activity.id,
               name: activity.name,
               description: activity.description ?? '',
               applicationNotes: activity.applicationNotes ?? '',

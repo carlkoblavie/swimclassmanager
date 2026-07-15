@@ -69,26 +69,16 @@ test.group('Program activation', (group) => {
     assert.isTrue(fresh.isActive)
   })
 
-  test('draft program levels are not offered when creating a class', async ({
+  test('draft program levels offer no class creation', async ({
     visit,
     route,
     browserContext,
-    assert,
   }) => {
     const manager = await UserFactory.apply('completed').create()
     const school = await SchoolFactory.merge({ createdByUserId: manager.id }).create()
     await joinSchool(manager, school, RoleName.ADMINISTRATOR)
-    const liveProgram = await ProgramFactory.merge({ name: 'Live Program' }).create()
-    await Level.create({
-      programId: liveProgram.id,
-      name: 'Beginners',
-      ageGroup: '4-7',
-      description: 'Intro level.',
-      defaultFee: 5000,
-      capacity: 10,
-    })
     const draftProgram = await ProgramFactory.apply('draft')
-      .merge({ name: 'Hidden Draft Program' })
+      .merge({ name: 'Splash Sandbox' })
       .create()
     await Level.create({
       programId: draftProgram.id,
@@ -100,9 +90,9 @@ test.group('Program activation', (group) => {
     })
     await browserContext.loginAs(manager)
 
-    const page = await visit(route('swimming_classes.create'))
-    const levelOptions = (await page.getByLabel('Program level').textContent()) ?? ''
-    assert.include(levelOptions, 'Live Program')
-    assert.notInclude(levelOptions, 'Hidden Draft Program')
+    const page = await visit(route('programs.index'))
+
+    await page.assertVisible('text=Draft Level')
+    await page.assertNotExists(page.getByRole('button', { name: 'Create class' }))
   })
 })

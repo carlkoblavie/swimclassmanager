@@ -7,7 +7,6 @@ import Invitation from '#models/invitation'
 import Signup from '#models/signup'
 import SchoolLevelSetting from '#models/school_level_setting'
 import Organisation from '#models/organisation'
-import Skill from '#models/skill'
 import SwimmingClass from '#models/swimming_class'
 
 export default class School extends SchoolSchema {
@@ -28,9 +27,6 @@ export default class School extends SchoolSchema {
 
   @hasMany(() => SchoolLevelSetting)
   declare levelSettings: HasMany<typeof SchoolLevelSetting>
-
-  @hasMany(() => Skill)
-  declare skills: HasMany<typeof Skill>
 
   @hasMany(() => SwimmingClass)
   declare swimmingClasses: HasMany<typeof SwimmingClass>

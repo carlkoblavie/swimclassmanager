@@ -1,7 +1,7 @@
 import { NativeSelect, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import type { Data } from '@generated/data'
 
-export type InstructorMode = 'existing' | 'invite'
+export type InstructorMode = 'none' | 'existing' | 'invite'
 
 type Props = {
   mode: InstructorMode
@@ -32,12 +32,13 @@ export default function InstructorPicker({
         value={mode}
         onChange={(event) => onModeChange(event.currentTarget.value as InstructorMode)}
         data={[
+          { value: 'none', label: 'No instructor yet' },
           { value: 'existing', label: 'Choose an existing instructor' },
           { value: 'invite', label: 'Invite a pending Teacher' },
         ]}
       />
 
-      {mode === 'existing' ? (
+      {mode === 'none' ? null : mode === 'existing' ? (
         <NativeSelect
           label="Existing instructor"
           name="instructorMembershipId"

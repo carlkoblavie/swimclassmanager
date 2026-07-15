@@ -4,11 +4,11 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { SwimmingClassSchema } from '#database/schema'
 import School from '#models/school'
 import Level from '#models/level'
+import LevelStage from '#models/level_stage'
 import Membership from '#models/membership'
 import Invitation from '#models/invitation'
-import SwimmingClassWeekday from '#models/swimming_class_weekday'
-import SwimmingClassSession from '#models/swimming_class_session'
-import ClassStage from '#models/class_stage'
+import ClassSkill from '#models/class_skill'
+import ClassActivity from '#models/class_activity'
 
 export default class SwimmingClass extends SwimmingClassSchema {
   @belongsTo(() => School)
@@ -17,20 +17,20 @@ export default class SwimmingClass extends SwimmingClassSchema {
   @belongsTo(() => Level)
   declare level: BelongsTo<typeof Level>
 
+  @belongsTo(() => LevelStage)
+  declare levelStage: BelongsTo<typeof LevelStage>
+
   @belongsTo(() => Membership, { foreignKey: 'instructorMembershipId' })
   declare instructorMembership: BelongsTo<typeof Membership>
 
   @belongsTo(() => Invitation, { foreignKey: 'pendingInstructorInvitationId' })
   declare pendingInstructorInvitation: BelongsTo<typeof Invitation>
 
-  @hasMany(() => SwimmingClassWeekday)
-  declare weekdays: HasMany<typeof SwimmingClassWeekday>
+  @hasMany(() => ClassSkill)
+  declare classSkills: HasMany<typeof ClassSkill>
 
-  @hasMany(() => SwimmingClassSession)
-  declare sessions: HasMany<typeof SwimmingClassSession>
-
-  @hasMany(() => ClassStage)
-  declare stages: HasMany<typeof ClassStage>
+  @hasMany(() => ClassActivity)
+  declare classActivities: HasMany<typeof ClassActivity>
 
   get isCancelled(): boolean {
     return this.cancelledAt !== null

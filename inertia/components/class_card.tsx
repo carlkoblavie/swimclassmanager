@@ -4,41 +4,54 @@ import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
 
 export default function ClassCard({ swimmingClass }: { swimmingClass: Data.SwimmingClass }) {
-  const nextSession = swimmingClass.sessions[0]
-
   return (
-    <Card withBorder radius="md" padding="lg">
-      <Stack gap="sm">
-        <Group justify="space-between" align="flex-start">
-          <div>
-            <Group gap="xs">
-              <Text fw={600} size="lg">
-                {swimmingClass.name}
-              </Text>
-              {swimmingClass.isCancelled && <Badge color="red">Cancelled</Badge>}
-            </Group>
-            <Text size="sm" c="dimmed">
+    <Card>
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
+        <Stack gap={4}>
+          <Group gap="xs">
+            <Text fw={600}>{swimmingClass.name}</Text>
+            <Badge variant="light" color="gray" size="sm">
               {swimmingClass.code}
-            </Text>
-          </div>
-          <Button
-            component={Link}
-            href={urlFor('swimming_classes.show', { id: swimmingClass.id })}
-            size="xs"
-            variant="light"
-          >
-            View
-          </Button>
-        </Group>
-
-        <Text size="sm">
-          {swimmingClass.level?.programName} — {swimmingClass.level?.name}
-        </Text>
-        <Text size="sm">Instructor: {swimmingClass.instructor.label}</Text>
-        <Text size="sm">Location: {swimmingClass.location}</Text>
-        <Text size="sm">Capacity: {swimmingClass.capacity} learners</Text>
-        {nextSession && <Text size="sm">Next session: {nextSession.startsAt.formatted}</Text>}
-      </Stack>
+            </Badge>
+            {swimmingClass.isCancelled && (
+              <Badge variant="light" color="red" size="sm">
+                Cancelled
+              </Badge>
+            )}
+          </Group>
+          <Text size="sm">
+            {swimmingClass.weekdayName} · {swimmingClass.startTime.formatted} ·{' '}
+            {swimmingClass.durationMinutes} min
+          </Text>
+          <Text size="sm" c="dimmed">
+            {swimmingClass.level?.programName} — {swimmingClass.level?.name}
+            {swimmingClass.stage ? ` · ${swimmingClass.stage.name}` : ''}
+            {swimmingClass.skills.length > 0
+              ? ` · ${swimmingClass.skills.length} ${swimmingClass.skills.length === 1 ? 'skill' : 'skills'}`
+              : ''}
+          </Text>
+          {swimmingClass.instructor && (
+            <Group gap="xs">
+              <Text size="sm" c="dimmed">
+                Instructor: {swimmingClass.instructor.label}
+              </Text>
+              {swimmingClass.instructor.status === 'pending' && (
+                <Badge variant="light" color="yellow" size="sm">
+                  Pending
+                </Badge>
+              )}
+            </Group>
+          )}
+        </Stack>
+        <Button
+          component={Link}
+          href={urlFor('swimming_classes.show', { id: swimmingClass.id })}
+          size="xs"
+          variant="light"
+        >
+          View
+        </Button>
+      </Group>
     </Card>
   )
 }

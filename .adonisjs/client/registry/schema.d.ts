@@ -295,26 +295,14 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['index']>>>
     }
   }
-  'swimming_classes.create': {
-    methods: ["GET","HEAD"]
-    pattern: '/classes/create'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['create']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['create']>>>
-    }
-  }
   'swimming_classes.store': {
     methods: ["POST"]
     pattern: '/classes'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').storeSwimmingClassValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').storeSwimmingClassesValidator)>>
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').storeSwimmingClassValidator)>>
+      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').storeSwimmingClassesValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
@@ -353,18 +341,6 @@ export interface Registry {
       query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').updateSwimmingClassValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['update']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
-    }
-  }
-  'swimming_class_sessions.update': {
-    methods: ["PATCH"]
-    pattern: '/class-sessions/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_class_sessions_controller').default['update']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_class_sessions_controller').default['update']>>>
     }
   }
 }

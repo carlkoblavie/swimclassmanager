@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { router } from '@inertiajs/react'
-import { Form, Link } from '@adonisjs/inertia/react'
+import { Form } from '@adonisjs/inertia/react'
 import {
   ActionIcon,
   Badge,
@@ -22,9 +22,18 @@ import {
 import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
+import ClassInlineBuilder from '~/components/class_inline_builder'
 import LevelSettingsControl from '~/components/level_settings_control'
 
-function LevelRow({ level }: { level: Data.Level }) {
+function LevelRow({
+  level,
+  canCreateClass,
+  onCreateClass,
+}: {
+  level: Data.Level
+  canCreateClass: boolean
+  onCreateClass: () => void
+}) {
   return (
     <Table.Tr bg="gray.0">
       <Table.Td />
@@ -69,14 +78,9 @@ function LevelRow({ level }: { level: Data.Level }) {
             </Stack>
           </Group>
           <Stack gap="xs" align="flex-end">
-            {level.available && (
+            {canCreateClass && (
               <Guard for="class.manage">
-                <Button
-                  component={Link}
-                  href={urlFor('swimming_classes.create', {}, { qs: { levelId: level.id } })}
-                  size="xs"
-                  variant="light"
-                >
+                <Button type="button" size="xs" variant="light" onClick={onCreateClass}>
                   Create class
                 </Button>
               </Guard>
@@ -93,6 +97,7 @@ function LevelRow({ level }: { level: Data.Level }) {
 
 function ProgramRows({ program }: { program: Data.Program }) {
   const [expanded, setExpanded] = useState(true)
+  const [builderLevelId, setBuilderLevelId] = useState<number | null>(null)
   const levels = program.levels ?? []
 
   return (
@@ -166,7 +171,26 @@ function ProgramRows({ program }: { program: Data.Program }) {
           </Guard>
         </Table.Td>
       </Table.Tr>
-      {expanded && levels.map((level) => <LevelRow key={level.id} level={level} />)}
+      {expanded &&
+        levels.map((level) => (
+          <Fragment key={level.id}>
+            <LevelRow
+              level={level}
+              canCreateClass={program.isActive && level.available}
+              onCreateClass={() =>
+                setBuilderLevelId((current) => (current === level.id ? null : level.id))
+              }
+            />
+            {builderLevelId === level.id && (
+              <Table.Tr bg="gray.0">
+                <Table.Td />
+                <Table.Td colSpan={4}>
+                  <ClassInlineBuilder level={level} onClose={() => setBuilderLevelId(null)} />
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Fragment>
+        ))}
     </>
   )
 }

@@ -96,22 +96,16 @@ router
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
 
-// Swimming classes — school-scoped class series and generated sessions.
+// Swimming classes — day-based classes created inline from the programs list.
 router
   .group(() => {
     router
       .resource('classes', controllers.SwimmingClasses)
-      .except(['destroy'])
+      .except(['destroy', 'create'])
       .as('swimming_classes')
       .where('id', router.matchers.number())
       .use(['index', 'show'], middleware.authorize('class.view'))
-      .use(['create', 'store', 'edit', 'update'], middleware.authorize('class.manage'))
-
-    router
-      .patch('class-sessions/:id', [controllers.SwimmingClassSessions, 'update'])
-      .as('swimming_class_sessions.update')
-      .where('id', router.matchers.number())
-      .use(middleware.authorize('class.manage'))
+      .use(['store', 'edit', 'update'], middleware.authorize('class.manage'))
   })
   .use(middleware.auth())
   .use(middleware.completeProfile())

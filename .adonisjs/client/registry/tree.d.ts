@@ -49,13 +49,9 @@ export interface ApiDefinition {
   }
   swimmingClasses: {
     index: typeof routes['swimming_classes.index']
-    create: typeof routes['swimming_classes.create']
     store: typeof routes['swimming_classes.store']
     show: typeof routes['swimming_classes.show']
     edit: typeof routes['swimming_classes.edit']
     update: typeof routes['swimming_classes.update']
-  }
-  swimmingClassSessions: {
-    update: typeof routes['swimming_class_sessions.update']
   }
 }

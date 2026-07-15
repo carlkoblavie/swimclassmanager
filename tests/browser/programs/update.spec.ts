@@ -7,6 +7,7 @@ import { LevelFactory } from '#database/factories/level_factory'
 import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import LevelStage from '#models/level_stage'
+import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import type User from '#models/user'
 
 async function manager(): Promise<User> {
@@ -47,6 +48,69 @@ test.group('Programs update', (group) => {
     await page.assertPath(route('programs.index'))
     await db.assertHas('programs', { id: program.id, name: 'Learn to Swim (Kids)' })
     await db.assertHas('levels', { program_id: program.id, default_fee: 6000 })
+  })
+
+  test('renames curriculum in place without breaking class references', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const user = await manager()
+    await browserContext.loginAs(user)
+    const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
+    const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
+    const stage = await LevelStage.create({
+      levelId: level.id,
+      name: 'Old Stage Name',
+      position: 1,
+      description: null,
+    })
+    await SwimmingClassFactory.merge({
+      schoolId: user.activeSchoolId!,
+      levelId: level.id,
+      levelStageId: stage.id,
+    }).create()
+
+    const page = await visit(route('programs.edit', { id: program.id }))
+    await page.getByRole('button', { name: 'Edit stage' }).click()
+    await page.getByLabel('Stage name').fill('Renamed Stage')
+    await page.getByRole('button', { name: 'Save stage' }).click()
+    await page.getByRole('button', { name: 'Save changes' }).click()
+
+    await page.assertPath(route('programs.index'))
+    await db.assertHas('level_stages', { id: stage.id, name: 'Renamed Stage' })
+    await db.assertHas('swimming_classes', { level_stage_id: stage.id })
+  })
+
+  test('a stage in use by classes cannot be removed', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const user = await manager()
+    await browserContext.loginAs(user)
+    const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
+    const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
+    const stage = await LevelStage.create({
+      levelId: level.id,
+      name: 'Guarded Stage',
+      position: 1,
+      description: null,
+    })
+    await SwimmingClassFactory.merge({
+      schoolId: user.activeSchoolId!,
+      levelId: level.id,
+      levelStageId: stage.id,
+    }).create()
+
+    const page = await visit(route('programs.edit', { id: program.id }))
+    await page.getByRole('button', { name: 'Remove stage' }).click()
+    await page.getByRole('button', { name: 'Save changes' }).click()
+
+    await page.assertVisible('text=A stage in use by classes cannot be removed.')
+    await db.assertHas('level_stages', { id: stage.id, name: 'Guarded Stage' })
   })
 
   test('replaces a level stage when editing', async ({ visit, route, browserContext, db }) => {

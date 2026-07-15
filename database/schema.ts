@@ -7,32 +7,30 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-export class ClassStageSkillSchema extends BaseModel {
-  static $columns = ['classStageId', 'createdAt', 'id', 'skillId', 'updatedAt'] as const
-  $columns = ClassStageSkillSchema.$columns
-  @column()
-  declare classStageId: number
+export class ClassActivitySchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'levelStageActivityId', 'swimmingClassId', 'updatedAt'] as const
+  $columns = ClassActivitySchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare skillId: number
+  declare levelStageActivityId: number
+  @column()
+  declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
 
-export class ClassStageSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'name', 'position', 'swimmingClassId', 'updatedAt'] as const
-  $columns = ClassStageSchema.$columns
+export class ClassSkillSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'levelStageSkillId', 'swimmingClassId', 'updatedAt'] as const
+  $columns = ClassSkillSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare name: string
-  @column()
-  declare position: number
+  declare levelStageSkillId: number
   @column()
   declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -315,76 +313,17 @@ export class SignupSchema extends BaseModel {
   declare whatsapp: string | null
 }
 
-export class SkillSchema extends BaseModel {
-  static $columns = ['createdAt', 'createdByUserId', 'description', 'id', 'isDefault', 'name', 'schoolId', 'updatedAt'] as const
-  $columns = SkillSchema.$columns
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column()
-  declare createdByUserId: number | null
-  @column()
-  declare description: string | null
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare isDefault: boolean
-  @column()
-  declare name: string
-  @column()
-  declare schoolId: number | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class SwimmingClassSessionSchema extends BaseModel {
-  static $columns = ['cancelledAt', 'createdAt', 'endsAt', 'id', 'startsAt', 'swimmingClassId', 'updatedAt'] as const
-  $columns = SwimmingClassSessionSchema.$columns
-  @column.dateTime()
-  declare cancelledAt: DateTime | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column.dateTime()
-  declare endsAt: DateTime
-  @column({ isPrimary: true })
-  declare id: number
-  @column.dateTime()
-  declare startsAt: DateTime
-  @column()
-  declare swimmingClassId: number
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class SwimmingClassWeekdaySchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'swimmingClassId', 'updatedAt', 'weekday'] as const
-  $columns = SwimmingClassWeekdaySchema.$columns
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare swimmingClassId: number
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-  @column()
-  declare weekday: number
-}
-
 export class SwimmingClassSchema extends BaseModel {
-  static $columns = ['cancelledAt', 'capacity', 'code', 'createdAt', 'endDate', 'endTime', 'id', 'instructorMembershipId', 'levelId', 'location', 'name', 'pendingInstructorInvitationId', 'schoolId', 'startDate', 'startTime', 'updatedAt'] as const
+  static $columns = ['cancelledAt', 'code', 'createdAt', 'durationMinutes', 'id', 'instructorMembershipId', 'levelId', 'levelStageId', 'location', 'name', 'pendingInstructorInvitationId', 'schoolId', 'startTime', 'updatedAt', 'weekday'] as const
   $columns = SwimmingClassSchema.$columns
   @column.dateTime()
   declare cancelledAt: DateTime | null
   @column()
-  declare capacity: number
-  @column()
   declare code: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
-  @column.date()
-  declare endDate: DateTime
   @column()
-  declare endTime: string
+  declare durationMinutes: number
   @column({ isPrimary: true })
   declare id: number
   @column()
@@ -392,19 +331,21 @@ export class SwimmingClassSchema extends BaseModel {
   @column()
   declare levelId: number
   @column()
-  declare location: string
+  declare levelStageId: number
+  @column()
+  declare location: string | null
   @column()
   declare name: string
   @column()
   declare pendingInstructorInvitationId: number | null
   @column()
   declare schoolId: number
-  @column.date()
-  declare startDate: DateTime
   @column()
   declare startTime: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+  @column()
+  declare weekday: number
 }
 
 export class UserSchema extends BaseModel {

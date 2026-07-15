@@ -28,12 +28,10 @@ export type ScannedRoutes = {
     'programs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
-    'swimming_classes.create': { paramsTuple?: []; params?: {} }
     'swimming_classes.store': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'swimming_class_sessions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -49,7 +47,6 @@ export type ScannedRoutes = {
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
-    'swimming_classes.create': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
@@ -67,7 +64,6 @@ export type ScannedRoutes = {
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
-    'swimming_classes.create': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
@@ -86,7 +82,6 @@ export type ScannedRoutes = {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'swimming_class_sessions.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PUT: {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

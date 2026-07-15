@@ -1,71 +1,77 @@
 import { BaseTransformer } from '@adonisjs/core/transformers'
-import type ClassStage from '#models/class_stage'
+import { DateTime } from 'luxon'
+import type ClassActivity from '#models/class_activity'
+import type ClassSkill from '#models/class_skill'
 import type Invitation from '#models/invitation'
 import type Level from '#models/level'
+import type LevelStage from '#models/level_stage'
 import type Membership from '#models/membership'
 import type Program from '#models/program'
-import type Skill from '#models/skill'
 import type SwimmingClass from '#models/swimming_class'
-import type SwimmingClassSession from '#models/swimming_class_session'
 import type User from '#models/user'
 
-function formatDate(value: { toISODate(): string | null; toFormat(format: string): string }) {
-  return {
-    raw: value.toISODate() ?? '',
-    formatted: value.toFormat('dd LLL yyyy'),
-  }
+export const WEEKDAY_NAMES: Record<number, string> = {
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+  7: 'Sunday',
 }
 
-function formatDateTime(value: { toISO(): string | null; toFormat(format: string): string }) {
-  return {
-    raw: value.toISO() ?? '',
-    formatted: value.toFormat('dd LLL yyyy, HH:mm'),
-  }
+function formatTime(value: string): string {
+  const parsed = DateTime.fromFormat(value, 'HH:mm')
+  return parsed.isValid ? parsed.toFormat('h:mm a') : value
 }
 
 export default class SwimmingClassTransformer extends BaseTransformer<SwimmingClass> {
   toObject() {
     const preloaded = this.resource.$preloaded as {
       level?: Level
+      levelStage?: LevelStage
       instructorMembership?: Membership
       pendingInstructorInvitation?: Invitation
-      stages?: ClassStage[]
-      sessions?: SwimmingClassSession[]
+      classSkills?: ClassSkill[]
+      classActivities?: ClassActivity[]
     }
     const level = preloaded.level
     const levelPreloaded = level?.$preloaded as { program?: Program } | undefined
     const program = levelPreloaded?.program
+    const stage = preloaded.levelStage
     const instructorMembership = preloaded.instructorMembership
     const membershipPreloaded = instructorMembership?.$preloaded as { user?: User } | undefined
     const instructorUser = membershipPreloaded?.user ?? instructorMembership?.user
     const pendingInvitation = preloaded.pendingInstructorInvitation
-    const stages = (preloaded.stages ?? []).toSorted((a, b) => a.position - b.position)
-    const sessions = (preloaded.sessions ?? []).toSorted(
-      (a, b) => a.startsAt.toMillis() - b.startsAt.toMillis()
-    )
+    const classSkills = preloaded.classSkills ?? []
+    const classActivities = preloaded.classActivities ?? []
 
     const activeInstructorLabel =
       instructorUser?.fullName?.trim() || instructorUser?.email || 'Assigned instructor'
     const pendingInstructorLabel =
       pendingInvitation?.inviteeName?.trim() || pendingInvitation?.email || 'Pending instructor'
+    const hasInstructor =
+      this.resource.instructorMembershipId !== null ||
+      this.resource.pendingInstructorInvitationId !== null
 
     return {
       ...this.pick(this.resource, [
         'id',
         'schoolId',
         'levelId',
+        'levelStageId',
         'code',
         'name',
-        'capacity',
         'location',
-        'startTime',
-        'endTime',
+        'weekday',
+        'durationMinutes',
         'instructorMembershipId',
         'pendingInstructorInvitationId',
       ]),
-      dateRange: {
-        start: formatDate(this.resource.startDate),
-        end: formatDate(this.resource.endDate),
+      weekdayName: WEEKDAY_NAMES[this.resource.weekday] ?? String(this.resource.weekday),
+      startTime: {
+        raw: this.resource.startTime,
+        formatted: formatTime(this.resource.startTime),
       },
       isCancelled: this.resource.isCancelled,
       level: level
@@ -76,26 +82,39 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             programName: program?.name ?? '',
           }
         : undefined,
-      instructor: {
-        status: pendingInvitation ? ('pending' as const) : ('active' as const),
-        label: pendingInvitation ? pendingInstructorLabel : activeInstructorLabel,
-      },
-      stages: stages.map((stage) => ({
-        id: stage.id,
-        name: stage.name,
-        position: stage.position,
-        skills: ((stage.skills ?? []) as unknown as Skill[]).map((skill) => ({
-          id: skill.id,
-          name: skill.name,
-          scope: skill.isDefault ? ('platform' as const) : ('school' as const),
-        })),
-      })),
-      sessions: sessions.map((session) => ({
-        id: session.id,
-        startsAt: formatDateTime(session.startsAt),
-        endsAt: formatDateTime(session.endsAt),
-        isCancelled: session.isCancelled,
-      })),
+      stage: stage ? { id: stage.id, name: stage.name } : undefined,
+      instructor: hasInstructor
+        ? {
+            status: pendingInvitation ? ('pending' as const) : ('active' as const),
+            label: pendingInvitation ? pendingInstructorLabel : activeInstructorLabel,
+          }
+        : undefined,
+      skills: classSkills.flatMap((classSkill) => {
+        const skill = classSkill.levelStageSkill
+        if (!skill) {
+          return []
+        }
+        return [
+          {
+            id: skill.id,
+            name: skill.name,
+            passCriteria: skill.passCriteria,
+          },
+        ]
+      }),
+      activities: classActivities.flatMap((classActivity) => {
+        const activity = classActivity.levelStageActivity
+        if (!activity) {
+          return []
+        }
+        return [
+          {
+            id: activity.id,
+            name: activity.name,
+            skillId: activity.levelStageSkillId,
+          },
+        ]
+      }),
     }
   }
 }

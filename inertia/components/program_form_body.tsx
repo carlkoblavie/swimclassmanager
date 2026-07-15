@@ -327,6 +327,9 @@ export default function ProgramFormBody({ errors, initial }: Props) {
               const prefix = `levels[${index}][stages][${stageIndex}]`
               return (
                 <Fragment key={stageIndex}>
+                  {stage.id !== undefined && (
+                    <input type="hidden" name={`${prefix}[id]`} value={stage.id} />
+                  )}
                   <input type="hidden" name={`${prefix}[name]`} value={stage.name} />
                   <input type="hidden" name={`${prefix}[position]`} value={stage.position} />
                   {stage.description.trim() !== '' && (
@@ -336,6 +339,9 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                     const skillPrefix = `${prefix}[skills][${skillIndex}]`
                     return (
                       <Fragment key={skillIndex}>
+                        {skill.id !== undefined && (
+                          <input type="hidden" name={`${skillPrefix}[id]`} value={skill.id} />
+                        )}
                         <input type="hidden" name={`${skillPrefix}[name]`} value={skill.name} />
                         <input
                           type="hidden"
@@ -351,6 +357,13 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                         )}
                         {skill.activities.map((activity, activityIndex) => (
                           <Fragment key={activityIndex}>
+                            {activity.id !== undefined && (
+                              <input
+                                type="hidden"
+                                name={`${skillPrefix}[activities][${activityIndex}][id]`}
+                                value={activity.id}
+                              />
+                            )}
                             <input
                               type="hidden"
                               name={`${skillPrefix}[activities][${activityIndex}][name]`}

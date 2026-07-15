@@ -150,12 +150,6 @@ const routes = {
     tokens: [{"old":"/classes","type":0,"val":"classes","end":""}],
     types: placeholder as Registry['swimming_classes.index']['types'],
   },
-  'swimming_classes.create': {
-    methods: ["GET","HEAD"],
-    pattern: '/classes/create',
-    tokens: [{"old":"/classes/create","type":0,"val":"classes","end":""},{"old":"/classes/create","type":0,"val":"create","end":""}],
-    types: placeholder as Registry['swimming_classes.create']['types'],
-  },
   'swimming_classes.store': {
     methods: ["POST"],
     pattern: '/classes',
@@ -179,12 +173,6 @@ const routes = {
     pattern: '/classes/:id',
     tokens: [{"old":"/classes/:id","type":0,"val":"classes","end":""},{"old":"/classes/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['swimming_classes.update']['types'],
-  },
-  'swimming_class_sessions.update': {
-    methods: ["PATCH"],
-    pattern: '/class-sessions/:id',
-    tokens: [{"old":"/class-sessions/:id","type":0,"val":"class-sessions","end":""},{"old":"/class-sessions/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['swimming_class_sessions.update']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 

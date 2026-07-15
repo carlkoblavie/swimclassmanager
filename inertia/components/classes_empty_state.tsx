@@ -8,11 +8,11 @@ export default function ClassesEmptyState() {
       <Stack gap="sm" align="flex-start">
         <Text fw={600}>No classes yet.</Text>
         <Text c="dimmed" size="sm">
-          Create a recurring class under an available program level to publish its schedule.
+          Create classes from an available program level; each day is its own class.
         </Text>
         <Guard for="class.manage">
-          <Button component={Link} route="swimming_classes.create" variant="light">
-            Create class
+          <Button component={Link} route="programs.index" variant="light">
+            Go to programs
           </Button>
         </Guard>
       </Stack>

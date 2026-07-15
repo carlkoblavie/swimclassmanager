@@ -1,4 +1,3 @@
-import { inject } from '@adonisjs/core'
 import string from '@adonisjs/core/helpers/string'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -8,22 +7,18 @@ import ClassAuthoringException from '#exceptions/class_authoring_exception'
 import InvitationMail from '#mails/invitation'
 import Invitation from '#models/invitation'
 import Level from '#models/level'
+import LevelStage from '#models/level_stage'
 import Membership from '#models/membership'
 import Role from '#models/role'
 import School from '#models/school'
-import Skill from '#models/skill'
 import SwimmingClass from '#models/swimming_class'
-import ClassStage from '#models/class_stage'
-import ClassStageSkill from '#models/class_stage_skill'
-import SwimmingClassSession from '#models/swimming_class_session'
-import SwimmingClassWeekday from '#models/swimming_class_weekday'
-import type User from '#models/user'
+import ClassActivity from '#models/class_activity'
+import ClassSkill from '#models/class_skill'
 import { RoleName } from '#values/role'
 import {
-  type StoreSwimmingClassInput,
+  type StoreSwimmingClassesInput,
   type UpdateSwimmingClassInput,
 } from '#validators/swimming_class'
-import ClassScheduleGenerationService from '#services/class_schedule_generation_service'
 
 const INSTRUCTOR_ROLE_NAMES = [RoleName.TEACHER, RoleName.HEAD_COACH] as string[]
 
@@ -35,253 +30,89 @@ function uniqueNumbers(values: number[]): number[] {
   return [...new Set(values)]
 }
 
-@inject()
+type DayInput = StoreSwimmingClassesInput['days'][number]
+
+type CurriculumSelection = {
+  stage: LevelStage
+  skillIds: number[]
+  activityIds: number[]
+}
+
 export default class ClassSeriesAuthoringService {
-  constructor(protected schedule: ClassScheduleGenerationService) {}
-
-  async create(
-    school: School,
-    manager: User,
-    data: StoreSwimmingClassInput
-  ): Promise<SwimmingClass> {
-    if (data.endTime <= data.startTime) {
-      throw new ClassAuthoringException('Class end time must be after the start time.')
-    }
-
-    if (!school.organisation) {
-      await school.load('organisation')
-    }
-
-    const sessions = this.schedule.generate({
-      startDate: data.startDate,
-      endDate: data.endDate,
-      weekdays: data.weekdays,
-      startTime: data.startTime,
-      endTime: data.endTime,
-    })
-
-    if (sessions.length === 0) {
-      throw new ClassAuthoringException('The schedule does not generate any sessions.')
-    }
-
-    this.assertStagesHaveSkills(data)
-
+  /**
+   * Create one class per submitted day under an available level, each with
+   * its own curriculum picked from the level's stages. Instructor and
+   * location are assigned later via edit.
+   */
+  async createMany(school: School, data: StoreSwimmingClassesInput): Promise<SwimmingClass[]> {
     return db.transaction(async (trx) => {
-      const level = await Level.query({ client: trx })
-        .where('id', data.levelId)
-        .preload('program')
-        .preload('schoolLevelSettings', (settingsQuery) =>
-          settingsQuery.where('schoolId', school.id)
-        )
-        .firstOrFail()
+      const level = await this.loadAvailableLevel(school, data.levelId, trx)
 
-      if (!level.program.isActive) {
-        throw new ClassAuthoringException('This program is not yet active.')
+      this.assertUniqueWithinPayload(data.days)
+      for (const day of data.days) {
+        await this.assertNameAndCodeAvailable(school, day.name, day.code, trx)
       }
 
-      const setting = level.schoolLevelSettings?.[0]
-      if (setting?.available === false) {
-        throw new ClassAuthoringException('This program level is not available for this school.')
-      }
-
-      if (data.capacity > level.capacity) {
-        throw new ClassAuthoringException('Class capacity cannot exceed the level capacity.')
-      }
-
-      const code = data.code?.trim()
-        ? data.code.trim().toUpperCase()
-        : await this.generateCode(school, trx)
-      const instructor = await this.resolveInstructor(school, data, trx)
-      const availableSkillIds = await this.availableSkillIds(school, data, trx)
-
-      const swimmingClass = new SwimmingClass()
-      swimmingClass.useTransaction(trx)
-      swimmingClass.merge({
-        schoolId: school.id,
-        levelId: level.id,
-        code,
-        name: data.name,
-        startDate: data.startDate,
-        endDate: data.endDate,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        capacity: data.capacity,
-        location: data.location,
-        instructorMembershipId: instructor.membershipId ?? null,
-        pendingInstructorInvitationId: instructor.invitation?.id ?? null,
-      })
-      await swimmingClass.save()
-
-      await swimmingClass
-        .related('weekdays')
-        .createMany(uniqueNumbers(data.weekdays).map((weekday) => ({ weekday })))
-
-      await swimmingClass.related('sessions').createMany(sessions)
-
-      for (const stageData of data.stages.toSorted((a, b) => a.position - b.position)) {
-        const stage = await swimmingClass.related('stages').create({
-          name: stageData.name,
-          position: stageData.position,
+      const classes: SwimmingClass[] = []
+      for (const day of data.days) {
+        const selection = this.resolveCurriculum(level, day)
+        const swimmingClass = new SwimmingClass()
+        swimmingClass.useTransaction(trx)
+        swimmingClass.merge({
+          schoolId: school.id,
+          levelId: level.id,
+          levelStageId: selection.stage.id,
+          name: day.name,
+          code: day.code,
+          weekday: day.weekday,
+          startTime: day.startTime,
+          durationMinutes: day.durationMinutes,
+          location: null,
         })
-        const skillIds = await this.resolveStageSkillIds(
-          school,
-          manager,
-          stageData,
-          availableSkillIds,
-          trx
-        )
-        await stage.related('classStageSkills').createMany(skillIds.map((skillId) => ({ skillId })))
+        await swimmingClass.save()
+        await this.replaceCurriculum(swimmingClass, selection, trx)
+        classes.push(swimmingClass)
       }
 
-      if (instructor.invitation) {
-        trx.after('commit', async () => {
-          await mail.sendLater(
-            new InvitationMail(
-              instructor.invitation!.email,
-              instructor.invitation!.token,
-              school.name,
-              RoleName.TEACHER
-            )
-          )
-        })
-      }
-
-      await swimmingClass.load('level', (levelQuery) => levelQuery.preload('program'))
-      await swimmingClass.load('stages', (stagesQuery) =>
-        stagesQuery.preload('skills').orderBy('position')
-      )
-      await swimmingClass.load('sessions', (sessionsQuery) => sessionsQuery.orderBy('startsAt'))
-      await swimmingClass.load('weekdays')
-
-      return swimmingClass
+      return classes
     })
   }
 
+  /**
+   * Update one class: schedule, name/code, curriculum, location, and
+   * instructor (existing member, invited Teacher, or none).
+   */
   async update(
     swimmingClass: SwimmingClass,
     school: School,
-    manager: User,
     data: UpdateSwimmingClassInput
   ): Promise<SwimmingClass> {
-    if (data.endTime <= data.startTime) {
-      throw new ClassAuthoringException('Class end time must be after the start time.')
-    }
-
-    if (!school.organisation) {
-      await school.load('organisation')
-    }
-
-    const sessions = this.schedule.generate({
-      startDate: data.startDate,
-      endDate: data.endDate,
-      weekdays: data.weekdays,
-      startTime: data.startTime,
-      endTime: data.endTime,
-    })
-
-    if (sessions.length === 0) {
-      throw new ClassAuthoringException('The schedule does not generate any sessions.')
-    }
-
-    this.assertStagesHaveSkills(data)
-
     return db.transaction(async (trx) => {
-      const level = await Level.query({ client: trx })
-        .where('id', data.levelId)
-        .preload('program')
-        .preload('schoolLevelSettings', (settingsQuery) =>
-          settingsQuery.where('schoolId', school.id)
-        )
-        .firstOrFail()
+      const level = await this.loadAvailableLevel(school, swimmingClass.levelId, trx)
 
-      if (!level.program.isActive) {
-        throw new ClassAuthoringException('This program is not yet active.')
-      }
-
-      const setting = level.schoolLevelSettings?.[0]
-      if (setting?.available === false) {
-        throw new ClassAuthoringException('This program level is not available for this school.')
-      }
-
-      if (data.capacity > level.capacity) {
-        throw new ClassAuthoringException('Class capacity cannot exceed the level capacity.')
-      }
-
-      const currentWeekdays = await SwimmingClassWeekday.query({ client: trx })
-        .where('swimmingClassId', swimmingClass.id)
-        .orderBy('weekday')
-      const currentWeekdayValues = currentWeekdays.map((weekday) => weekday.weekday)
-      const nextWeekdayValues = uniqueNumbers(data.weekdays).toSorted((a, b) => a - b)
-      const scheduleChanged =
-        swimmingClass.startDate.toISODate() !== data.startDate.toISODate() ||
-        swimmingClass.endDate.toISODate() !== data.endDate.toISODate() ||
-        swimmingClass.startTime !== data.startTime ||
-        swimmingClass.endTime !== data.endTime ||
-        currentWeekdayValues.join(',') !== nextWeekdayValues.join(',')
-
+      await this.assertNameAndCodeAvailable(school, data.name, data.code, trx, swimmingClass.id)
+      const selection = this.resolveCurriculum(level, data)
       const instructor = await this.resolveInstructor(school, data, trx)
-      const availableSkillIds = await this.availableSkillIds(school, data, trx)
 
       swimmingClass.useTransaction(trx)
       swimmingClass.merge({
-        levelId: level.id,
-        code: data.code?.trim() ? data.code.trim().toUpperCase() : swimmingClass.code,
+        levelStageId: selection.stage.id,
         name: data.name,
-        startDate: data.startDate,
-        endDate: data.endDate,
+        code: data.code,
+        weekday: data.weekday,
         startTime: data.startTime,
-        endTime: data.endTime,
-        capacity: data.capacity,
-        location: data.location,
+        durationMinutes: data.durationMinutes,
+        location: data.location ?? null,
         instructorMembershipId: instructor.membershipId ?? null,
         pendingInstructorInvitationId: instructor.invitation?.id ?? null,
       })
       await swimmingClass.save()
 
-      await SwimmingClassWeekday.query({ client: trx })
+      await ClassSkill.query({ client: trx }).where('swimmingClassId', swimmingClass.id).delete()
+      await ClassActivity.query({ client: trx })
         .where('swimmingClassId', swimmingClass.id)
         .delete()
-      await swimmingClass
-        .related('weekdays')
-        .createMany(nextWeekdayValues.map((weekday) => ({ weekday })))
-
-      if (scheduleChanged) {
-        const now = DateTime.now()
-        await SwimmingClassSession.query({ client: trx })
-          .where('swimmingClassId', swimmingClass.id)
-          .where('startsAt', '>=', now.toSQL()!)
-          .delete()
-        await swimmingClass
-          .related('sessions')
-          .createMany(sessions.filter((session) => session.startsAt >= now))
-      }
-
-      const existingStages = await ClassStage.query({ client: trx }).where(
-        'swimmingClassId',
-        swimmingClass.id
-      )
-      const existingStageIds = existingStages.map((stage) => stage.id)
-      if (existingStageIds.length > 0) {
-        await ClassStageSkill.query({ client: trx })
-          .whereIn('classStageId', existingStageIds)
-          .delete()
-      }
-      await ClassStage.query({ client: trx }).where('swimmingClassId', swimmingClass.id).delete()
-
-      for (const stageData of data.stages.toSorted((a, b) => a.position - b.position)) {
-        const stage = await swimmingClass.related('stages').create({
-          name: stageData.name,
-          position: stageData.position,
-        })
-        const skillIds = await this.resolveStageSkillIds(
-          school,
-          manager,
-          stageData,
-          availableSkillIds,
-          trx
-        )
-        await stage.related('classStageSkills').createMany(skillIds.map((skillId) => ({ skillId })))
-      }
+      await this.replaceCurriculum(swimmingClass, selection, trx)
 
       if (instructor.invitation) {
         trx.after('commit', async () => {
@@ -306,51 +137,130 @@ export default class ClassSeriesAuthoringService {
     return swimmingClass
   }
 
-  async cancelSession(session: SwimmingClassSession): Promise<SwimmingClassSession> {
-    session.cancel()
-    await session.save()
-    return session
+  protected async loadAvailableLevel(
+    school: School,
+    levelId: number,
+    trx: TransactionClientContract
+  ): Promise<Level> {
+    const level = await Level.query({ client: trx })
+      .where('id', levelId)
+      .preload('program')
+      .preload('schoolLevelSettings', (settingsQuery) => settingsQuery.where('schoolId', school.id))
+      .preload('stages', (stagesQuery) =>
+        stagesQuery.preload('skills', (skillsQuery) => skillsQuery.preload('activities'))
+      )
+      .firstOrFail()
+
+    if (!level.program.isActive) {
+      throw new ClassAuthoringException('This program is not yet active.')
+    }
+
+    const setting = level.schoolLevelSettings?.[0]
+    if (setting?.available === false) {
+      throw new ClassAuthoringException('This program level is not available for this school.')
+    }
+
+    return level
   }
 
-  protected assertStagesHaveSkills(data: StoreSwimmingClassInput | UpdateSwimmingClassInput) {
-    const message = 'Every class needs at least one stage with at least one skill.'
-
-    if (data.stages.length === 0) {
-      throw new ClassAuthoringException(message)
+  protected resolveCurriculum(
+    level: Level,
+    day: Pick<DayInput, 'levelStageId' | 'skillIds' | 'activityIds'>
+  ): CurriculumSelection {
+    const stage = level.stages.find((candidate) => candidate.id === day.levelStageId)
+    if (!stage) {
+      throw new ClassAuthoringException('Choose a stage from this level.')
     }
 
-    for (const stage of data.stages) {
-      const existingSkillCount = stage.skillIds?.length ?? 0
-      const newSkillCount = stage.newSkills?.filter((skill) => skill.name.trim()).length ?? 0
-
-      if (existingSkillCount + newSkillCount === 0) {
-        throw new ClassAuthoringException(message)
+    const stageSkillIds = new Set(stage.skills.map((skill) => skill.id))
+    const skillIds = uniqueNumbers(day.skillIds ?? [])
+    for (const skillId of skillIds) {
+      if (!stageSkillIds.has(skillId)) {
+        throw new ClassAuthoringException('A selected skill does not belong to this stage.')
       }
+    }
+
+    const selectableActivityIds = new Set(
+      stage.skills
+        .filter((skill) => skillIds.includes(skill.id))
+        .flatMap((skill) => skill.activities.map((activity) => activity.id))
+    )
+    const activityIds = uniqueNumbers(day.activityIds ?? [])
+    for (const activityId of activityIds) {
+      if (!selectableActivityIds.has(activityId)) {
+        throw new ClassAuthoringException(
+          'A selected activity does not belong to the selected skills.'
+        )
+      }
+    }
+
+    return { stage, skillIds, activityIds }
+  }
+
+  protected async replaceCurriculum(
+    swimmingClass: SwimmingClass,
+    selection: CurriculumSelection,
+    _trx: TransactionClientContract
+  ): Promise<void> {
+    await swimmingClass
+      .related('classSkills')
+      .createMany(selection.skillIds.map((levelStageSkillId) => ({ levelStageSkillId })))
+    await swimmingClass
+      .related('classActivities')
+      .createMany(selection.activityIds.map((levelStageActivityId) => ({ levelStageActivityId })))
+  }
+
+  protected assertUniqueWithinPayload(days: DayInput[]): void {
+    const names = days.map((day) => day.name.trim().toLowerCase())
+    if (new Set(names).size !== names.length) {
+      throw new ClassAuthoringException('A class with this name already exists.')
+    }
+    const codes = days.map((day) => day.code.trim().toLowerCase())
+    if (new Set(codes).size !== codes.length) {
+      throw new ClassAuthoringException('A class with this code already exists.')
     }
   }
 
-  protected async generateCode(school: School, trx: TransactionClientContract) {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const code = `CLS-${string.random(6).toUpperCase()}`
-      const existing = await SwimmingClass.query({ client: trx })
-        .where('schoolId', school.id)
-        .where('code', code)
-        .first()
-
-      if (!existing) {
-        return code
-      }
+  protected async assertNameAndCodeAvailable(
+    school: School,
+    name: string,
+    code: string,
+    trx: TransactionClientContract,
+    excludeClassId?: number
+  ): Promise<void> {
+    const nameQuery = SwimmingClass.query({ client: trx })
+      .where('schoolId', school.id)
+      .whereRaw('lower(name) = ?', [name.trim().toLowerCase()])
+    if (excludeClassId) {
+      nameQuery.whereNot('id', excludeClassId)
+    }
+    if (await nameQuery.first()) {
+      throw new ClassAuthoringException('A class with this name already exists.')
     }
 
-    throw new ClassAuthoringException('Unable to generate a unique class code.')
+    const codeQuery = SwimmingClass.query({ client: trx })
+      .where('schoolId', school.id)
+      .whereRaw('lower(code) = ?', [code.trim().toLowerCase()])
+    if (excludeClassId) {
+      codeQuery.whereNot('id', excludeClassId)
+    }
+    if (await codeQuery.first()) {
+      throw new ClassAuthoringException('A class with this code already exists.')
+    }
   }
 
   protected async resolveInstructor(
     school: School,
-    data: StoreSwimmingClassInput,
+    data: UpdateSwimmingClassInput,
     trx: TransactionClientContract
   ): Promise<{ membershipId?: number; invitation?: Invitation }> {
-    if (data.instructorMode === 'existing') {
+    const mode = data.instructorMode ?? 'none'
+
+    if (mode === 'none') {
+      return {}
+    }
+
+    if (mode === 'existing') {
       if (!data.instructorMembershipId) {
         throw new ClassAuthoringException('Choose an instructor.')
       }
@@ -387,67 +297,5 @@ export default class ClassSeriesAuthoringService {
     )
 
     return { invitation }
-  }
-
-  protected async availableSkillIds(
-    school: School,
-    data: StoreSwimmingClassInput,
-    trx: TransactionClientContract
-  ): Promise<Set<number>> {
-    const requestedIds = uniqueNumbers(data.stages.flatMap((stage) => stage.skillIds ?? []))
-
-    if (requestedIds.length === 0) {
-      return new Set()
-    }
-
-    const skills = await Skill.query({ client: trx })
-      .where((query) => {
-        query.where('schoolId', school.id)
-
-        if (school.organisation?.isPremium) {
-          query.orWhere((defaultSkills) => {
-            defaultSkills.whereNull('schoolId').where('isDefault', 1)
-          })
-        }
-      })
-      .whereIn('id', requestedIds)
-
-    if (skills.length !== requestedIds.length) {
-      throw new ClassAuthoringException('A selected skill is not available to this school.')
-    }
-
-    return new Set(requestedIds)
-  }
-
-  protected async resolveStageSkillIds(
-    school: School,
-    manager: User,
-    stageData: StoreSwimmingClassInput['stages'][number],
-    availableSkillIds: Set<number>,
-    trx: TransactionClientContract
-  ): Promise<number[]> {
-    const existingSkillIds = uniqueNumbers(stageData.skillIds ?? [])
-    for (const skillId of existingSkillIds) {
-      if (!availableSkillIds.has(skillId)) {
-        throw new ClassAuthoringException('A selected skill is not available to this school.')
-      }
-    }
-
-    const createdSkills: Skill[] = []
-    for (const skill of stageData.newSkills ?? []) {
-      const createdSkill = new Skill()
-      createdSkill.useTransaction(trx)
-      createdSkill.merge({
-        schoolId: school.id,
-        name: skill.name,
-        description: skill.description ?? null,
-        isDefault: false,
-        createdByUserId: manager.id,
-      })
-      await createdSkill.save()
-      createdSkills.push(createdSkill)
-    }
-
-    return [...existingSkillIds, ...createdSkills.map((skill) => skill.id)]
   }
 }

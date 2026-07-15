@@ -1,6 +1,7 @@
 import factory from '@adonisjs/lucid/factories'
 import { DateTime } from 'luxon'
 import SwimmingClass from '#models/swimming_class'
+import LevelStage from '#models/level_stage'
 import { LevelFactory } from './level_factory.js'
 import { SchoolFactory } from './school_factory.js'
 
@@ -10,18 +11,21 @@ export const SwimmingClassFactory = factory
     const level = $trx
       ? await LevelFactory.client($trx).merge({ capacity: 12 }).create()
       : await LevelFactory.merge({ capacity: 12 }).create()
+    const stage = await LevelStage.create(
+      { levelId: level.id, name: 'Foundations', position: 1, description: null },
+      $trx ? { client: $trx } : undefined
+    )
 
     return {
       schoolId: school.id,
       levelId: level.id,
+      levelStageId: stage.id,
       code: `CLS-${faker.string.alphanumeric(6).toUpperCase()}`,
-      name: `${faker.word.adjective()} Swim Class`,
-      startDate: DateTime.now().plus({ days: 1 }),
-      endDate: DateTime.now().plus({ days: 28 }),
+      name: `${faker.word.adjective()} Swim Class ${faker.string.alphanumeric(4)}`,
+      weekday: 1,
       startTime: '09:00',
-      endTime: '10:00',
-      capacity: 10,
-      location: faker.location.streetAddress(),
+      durationMinutes: 45,
+      location: null,
     }
   })
   .state('cancelled', (swimmingClass) => {
