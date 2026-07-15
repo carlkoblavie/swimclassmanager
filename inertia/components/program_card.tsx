@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react'
-import { Link } from '@adonisjs/inertia/react'
+import { Form, Link } from '@adonisjs/inertia/react'
 import { Badge, Button, Card, Group, Stack, Text } from '@mantine/core'
 import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
@@ -14,15 +14,40 @@ export default function ProgramCard({ program }: { program: Data.Program }) {
       <Stack gap="sm">
         <Group justify="space-between" align="flex-start">
           <div>
-            <Text fw={600} size="lg">
-              {program.name}
-            </Text>
+            <Group gap="xs">
+              <Text fw={600} size="lg">
+                {program.name}
+              </Text>
+              <Guard for="program.manage">
+                {program.isActive ? (
+                  <Badge variant="light" color="green" size="sm">
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge variant="light" color="yellow" size="sm">
+                    Draft
+                  </Badge>
+                )}
+              </Guard>
+            </Group>
             <Text size="sm" c="dimmed">
               {program.description}
             </Text>
           </div>
           <Guard for="program.manage">
             <Group gap="xs">
+              {!program.isActive && (
+                <Form route="programs.update" routeParams={{ id: program.id }}>
+                  {({ processing }) => (
+                    <>
+                      <input type="hidden" name="intent" value="activate" />
+                      <Button size="xs" color="green" type="submit" loading={processing}>
+                        Activate
+                      </Button>
+                    </>
+                  )}
+                </Form>
+              )}
               <Button
                 size="xs"
                 variant="light"

@@ -27,3 +27,4 @@ yarn-error.log
 .flow/docs/
 .claude/skills/flow-*
 .agents/skills/flow-*
+design/

@@ -1,15 +1,28 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
+import Membership from '#models/membership'
 import Program from '#models/program'
+import { permissions } from '#start/permissions'
 import ProgramAuthoringService from '#services/program_authoring_service'
 import ProgramTransformer from '#transformers/program_transformer'
 import { storeProgramValidator, updateProgramValidator } from '#validators/program'
 
 export default class ProgramsController {
   async index({ auth, inertia }: HttpContext) {
-    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const user = auth.getUserOrFail()
+    const schoolId = user.activeSchoolId!
+
+    // Draft programs are hidden until active: only members with program.manage
+    // see them (to prepare them for publishing).
+    const membership = await Membership.query()
+      .where('schoolId', schoolId)
+      .where('userId', user.id)
+      .first()
+    const access = membership ? await permissions.createAccessFor(membership) : undefined
+    const canManage = access?.allows('program.manage') ?? false
 
     const programs = await Program.query()
+      .if(!canManage, (query) => query.withScopes((scopes) => scopes.active()))
       .preload('levels', (levelsQuery) =>
         levelsQuery
           .preload('schoolLevelSettings', (settingsQuery) =>
@@ -56,6 +69,13 @@ export default class ProgramsController {
     authoring: ProgramAuthoringService
   ) {
     const program = await Program.findOrFail(params.id)
+
+    if (request.input('intent') === 'activate') {
+      await program.activate()
+      session.flash('success', 'Program activated.')
+      return response.redirect().toRoute('programs.index')
+    }
+
     const payload = await request.validateUsing(updateProgramValidator, {
       meta: { programId: program.id },
     })

@@ -17,6 +17,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
 
     return {
       ...this.pick(this.resource, ['id', 'name', 'description']),
+      isActive: this.resource.isActive,
       levels: LevelTransformer.transform(levels, this.schoolId),
     }
   }

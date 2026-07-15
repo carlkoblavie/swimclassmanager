@@ -46,6 +46,7 @@ export default class SwimmingClassesController {
     const school = await School.query().where('id', schoolId).preload('organisation').firstOrFail()
 
     const levels = await Level.query()
+      .whereHas('program', (programQuery) => programQuery.whereNotNull('activatedAt'))
       .preload('program')
       .preload('schoolLevelSettings', (settingsQuery) => settingsQuery.where('schoolId', schoolId))
       .orderBy('name')
@@ -153,6 +154,7 @@ export default class SwimmingClassesController {
       .firstOrFail()
 
     const levels = await Level.query()
+      .whereHas('program', (programQuery) => programQuery.whereNotNull('activatedAt'))
       .preload('program')
       .preload('schoolLevelSettings', (settingsQuery) => settingsQuery.where('schoolId', schoolId))
       .orderBy('name')

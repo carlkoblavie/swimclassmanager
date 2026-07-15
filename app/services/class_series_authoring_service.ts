@@ -69,10 +69,15 @@ export default class ClassSeriesAuthoringService {
     return db.transaction(async (trx) => {
       const level = await Level.query({ client: trx })
         .where('id', data.levelId)
+        .preload('program')
         .preload('schoolLevelSettings', (settingsQuery) =>
           settingsQuery.where('schoolId', school.id)
         )
         .firstOrFail()
+
+      if (!level.program.isActive) {
+        throw new ClassAuthoringException('This program is not yet active.')
+      }
 
       const setting = level.schoolLevelSettings?.[0]
       if (setting?.available === false) {
@@ -183,10 +188,15 @@ export default class ClassSeriesAuthoringService {
     return db.transaction(async (trx) => {
       const level = await Level.query({ client: trx })
         .where('id', data.levelId)
+        .preload('program')
         .preload('schoolLevelSettings', (settingsQuery) =>
           settingsQuery.where('schoolId', school.id)
         )
         .firstOrFail()
+
+      if (!level.program.isActive) {
+        throw new ClassAuthoringException('This program is not yet active.')
+      }
 
       const setting = level.schoolLevelSettings?.[0]
       if (setting?.available === false) {

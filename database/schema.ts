@@ -40,19 +40,7 @@ export class ClassStageSchema extends BaseModel {
 }
 
 export class InvitationSchema extends BaseModel {
-  static $columns = [
-    'acceptedAt',
-    'createdAt',
-    'email',
-    'expiresAt',
-    'id',
-    'inviteeName',
-    'inviteePhone',
-    'roleId',
-    'schoolId',
-    'token',
-    'updatedAt',
-  ] as const
+  static $columns = ['acceptedAt', 'createdAt', 'email', 'expiresAt', 'id', 'inviteeName', 'inviteePhone', 'roleId', 'schoolId', 'token', 'updatedAt'] as const
   $columns = InvitationSchema.$columns
   @column.dateTime()
   declare acceptedAt: DateTime | null
@@ -79,20 +67,7 @@ export class InvitationSchema extends BaseModel {
 }
 
 export class LearnerSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'dateOfBirth',
-    'firstName',
-    'gender',
-    'id',
-    'lastName',
-    'medicalInfo',
-    'nationality',
-    'residentialLocation',
-    'signupId',
-    'swimmingExperience',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'dateOfBirth', 'firstName', 'gender', 'id', 'lastName', 'medicalInfo', 'nationality', 'residentialLocation', 'signupId', 'swimmingExperience', 'updatedAt'] as const
   $columns = LearnerSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -121,17 +96,7 @@ export class LearnerSchema extends BaseModel {
 }
 
 export class LevelSchema extends BaseModel {
-  static $columns = [
-    'ageGroup',
-    'capacity',
-    'createdAt',
-    'defaultFee',
-    'description',
-    'id',
-    'name',
-    'programId',
-    'updatedAt',
-  ] as const
+  static $columns = ['ageGroup', 'capacity', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'updatedAt'] as const
   $columns = LevelSchema.$columns
   @column()
   declare ageGroup: string
@@ -180,15 +145,7 @@ export class MembershipSchema extends BaseModel {
 }
 
 export class OrganisationSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'createdByUserId',
-    'id',
-    'isPremium',
-    'name',
-    'slug',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'createdByUserId', 'id', 'isPremium', 'name', 'slug', 'updatedAt'] as const
   $columns = OrganisationSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -207,8 +164,10 @@ export class OrganisationSchema extends BaseModel {
 }
 
 export class ProgramSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'id', 'name', 'updatedAt'] as const
+  static $columns = ['activatedAt', 'createdAt', 'description', 'id', 'name', 'updatedAt'] as const
   $columns = ProgramSchema.$columns
+  @column.dateTime()
+  declare activatedAt: DateTime | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -237,15 +196,7 @@ export class RoleSchema extends BaseModel {
 }
 
 export class SchoolLevelSettingSchema extends BaseModel {
-  static $columns = [
-    'available',
-    'createdAt',
-    'fee',
-    'id',
-    'levelId',
-    'schoolId',
-    'updatedAt',
-  ] as const
+  static $columns = ['available', 'createdAt', 'fee', 'id', 'levelId', 'schoolId', 'updatedAt'] as const
   $columns = SchoolLevelSettingSchema.$columns
   @column()
   declare available: boolean
@@ -264,16 +215,7 @@ export class SchoolLevelSettingSchema extends BaseModel {
 }
 
 export class SchoolSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'createdByUserId',
-    'id',
-    'location',
-    'name',
-    'organisationId',
-    'slug',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'createdByUserId', 'id', 'location', 'name', 'organisationId', 'slug', 'updatedAt'] as const
   $columns = SchoolSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -294,17 +236,7 @@ export class SchoolSchema extends BaseModel {
 }
 
 export class SignupSchema extends BaseModel {
-  static $columns = [
-    'contactEmail',
-    'contactName',
-    'contactPhone',
-    'createdAt',
-    'id',
-    'message',
-    'schoolId',
-    'updatedAt',
-    'whatsapp',
-  ] as const
+  static $columns = ['contactEmail', 'contactName', 'contactPhone', 'createdAt', 'id', 'message', 'schoolId', 'updatedAt', 'whatsapp'] as const
   $columns = SignupSchema.$columns
   @column()
   declare contactEmail: string
@@ -327,16 +259,7 @@ export class SignupSchema extends BaseModel {
 }
 
 export class SkillSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'createdByUserId',
-    'description',
-    'id',
-    'isDefault',
-    'name',
-    'schoolId',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'createdByUserId', 'description', 'id', 'isDefault', 'name', 'schoolId', 'updatedAt'] as const
   $columns = SkillSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -357,15 +280,7 @@ export class SkillSchema extends BaseModel {
 }
 
 export class SwimmingClassSessionSchema extends BaseModel {
-  static $columns = [
-    'cancelledAt',
-    'createdAt',
-    'endsAt',
-    'id',
-    'startsAt',
-    'swimmingClassId',
-    'updatedAt',
-  ] as const
+  static $columns = ['cancelledAt', 'createdAt', 'endsAt', 'id', 'startsAt', 'swimmingClassId', 'updatedAt'] as const
   $columns = SwimmingClassSessionSchema.$columns
   @column.dateTime()
   declare cancelledAt: DateTime | null
@@ -399,24 +314,7 @@ export class SwimmingClassWeekdaySchema extends BaseModel {
 }
 
 export class SwimmingClassSchema extends BaseModel {
-  static $columns = [
-    'cancelledAt',
-    'capacity',
-    'code',
-    'createdAt',
-    'endDate',
-    'endTime',
-    'id',
-    'instructorMembershipId',
-    'levelId',
-    'location',
-    'name',
-    'pendingInstructorInvitationId',
-    'schoolId',
-    'startDate',
-    'startTime',
-    'updatedAt',
-  ] as const
+  static $columns = ['cancelledAt', 'capacity', 'code', 'createdAt', 'endDate', 'endTime', 'id', 'instructorMembershipId', 'levelId', 'location', 'name', 'pendingInstructorInvitationId', 'schoolId', 'startDate', 'startTime', 'updatedAt'] as const
   $columns = SwimmingClassSchema.$columns
   @column.dateTime()
   declare cancelledAt: DateTime | null
@@ -453,18 +351,7 @@ export class SwimmingClassSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = [
-    'activeOrganisationId',
-    'activeSchoolId',
-    'country',
-    'createdAt',
-    'email',
-    'fullName',
-    'id',
-    'phone',
-    'profileCompletedAt',
-    'updatedAt',
-  ] as const
+  static $columns = ['activeOrganisationId', 'activeSchoolId', 'country', 'createdAt', 'email', 'fullName', 'id', 'phone', 'profileCompletedAt', 'updatedAt'] as const
   $columns = UserSchema.$columns
   @column()
   declare activeOrganisationId: number | null

@@ -100,6 +100,18 @@ test.group('Class series authoring service', (group) => {
     )
   })
 
+  test('draft program levels cannot be used for class creation', async ({ assert }) => {
+    const { manager, school, data } = await setupValidAuthoringContext()
+    const draftProgram = await ProgramFactory.apply('draft').create()
+    const draftLevel = await LevelFactory.merge({ programId: draftProgram.id, capacity: 8 }).create()
+
+    await expectAuthoringError(
+      assert,
+      () => authoringService().create(school, manager, { ...data, levelId: draftLevel.id }),
+      'This program is not yet active.'
+    )
+  })
+
   test('existing instructors must be eligible active-school members', async ({ assert }) => {
     const { manager, school, data } = await setupValidAuthoringContext()
     const parent = await UserFactory.apply('completed').create()
