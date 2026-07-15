@@ -203,19 +203,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                       Add stage
                     </Button>
                   </div>
-                  {stageTarget?.levelIndex === index && (
-                    <StageBuilder
-                      key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
-                      nextPosition={level.stages.length + 1}
-                      initial={
-                        stageTarget.stageIndex !== null
-                          ? level.stages[stageTarget.stageIndex]
-                          : undefined
-                      }
-                      onCancel={() => setStageTarget(null)}
-                      onSave={saveStage}
-                    />
-                  )}
                 </Stack>
                 <Group gap="md">
                   <Anchor
@@ -237,6 +224,19 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                   </Anchor>
                 </Group>
               </Group>
+              {stageTarget?.levelIndex === index && (
+                <StageBuilder
+                  key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
+                  nextPosition={level.stages.length + 1}
+                  initial={
+                    stageTarget.stageIndex !== null
+                      ? level.stages[stageTarget.stageIndex]
+                      : undefined
+                  }
+                  onCancel={() => setStageTarget(null)}
+                  onSave={saveStage}
+                />
+              )}
             </Card>
           ))
         )}

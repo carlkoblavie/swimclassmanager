@@ -39,7 +39,7 @@ export default function EditProgram({ program }: PageProps) {
   }
 
   return (
-    <Container size="md" py="xl">
+    <Container size="lg" py="xl">
       <Form route="programs.update" routeParams={{ id: program.id }}>
         {({ errors, processing }) => (
           <Stack gap="lg">

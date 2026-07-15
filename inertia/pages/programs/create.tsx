@@ -4,7 +4,7 @@ import ProgramFormBody from '~/components/program_form_body'
 
 export default function CreateProgram() {
   return (
-    <Container size="md" py="xl">
+    <Container size="lg" py="xl">
       <Form route="programs.store">
         {({ errors, processing }) => (
           <Stack gap="lg">
