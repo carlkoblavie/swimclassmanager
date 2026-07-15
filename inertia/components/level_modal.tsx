@@ -1,6 +1,6 @@
 import { type ChangeEvent, useState } from 'react'
 import { Button, Group, Modal, SimpleGrid, Stack, Textarea, TextInput } from '@mantine/core'
-import type { StageDraft } from '~/components/stage_builder_modal'
+import type { StageDraft } from '~/components/stage_builder'
 
 export type LevelDraft = {
   id?: number

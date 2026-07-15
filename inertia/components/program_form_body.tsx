@@ -15,7 +15,7 @@ import {
 } from '@mantine/core'
 import { IconFileDescription, IconStack2 } from '@tabler/icons-react'
 import LevelModal, { type LevelDraft } from '~/components/level_modal'
-import StageBuilderModal, { type StageDraft } from '~/components/stage_builder_modal'
+import StageBuilder, { type StageDraft } from '~/components/stage_builder'
 
 type Props = {
   errors: Record<string, string>
@@ -84,6 +84,7 @@ export default function ProgramFormBody({ errors, initial }: Props) {
         return { ...level, stages }
       })
     )
+    setStageTarget(null)
   }
   const removeStage = (levelIndex: number, stageIndex: number) =>
     setLevels((current) =>
@@ -202,6 +203,19 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                       Add stage
                     </Button>
                   </div>
+                  {stageTarget?.levelIndex === index && (
+                    <StageBuilder
+                      key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
+                      nextPosition={level.stages.length + 1}
+                      initial={
+                        stageTarget.stageIndex !== null
+                          ? level.stages[stageTarget.stageIndex]
+                          : undefined
+                      }
+                      onCancel={() => setStageTarget(null)}
+                      onSave={saveStage}
+                    />
+                  )}
                 </Stack>
                 <Group gap="md">
                   <Anchor
@@ -292,19 +306,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
         onClose={close}
         onSave={save}
         initial={editingIndex !== null ? levels[editingIndex] : undefined}
-      />
-
-      <StageBuilderModal
-        opened={stageTarget !== null}
-        onClose={() => setStageTarget(null)}
-        onSave={saveStage}
-        levelName={stageTarget ? (levels[stageTarget.levelIndex]?.name ?? '') : ''}
-        nextPosition={stageTarget ? (levels[stageTarget.levelIndex]?.stages.length ?? 0) + 1 : 1}
-        initial={
-          stageTarget && stageTarget.stageIndex !== null
-            ? levels[stageTarget.levelIndex]?.stages[stageTarget.stageIndex]
-            : undefined
-        }
       />
     </>
   )
