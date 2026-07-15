@@ -42,7 +42,7 @@ Replace the card list with the mock's layout:
   - Total levels
   - Levels available to your school
 - **Hierarchical table** (replaces `ProgramCard`):
-  - Program rows: expand chevron, program name, age-group/description line, level count, an availability summary badge derived from real data ("N available" in green when ≥1 level is available to the school, gray "Unavailable" otherwise — programs have no status field, so nothing is invented), and icon actions (edit, remove) behind `program.manage`.
+  - Program rows: expand chevron, program name, age-group/description line, level count, the real Draft/Active status badge (from the draft/active flow built first — see `2026-07-15-program-draft-active-design.md`; the Activate action also lives on the row for managers), and icon actions (edit, remove) behind `program.manage`.
   - Expanded level rows: level name, age-group badge, Available/Unavailable badge, fee (school-aware, existing transformer output), capacity, the existing `LevelSettingsControl` (behind `program.manage`), and the "Create class" action (behind `class.manage`, available levels only, same query-string URL as today).
   - Rows expanded by default so all asserted content is present without interaction (see test constraints).
 - **Empty state:** exact current copy — "No programs yet."
