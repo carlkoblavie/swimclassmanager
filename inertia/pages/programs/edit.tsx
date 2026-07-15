@@ -1,4 +1,4 @@
-import { Container, Stack, Title } from '@mantine/core'
+import { Button, Container, Group, Stack, Text, Title } from '@mantine/core'
 import { Form } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
@@ -26,20 +26,26 @@ export default function EditProgram({ program }: PageProps) {
   }
 
   return (
-    <Container size="sm" py="xl">
-      <Stack gap="lg">
-        <Title order={1}>Edit program</Title>
-        <Form route="programs.update" routeParams={{ id: program.id }}>
-          {({ errors, processing }) => (
-            <ProgramFormBody
-              errors={errors}
-              processing={processing}
-              submitLabel="Save changes"
-              initial={initial}
-            />
-          )}
-        </Form>
-      </Stack>
+    <Container size="md" py="xl">
+      <Form route="programs.update" routeParams={{ id: program.id }}>
+        {({ errors, processing }) => (
+          <Stack gap="lg">
+            <Group justify="space-between" align="flex-start">
+              <div>
+                <Title order={1}>Edit program</Title>
+                <Text c="dimmed" size="sm">
+                  Update the program details and its levels.
+                </Text>
+              </div>
+              <Button type="submit" loading={processing}>
+                Save changes
+              </Button>
+            </Group>
+
+            <ProgramFormBody errors={errors} initial={initial} />
+          </Stack>
+        )}
+      </Form>
     </Container>
   )
 }

@@ -44,9 +44,16 @@ export default class ProgramsController {
   @inject()
   async store({ request, response, session }: HttpContext, authoring: ProgramAuthoringService) {
     const payload = await request.validateUsing(storeProgramValidator)
-    await authoring.create(payload)
+    const program = await authoring.create(payload)
 
-    session.flash('success', 'Program created.')
+    // Programs are drafts until activated; publishing creates and activates in one step.
+    if (request.input('intent') === 'publish') {
+      await program.activate()
+      session.flash('success', 'Program published.')
+    } else {
+      session.flash('success', 'Program created.')
+    }
+
     return response.redirect().toRoute('programs.index')
   }
 

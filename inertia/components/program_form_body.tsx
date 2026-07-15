@@ -2,26 +2,52 @@ import { Fragment, useState } from 'react'
 import { useDisclosure } from '@mantine/hooks'
 import {
   Anchor,
+  Badge,
   Button,
   Card,
-  Divider,
   Group,
   Stack,
   Text,
   Textarea,
   TextInput,
+  ThemeIcon,
   Title,
 } from '@mantine/core'
+import { IconFileDescription, IconStack2 } from '@tabler/icons-react'
 import LevelModal, { type LevelDraft } from '~/components/level_modal'
 
 type Props = {
   errors: Record<string, string>
-  processing: boolean
-  submitLabel: string
   initial?: { name: string; description: string; levels: LevelDraft[] }
 }
 
-export default function ProgramFormBody({ errors, processing, submitLabel, initial }: Props) {
+function SectionHeading({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode
+  title: string
+  subtitle: string
+}) {
+  return (
+    <Group gap="sm" wrap="nowrap">
+      <ThemeIcon variant="light" size="lg" radius="md">
+        {icon}
+      </ThemeIcon>
+      <div>
+        <Title order={3} fz="lg">
+          {title}
+        </Title>
+        <Text size="sm" c="dimmed">
+          {subtitle}
+        </Text>
+      </div>
+    </Group>
+  )
+}
+
+export default function ProgramFormBody({ errors, initial }: Props) {
   const [levels, setLevels] = useState<LevelDraft[]>(initial?.levels ?? [])
   const [opened, { open, close }] = useDisclosure(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -45,41 +71,65 @@ export default function ProgramFormBody({ errors, processing, submitLabel, initi
   return (
     <>
       <Stack gap="lg">
-        <TextInput
-          label="Program name"
-          name="name"
-          defaultValue={initial?.name}
-          error={errors.name}
-        />
-        <Textarea
-          label="Description"
-          name="description"
-          defaultValue={initial?.description}
-          error={errors.description}
-          autosize
-          minRows={2}
-        />
+        <Card>
+          <Stack gap="md">
+            <SectionHeading
+              icon={<IconFileDescription size={20} stroke={1.6} />}
+              title="Basic information"
+              subtitle="General details about the program, visible to staff and parents."
+            />
+            <TextInput
+              label="Program name"
+              name="name"
+              defaultValue={initial?.name}
+              error={errors.name}
+            />
+            <Textarea
+              label="Description"
+              name="description"
+              defaultValue={initial?.description}
+              error={errors.description}
+              autosize
+              minRows={3}
+            />
+          </Stack>
+        </Card>
 
-        <Divider />
-
-        <Group justify="space-between">
-          <Title order={3}>Levels</Title>
+        <Group justify="space-between" align="flex-start">
+          <SectionHeading
+            icon={<IconStack2 size={20} stroke={1.6} />}
+            title="Curriculum hierarchy"
+            subtitle="Define the progression path: the levels swimmers move through."
+          />
           <Button variant="light" size="sm" onClick={openAdd}>
             Add level
           </Button>
         </Group>
 
         {levels.length === 0 ? (
-          <Text c="dimmed" size="sm">
-            No levels added yet. Add at least one.
-          </Text>
+          <Card>
+            <Text c="dimmed" size="sm">
+              No levels added yet. Add at least one.
+            </Text>
+          </Card>
         ) : (
           levels.map((level, index) => (
-            <Card key={index} withBorder padding="sm" radius="md">
-              <Group justify="space-between">
-                <Text fw={500}>
-                  {level.name} — {level.ageGroup} — GHS {level.defaultFee}
-                </Text>
+            <Card key={index}>
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={4}>
+                  <Group gap="xs">
+                    <Badge variant="light" size="sm">
+                      Level
+                    </Badge>
+                    <Text fw={600}>{level.name}</Text>
+                  </Group>
+                  <Text size="sm">
+                    {level.ageGroup} · Capacity {level.capacity} · GHS {level.defaultFee}
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    {level.description}
+                  </Text>
+                </Stack>
                 <Group gap="md">
                   <Anchor
                     component="button"
@@ -122,10 +172,6 @@ export default function ProgramFormBody({ errors, processing, submitLabel, initi
             <input type="hidden" name={`levels[${index}][capacity]`} value={level.capacity} />
           </Fragment>
         ))}
-
-        <Button type="submit" size="md" loading={processing} disabled={levels.length === 0}>
-          {submitLabel}
-        </Button>
       </Stack>
 
       <LevelModal

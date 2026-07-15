@@ -5,6 +5,7 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
+import Program from '#models/program'
 import type User from '#models/user'
 
 async function manager(): Promise<User> {
@@ -41,14 +42,45 @@ test.group('Programs store', (group) => {
     await page.getByLabel('Level description').fill('Intro level.')
     await page.getByRole('button', { name: 'Save level' }).click()
 
-    await page.getByRole('button', { name: 'Create program' }).click()
+    await page.getByRole('button', { name: 'Save as draft' }).click()
 
     await page.assertPath(route('programs.index'))
     await page.assertVisible('text=Program created')
     await page.assertVisible('text=Learn to Swim')
+    await page.assertVisible(page.getByText('Draft', { exact: true }))
 
-    await db.assertHas('programs', { name: 'Learn to Swim' })
+    await db.assertHas('programs', { name: 'Learn to Swim', activated_at: null })
     await db.assertHas('levels', { name: 'Beginners', default_fee: 5000, capacity: 10 })
+  })
+
+  test('publishes a program directly from the builder', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    await browserContext.loginAs(await manager())
+
+    const page = await visit(route('programs.create'))
+    await page.getByLabel('Program name').fill('Learn to Swim')
+    await page.getByLabel('Description', { exact: true }).fill('Our flagship program.')
+
+    await page.getByRole('button', { name: 'Add level' }).click()
+    await page.getByLabel('Level name').fill('Beginners')
+    await page.getByLabel('Age group').fill('4-7')
+    await page.getByLabel('Capacity').fill('10')
+    await page.getByLabel('Fee (GHS)').fill('50')
+    await page.getByLabel('Level description').fill('Intro level.')
+    await page.getByRole('button', { name: 'Save level' }).click()
+
+    await page.getByRole('button', { name: 'Publish program' }).click()
+
+    await page.assertPath(route('programs.index'))
+    await page.assertVisible('text=Program published')
+    await page.assertVisible(page.getByText('Active', { exact: true }))
+
+    const program = await Program.findByOrFail('name', 'Learn to Swim')
+    assert.isTrue(program.isActive)
   })
 
   test('rejects a duplicate program name (case-insensitive) and creates nothing', async ({
@@ -70,7 +102,7 @@ test.group('Programs store', (group) => {
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
     await page.getByRole('button', { name: 'Save level' }).click()
-    await page.getByRole('button', { name: 'Create program' }).click()
+    await page.getByRole('button', { name: 'Save as draft' }).click()
 
     await page.assertPath(route('programs.create'))
     await page.assertVisible('text=A program with this name already exists')
@@ -83,8 +115,9 @@ test.group('Programs store', (group) => {
     const page = await visit(route('programs.create'))
     await page.getByLabel('Program name').fill('Learn to Swim')
     await page.getByLabel('Description', { exact: true }).fill('No levels.')
-    // Submit is disabled with zero levels; assert nothing was created and no program lands.
-    await page.assertExists(page.getByRole('button', { name: 'Create program' }))
+    await page.getByRole('button', { name: 'Save as draft' }).click()
+
+    await page.assertPath(route('programs.create'))
     await db.assertCount('programs', 0)
   })
 
@@ -109,7 +142,7 @@ test.group('Programs store', (group) => {
       await page.getByLabel('Fee (GHS)').fill(row.fee)
       await page.getByLabel('Level description').fill('Intro level.')
       await page.getByRole('button', { name: 'Save level' }).click()
-      await page.getByRole('button', { name: 'Create program' }).click()
+      await page.getByRole('button', { name: 'Save as draft' }).click()
 
       await page.assertPath(route('programs.create'))
       await db.assertCount('programs', 0)

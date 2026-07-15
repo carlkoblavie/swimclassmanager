@@ -13,7 +13,8 @@ export default class Program extends ProgramSchema {
   })
 
   get isActive(): boolean {
-    return this.activatedAt !== null
+    // Fresh instances have `activatedAt` undefined, not null; both mean draft.
+    return this.activatedAt != null
   }
 
   // One-way draft → active transition; activating an active program is a no-op.

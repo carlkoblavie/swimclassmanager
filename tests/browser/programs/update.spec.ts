@@ -92,7 +92,6 @@ test.group('Programs update', (group) => {
     route,
     browserContext,
     db,
-    assert,
   }) => {
     await browserContext.loginAs(await manager())
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
@@ -100,8 +99,9 @@ test.group('Programs update', (group) => {
 
     const page = await visit(route('programs.edit', { id: program.id }))
     await page.getByRole('button', { name: 'Remove' }).click()
+    await page.getByRole('button', { name: 'Save changes' }).click()
 
-    assert.isTrue(await page.getByRole('button', { name: 'Save changes' }).isDisabled())
+    await page.assertPath(route('programs.edit', { id: program.id }))
     await db.assertHas('levels', { program_id: program.id, name: 'Beginners' })
   })
 
