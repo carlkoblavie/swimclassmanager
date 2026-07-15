@@ -114,6 +114,12 @@ router
       .use(middleware.authorize('class.manage'))
 
     router
+      .patch('class-lessons/:id', [controllers.ClassLessons, 'update'])
+      .as('class_lessons.update')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('class.manage'))
+
+    router
       .delete('class-lessons/:id', [controllers.ClassLessons, 'destroy'])
       .as('class_lessons.destroy')
       .where('id', router.matchers.number())

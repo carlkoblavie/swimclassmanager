@@ -56,6 +56,7 @@ export interface ApiDefinition {
   }
   classLessons: {
     store: typeof routes['class_lessons.store']
+    update: typeof routes['class_lessons.update']
     destroy: typeof routes['class_lessons.destroy']
   }
 }

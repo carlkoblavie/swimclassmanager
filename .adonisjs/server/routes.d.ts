@@ -33,6 +33,7 @@ export type ScannedRoutes = {
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
@@ -85,6 +86,7 @@ export type ScannedRoutes = {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PUT: {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

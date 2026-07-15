@@ -355,6 +355,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
+  'class_lessons.update': {
+    methods: ["PATCH"]
+    pattern: '/class-lessons/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').storeClassLessonValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').storeClassLessonValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'class_lessons.destroy': {
     methods: ["DELETE"]
     pattern: '/class-lessons/:id'

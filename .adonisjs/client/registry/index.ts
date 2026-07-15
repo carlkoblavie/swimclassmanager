@@ -180,6 +180,12 @@ const routes = {
     tokens: [{"old":"/classes/:id/lessons","type":0,"val":"classes","end":""},{"old":"/classes/:id/lessons","type":1,"val":"id","end":""},{"old":"/classes/:id/lessons","type":0,"val":"lessons","end":""}],
     types: placeholder as Registry['class_lessons.store']['types'],
   },
+  'class_lessons.update': {
+    methods: ["PATCH"],
+    pattern: '/class-lessons/:id',
+    tokens: [{"old":"/class-lessons/:id","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['class_lessons.update']['types'],
+  },
   'class_lessons.destroy': {
     methods: ["DELETE"],
     pattern: '/class-lessons/:id',

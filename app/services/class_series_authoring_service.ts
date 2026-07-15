@@ -165,23 +165,11 @@ export default class ClassSeriesAuthoringService {
    */
   async planLesson(swimmingClass: SwimmingClass, data: StoreClassLessonInput): Promise<ClassLesson> {
     return db.transaction(async (trx) => {
-      const classSkills = await ClassSkill.query({ client: trx })
-        .where('swimmingClassId', swimmingClass.id)
-        .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
-
-      const allowedActivityIds = new Set(
-        classSkills.flatMap((classSkill) =>
-          (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
-        )
+      const activityIds = await this.resolveLessonActivities(
+        swimmingClass.id,
+        data.activityIds ?? [],
+        trx
       )
-      const activityIds = uniqueNumbers(data.activityIds ?? [])
-      for (const activityId of activityIds) {
-        if (!allowedActivityIds.has(activityId)) {
-          throw new ClassAuthoringException(
-            'A selected activity does not belong to the class skills.'
-          )
-        }
-      }
 
       const latest = await ClassLesson.query({ client: trx })
         .where('swimmingClassId', swimmingClass.id)
@@ -209,6 +197,55 @@ export default class ClassSeriesAuthoringService {
       candidate = candidate.plus({ days: 1 })
     }
     return candidate
+  }
+
+  /**
+   * Update a planned lesson's activities and notes; its system-assigned
+   * date is immutable.
+   */
+  async updateLesson(lesson: ClassLesson, data: StoreClassLessonInput): Promise<ClassLesson> {
+    return db.transaction(async (trx) => {
+      const activityIds = await this.resolveLessonActivities(
+        lesson.swimmingClassId,
+        data.activityIds ?? [],
+        trx
+      )
+
+      lesson.useTransaction(trx)
+      lesson.notes = data.notes ?? null
+      await lesson.save()
+
+      await LessonActivity.query({ client: trx }).where('classLessonId', lesson.id).delete()
+      await lesson
+        .related('lessonActivities')
+        .createMany(activityIds.map((levelStageActivityId) => ({ levelStageActivityId })))
+      return lesson
+    })
+  }
+
+  protected async resolveLessonActivities(
+    swimmingClassId: number,
+    requested: number[],
+    trx: TransactionClientContract
+  ): Promise<number[]> {
+    const classSkills = await ClassSkill.query({ client: trx })
+      .where('swimmingClassId', swimmingClassId)
+      .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+
+    const allowedActivityIds = new Set(
+      classSkills.flatMap((classSkill) =>
+        (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
+      )
+    )
+    const activityIds = uniqueNumbers(requested)
+    for (const activityId of activityIds) {
+      if (!allowedActivityIds.has(activityId)) {
+        throw new ClassAuthoringException(
+          'A selected activity does not belong to the class skills.'
+        )
+      }
+    }
+    return activityIds
   }
 
   async removeLesson(lesson: ClassLesson): Promise<void> {

@@ -12,13 +12,15 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core'
-import { IconTrash } from '@tabler/icons-react'
+import { IconPencil, IconTrash } from '@tabler/icons-react'
+import { useState } from 'react'
 import { router } from '@inertiajs/react'
 import { Form, Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
+import EditLessonForm from '~/components/edit_lesson_form'
 import PlanLessonForm from '~/components/plan_lesson_form'
 
 type PageProps = InertiaProps<{
@@ -26,6 +28,8 @@ type PageProps = InertiaProps<{
 }>
 
 export default function ClassShow({ swimmingClass }: PageProps) {
+  const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
+
   return (
     <Container size="md" py="xl">
       <Stack gap="lg">
@@ -132,46 +136,71 @@ export default function ClassShow({ swimmingClass }: PageProps) {
           ) : (
             swimmingClass.lessons.map((lesson) => (
               <Card key={lesson.id} padding="md">
-                <Group justify="space-between" align="flex-start" wrap="nowrap">
-                  <Stack gap="xs">
-                    <Text fw={600} size="sm">
-                      {lesson.date.formatted}
-                    </Text>
-                    {lesson.activities.length === 0 ? (
-                      <Text size="xs" c="dimmed">
-                        No activities planned.
+                <Stack gap="sm">
+                  <Group justify="space-between" align="flex-start" wrap="nowrap">
+                    <Stack gap="xs">
+                      <Text fw={600} size="sm">
+                        {lesson.date.formatted}
                       </Text>
-                    ) : (
-                      <Group gap="xs">
-                        {lesson.activities.map((activity) => (
-                          <Pill key={activity.id} bg="green.0" c="green.9">
-                            {activity.name}
-                          </Pill>
-                        ))}
+                      {lesson.activities.length === 0 ? (
+                        <Text size="xs" c="dimmed">
+                          No activities planned.
+                        </Text>
+                      ) : (
+                        <Group gap="xs">
+                          {lesson.activities.map((activity) => (
+                            <Pill key={activity.id} bg="green.0" c="green.9">
+                              {activity.name}
+                            </Pill>
+                          ))}
+                        </Group>
+                      )}
+                      {lesson.notes && (
+                        <Text size="xs" c="dimmed" fs="italic">
+                          {lesson.notes}
+                        </Text>
+                      )}
+                    </Stack>
+                    <Guard for="class.manage">
+                      <Group gap="xs" wrap="nowrap">
+                        <Tooltip label="Edit lesson">
+                          <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            aria-label={`Edit lesson ${lesson.date.formatted}`}
+                            onClick={() =>
+                              setEditingLessonId((current) =>
+                                current === lesson.id ? null : lesson.id
+                              )
+                            }
+                          >
+                            <IconPencil size={14} />
+                          </ActionIcon>
+                        </Tooltip>
+                        <Tooltip label="Remove lesson">
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            size="sm"
+                            aria-label={`Remove lesson ${lesson.date.formatted}`}
+                            onClick={() =>
+                              router.delete(urlFor('class_lessons.destroy', { id: lesson.id }))
+                            }
+                          >
+                            <IconTrash size={14} />
+                          </ActionIcon>
+                        </Tooltip>
                       </Group>
-                    )}
-                    {lesson.notes && (
-                      <Text size="xs" c="dimmed" fs="italic">
-                        {lesson.notes}
-                      </Text>
-                    )}
-                  </Stack>
-                  <Guard for="class.manage">
-                    <Tooltip label="Remove lesson">
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        size="sm"
-                        aria-label={`Remove lesson ${lesson.date.formatted}`}
-                        onClick={() =>
-                          router.delete(urlFor('class_lessons.destroy', { id: lesson.id }))
-                        }
-                      >
-                        <IconTrash size={14} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Guard>
-                </Group>
+                    </Guard>
+                  </Group>
+                  {editingLessonId === lesson.id && (
+                    <EditLessonForm
+                      lesson={lesson}
+                      skills={swimmingClass.skills}
+                      onCancel={() => setEditingLessonId(null)}
+                    />
+                  )}
+                </Stack>
               </Card>
             ))
           )}

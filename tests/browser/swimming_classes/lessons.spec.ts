@@ -85,6 +85,37 @@ test.group('Class lessons', (group) => {
     assert.equal(lessons[1].date.toISODate(), anchor.plus({ days: 7 }).toISODate())
   })
 
+  test('a manager edits a lesson to add activities and notes', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const { user, swimmingClass } = await setupClass()
+    // The first lesson is created with the class and starts empty.
+    await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-07-13'),
+    })
+    await browserContext.loginAs(user)
+
+    const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
+    await page.getByRole('button', { name: 'Edit lesson Monday 13 Jul 2026' }).click()
+    await page.getByLabel('Hip rotation activities').first().click({ force: true })
+    await page.getByRole('option', { name: 'Standing twists' }).click()
+    await page.keyboard.press('Escape')
+    await page.getByLabel('Lesson notes (optional)').first().fill('Added after creation.')
+    await page.getByRole('button', { name: 'Save lesson' }).click()
+
+    await page.assertVisible('text=Lesson updated.')
+    await page.assertVisible(page.getByText('Standing twists').first())
+    await db.assertHas('class_lessons', {
+      swimming_class_id: swimmingClass.id,
+      notes: 'Added after creation.',
+    })
+    await db.assertCount('lesson_activities', 1)
+  })
+
   test('a manager removes a planned lesson', async ({ visit, route, browserContext, db }) => {
     const { user, swimmingClass } = await setupClass()
     const lesson = await ClassLesson.create({

@@ -28,6 +28,27 @@ export default class ClassLessonsController {
   }
 
   /**
+   * Update a lesson's activities and notes
+   */
+  @inject()
+  async update(
+    { auth, request, response, params, session }: HttpContext,
+    authoring: ClassSeriesAuthoringService
+  ) {
+    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const lesson = await ClassLesson.query()
+      .where('id', params.id)
+      .whereHas('swimmingClass', (classQuery) => classQuery.where('schoolId', schoolId))
+      .firstOrFail()
+
+    const payload = await request.validateUsing(storeClassLessonValidator)
+    await authoring.updateLesson(lesson, payload)
+
+    session.flash('success', 'Lesson updated.')
+    return response.redirect().toRoute('swimming_classes.show', { id: lesson.swimmingClassId })
+  }
+
+  /**
    * Remove a planned lesson
    */
   @inject()
