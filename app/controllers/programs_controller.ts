@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import Membership from '#models/membership'
+import Organisation from '#models/organisation'
 import Program from '#models/program'
 import { permissions } from '#start/permissions'
 import ProgramAuthoringService from '#services/program_authoring_service'
@@ -47,9 +48,14 @@ export default class ProgramsController {
   }
 
   @inject()
-  async store({ request, response, session }: HttpContext, authoring: ProgramAuthoringService) {
+  async store(
+    { auth, request, response, session }: HttpContext,
+    authoring: ProgramAuthoringService
+  ) {
+    const user = auth.getUserOrFail()
+    const organisation = await Organisation.findOrFail(user.activeOrganisationId!)
     const payload = await request.validateUsing(storeProgramValidator)
-    const program = await authoring.create(payload)
+    const program = await authoring.create(payload, organisation.name)
 
     // Programs are drafts until activated; publishing creates and activates in one step.
     if (request.input('intent') === 'publish') {

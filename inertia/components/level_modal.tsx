@@ -4,6 +4,7 @@ import type { StageDraft } from '~/components/stage_builder'
 
 export type LevelDraft = {
   id?: number
+  code?: string
   name: string
   ageGroup: string
   description: string

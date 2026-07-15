@@ -51,6 +51,9 @@ function LevelRow({
             <Stack gap={4}>
               <Group gap="xs">
                 <Text fw={500}>{level.name}</Text>
+                <Badge variant="light" color="gray" size="sm">
+                  {level.code}
+                </Badge>
                 <Badge variant="light" size="sm">
                   {level.ageGroup}
                 </Badge>
@@ -114,7 +117,12 @@ function ProgramRows({ program }: { program: Data.Program }) {
           </ActionIcon>
         </Table.Td>
         <Table.Td>
-          <Text fw={600}>{program.name}</Text>
+          <Group gap="xs">
+            <Text fw={600}>{program.name}</Text>
+            <Badge variant="light" color="gray" size="sm">
+              {program.code}
+            </Badge>
+          </Group>
           <Text size="sm" c="dimmed">
             {program.description}
           </Text>

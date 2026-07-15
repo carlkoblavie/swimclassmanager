@@ -41,7 +41,7 @@ test.group('Swimming classes edit', (group) => {
     const page = await visit(route('swimming_classes.edit', { id: swimmingClass.id }))
 
     assert.equal(await page.getByLabel('Class name').inputValue(), 'Monday Splash')
-    assert.equal(await page.getByLabel('Class code').inputValue(), 'AQT-4820')
+    await page.assertVisible('text=AQT-4820')
     assert.equal(await page.getByLabel('Start time').inputValue(), '17:00')
     assert.equal(await page.getByLabel('Duration (mins)').inputValue(), '45')
     assert.equal(await page.getByLabel('Location').inputValue(), 'Main Pool')

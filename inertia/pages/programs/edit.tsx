@@ -16,6 +16,7 @@ export default function EditProgram({ program }: PageProps) {
     levels: program.levels.map(
       (level): LevelDraft => ({
         id: level.id,
+        code: level.code,
         name: level.name,
         ageGroup: level.ageGroup,
         description: level.description,
@@ -23,6 +24,7 @@ export default function EditProgram({ program }: PageProps) {
         capacity: String(level.capacity),
         stages: level.stages.map((stage) => ({
           id: stage.id,
+          code: stage.code,
           name: stage.name,
           position: String(stage.position),
           description: stage.description ?? '',

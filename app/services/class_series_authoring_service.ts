@@ -15,6 +15,7 @@ import SwimmingClass from '#models/swimming_class'
 import ClassActivity from '#models/class_activity'
 import ClassSkill from '#models/class_skill'
 import { RoleName } from '#values/role'
+import { classCode, codeSegment, nextTierNumber } from '#values/account_code'
 import {
   type StoreSwimmingClassesInput,
   type UpdateSwimmingClassInput,
@@ -50,12 +51,18 @@ export default class ClassSeriesAuthoringService {
 
       this.assertUniqueWithinPayload(data.days)
       for (const day of data.days) {
-        await this.assertNameAndCodeAvailable(school, day.name, day.code, trx)
+        await this.assertNameAvailable(school, day.name, trx)
       }
+
+      const existingCodes = (
+        await SwimmingClass.query({ client: trx }).select('code')
+      ).map((row) => row.code)
 
       const classes: SwimmingClass[] = []
       for (const day of data.days) {
         const selection = this.resolveCurriculum(level, day)
+        const code = classCode(selection.stage.code, nextTierNumber(existingCodes, 'class'))
+        existingCodes.push(code)
         const swimmingClass = new SwimmingClass()
         swimmingClass.useTransaction(trx)
         swimmingClass.merge({
@@ -63,7 +70,7 @@ export default class ClassSeriesAuthoringService {
           levelId: level.id,
           levelStageId: selection.stage.id,
           name: day.name,
-          code: day.code,
+          code,
           weekday: day.weekday,
           startTime: day.startTime,
           durationMinutes: day.durationMinutes,
@@ -90,15 +97,24 @@ export default class ClassSeriesAuthoringService {
     return db.transaction(async (trx) => {
       const level = await this.loadAvailableLevel(school, swimmingClass.levelId, trx)
 
-      await this.assertNameAndCodeAvailable(school, data.name, data.code, trx, swimmingClass.id)
+      await this.assertNameAvailable(school, data.name, trx, swimmingClass.id)
       const selection = this.resolveCurriculum(level, data)
       const instructor = await this.resolveInstructor(school, data, trx)
+
+      // Codes are strictly system-generated: the class keeps its own CL
+      // number, but the parent segment follows the class to its new stage.
+      let code = swimmingClass.code
+      if (selection.stage.id !== swimmingClass.levelStageId) {
+        const parent = codeSegment(selection.stage.code, 'stage') ?? selection.stage.code
+        const own = codeSegment(swimmingClass.code, 'class')
+        code = own ? `${parent}-${own}` : swimmingClass.code
+      }
 
       swimmingClass.useTransaction(trx)
       swimmingClass.merge({
         levelStageId: selection.stage.id,
         name: data.name,
-        code: data.code,
+        code,
         weekday: data.weekday,
         startTime: data.startTime,
         durationMinutes: data.durationMinutes,
@@ -215,16 +231,11 @@ export default class ClassSeriesAuthoringService {
     if (new Set(names).size !== names.length) {
       throw new ClassAuthoringException('A class with this name already exists.')
     }
-    const codes = days.map((day) => day.code.trim().toLowerCase())
-    if (new Set(codes).size !== codes.length) {
-      throw new ClassAuthoringException('A class with this code already exists.')
-    }
   }
 
-  protected async assertNameAndCodeAvailable(
+  protected async assertNameAvailable(
     school: School,
     name: string,
-    code: string,
     trx: TransactionClientContract,
     excludeClassId?: number
   ): Promise<void> {
@@ -236,16 +247,6 @@ export default class ClassSeriesAuthoringService {
     }
     if (await nameQuery.first()) {
       throw new ClassAuthoringException('A class with this name already exists.')
-    }
-
-    const codeQuery = SwimmingClass.query({ client: trx })
-      .where('schoolId', school.id)
-      .whereRaw('lower(code) = ?', [code.trim().toLowerCase()])
-    if (excludeClassId) {
-      codeQuery.whereNot('id', excludeClassId)
-    }
-    if (await codeQuery.first()) {
-      throw new ClassAuthoringException('A class with this code already exists.')
     }
   }
 

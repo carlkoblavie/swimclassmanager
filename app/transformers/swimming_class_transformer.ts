@@ -82,7 +82,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             programName: program?.name ?? '',
           }
         : undefined,
-      stage: stage ? { id: stage.id, name: stage.name } : undefined,
+      stage: stage ? { id: stage.id, code: stage.code, name: stage.name } : undefined,
       instructor: hasInstructor
         ? {
             status: pendingInvitation ? ('pending' as const) : ('active' as const),

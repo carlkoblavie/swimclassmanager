@@ -132,8 +132,10 @@ export class LevelStageSkillSchema extends BaseModel {
 }
 
 export class LevelStageSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'id', 'levelId', 'name', 'position', 'updatedAt'] as const
+  static $columns = ['code', 'createdAt', 'description', 'id', 'levelId', 'name', 'position', 'updatedAt'] as const
   $columns = LevelStageSchema.$columns
+  @column()
+  declare code: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -151,12 +153,14 @@ export class LevelStageSchema extends BaseModel {
 }
 
 export class LevelSchema extends BaseModel {
-  static $columns = ['ageGroup', 'capacity', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'updatedAt'] as const
+  static $columns = ['ageGroup', 'capacity', 'code', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'updatedAt'] as const
   $columns = LevelSchema.$columns
   @column()
   declare ageGroup: string
   @column()
   declare capacity: number
+  @column()
+  declare code: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -219,10 +223,12 @@ export class OrganisationSchema extends BaseModel {
 }
 
 export class ProgramSchema extends BaseModel {
-  static $columns = ['activatedAt', 'createdAt', 'description', 'id', 'name', 'updatedAt'] as const
+  static $columns = ['activatedAt', 'code', 'createdAt', 'description', 'id', 'name', 'updatedAt'] as const
   $columns = ProgramSchema.$columns
   @column.dateTime()
   declare activatedAt: DateTime | null
+  @column()
+  declare code: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()

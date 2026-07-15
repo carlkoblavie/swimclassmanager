@@ -7,12 +7,14 @@ export const LevelFactory = factory
     const program = await Program.create(
       {
         name: `${faker.commerce.productName()} ${faker.string.alphanumeric(5)}`,
+        code: `ZZP${faker.string.numeric(6)}`,
         description: faker.lorem.sentence(),
       },
       $trx ? { client: $trx } : undefined
     )
 
     return {
+      code: `P00L${faker.string.numeric(6)}`,
       programId: program.id,
       name: `${faker.commerce.productAdjective()} ${faker.string.alphanumeric(4)}`,
       ageGroup: '4-7',

@@ -61,6 +61,7 @@ test.group('Programs update', (group) => {
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
     const stage = await LevelStage.create({
+      code: 'L90ST901',
       levelId: level.id,
       name: 'Old Stage Name',
       position: 1,
@@ -94,6 +95,7 @@ test.group('Programs update', (group) => {
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
     const stage = await LevelStage.create({
+      code: 'L90ST902',
       levelId: level.id,
       name: 'Guarded Stage',
       position: 1,
@@ -118,6 +120,7 @@ test.group('Programs update', (group) => {
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
     await LevelStage.create({
+      code: 'L90ST903',
       levelId: level.id,
       name: 'Old Stage',
       position: 1,

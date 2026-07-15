@@ -70,7 +70,8 @@ export default function ClassEdit({ swimmingClass, level, instructorOptions }: P
               <div>
                 <Title order={1}>Edit class</Title>
                 <Text c="dimmed" size="sm">
-                  {level.name} · schedule, curriculum, location, and instructor.
+                  {swimmingClass.code} · {level.name} · schedule, curriculum, location, and
+                  instructor.
                 </Text>
               </div>
               <Group gap="sm">
@@ -89,22 +90,12 @@ export default function ClassEdit({ swimmingClass, level, instructorOptions }: P
 
             <Card>
               <Stack gap="sm">
-                <Group gap="sm" align="flex-start">
-                  <TextInput
-                    label="Class name"
-                    name="name"
-                    flex={2}
-                    defaultValue={swimmingClass.name}
-                    error={errors.name}
-                  />
-                  <TextInput
-                    label="Class code"
-                    name="code"
-                    flex={1}
-                    defaultValue={swimmingClass.code}
-                    error={errors.code}
-                  />
-                </Group>
+                <TextInput
+                  label="Class name"
+                  name="name"
+                  defaultValue={swimmingClass.name}
+                  error={errors.name}
+                />
                 <Group gap="sm" align="flex-start">
                   <NativeSelect
                     label="Day"

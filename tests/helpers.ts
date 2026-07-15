@@ -61,14 +61,19 @@ export async function seedCurriculum(
     activity?: string
   } = {}
 ) {
-  const program = await ProgramFactory.merge({ name: names.program ?? 'Aquatic Program' }).create()
+  const program = await ProgramFactory.merge({
+    name: names.program ?? 'Aquatic Program',
+    code: 'SAGP01',
+  }).create()
   const level = await LevelFactory.merge({
     programId: program.id,
     name: names.level ?? 'Aquatic therapy',
+    code: 'P01L01',
     capacity: 10,
   }).create()
   const stage = await LevelStage.create({
     levelId: level.id,
+    code: 'L01ST01',
     name: names.stage ?? 'Waist movement',
     position: 1,
     description: null,

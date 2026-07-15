@@ -17,7 +17,6 @@ const dayObject = {
   startTime: timeRule(),
   durationMinutes: vine.number().withoutDecimals().positive(),
   name: vine.string().trim().minLength(1).maxLength(120),
-  code: vine.string().trim().toUpperCase().minLength(1).maxLength(30),
   ...curriculumFields,
 }
 
@@ -31,7 +30,6 @@ export const updateSwimmingClassValidator = vine.create({
   startTime: timeRule(),
   durationMinutes: vine.number().withoutDecimals().positive(),
   name: vine.string().trim().minLength(1).maxLength(120),
-  code: vine.string().trim().toUpperCase().minLength(1).maxLength(30),
   location: vine.string().trim().maxLength(255).nullable().optional(),
   instructorMode: vine.enum(['none', 'existing', 'invite']).optional(),
   instructorMembershipId: vine.number().withoutDecimals().positive().optional(),

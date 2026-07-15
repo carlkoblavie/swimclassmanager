@@ -272,6 +272,11 @@ export default function StageTree({
                     </Text>
                   </ThemeIcon>
                   <Text fw={700}>{stage.name}</Text>
+                  {stage.code && (
+                    <Text size="xs" c="dimmed">
+                      {stage.code}
+                    </Text>
+                  )}
                   <Text size="sm" c="dimmed">
                     {stage.skills.length === 0
                       ? 'no skills yet'

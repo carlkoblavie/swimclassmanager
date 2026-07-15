@@ -26,6 +26,7 @@ test.group('Programs destroy', (group) => {
     await joinSchool(user, school, RoleName.ADMINISTRATOR)
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await Level.create({
+      code: 'P90L901',
       programId: program.id,
       name: 'Beginners',
       ageGroup: '4-7',

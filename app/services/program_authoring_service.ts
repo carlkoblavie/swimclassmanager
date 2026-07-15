@@ -9,6 +9,7 @@ import ClassActivity from '#models/class_activity'
 import ClassSkill from '#models/class_skill'
 import SwimmingClass from '#models/swimming_class'
 import ProgramAuthoringException from '#exceptions/program_authoring_exception'
+import { levelCode, nextTierNumber, programCode, stageCode } from '#values/account_code'
 import type { Infer } from '@vinejs/vine/types'
 import type { storeProgramValidator, updateProgramValidator } from '#validators/program'
 
@@ -21,6 +22,33 @@ type ActivityInput = NonNullable<SkillInput['activities']>[number]
 
 function toMinorUnits(cedis: number): number {
   return Math.round(cedis * 100)
+}
+
+// Codes are strictly system-generated with platform-continuous numbers per
+// tier; this state carries every existing code plus ones reserved in-batch.
+type CodeState = { levelCodes: string[]; stageCodes: string[] }
+
+async function loadCodeState(trx: TransactionClientContract): Promise<CodeState> {
+  const [levels, stages] = await Promise.all([
+    trx.from('levels').select('code'),
+    trx.from('level_stages').select('code'),
+  ])
+  return {
+    levelCodes: levels.map((row: { code: unknown }) => String(row.code)),
+    stageCodes: stages.map((row: { code: unknown }) => String(row.code)),
+  }
+}
+
+function reserveLevelCode(parentProgramCode: string, codes: CodeState): string {
+  const code = levelCode(parentProgramCode, nextTierNumber(codes.levelCodes, 'level'))
+  codes.levelCodes.push(code)
+  return code
+}
+
+function reserveStageCode(parentLevelCode: string, codes: CodeState): string {
+  const code = stageCode(parentLevelCode, nextTierNumber(codes.stageCodes, 'stage'))
+  codes.stageCodes.push(code)
+  return code
 }
 
 /**
@@ -135,7 +163,8 @@ async function reconcileSkills(
 async function reconcileStages(
   level: Level,
   inputs: StageInput[],
-  trx: TransactionClientContract
+  trx: TransactionClientContract,
+  codes: CodeState
 ): Promise<void> {
   const existing = await LevelStage.query({ client: trx }).where('levelId', level.id)
   const existingById = new Map(existing.map((stage) => [stage.id, stage]))
@@ -198,6 +227,7 @@ async function reconcileStages(
       name: input.name,
       position: input.position,
       description: input.description ?? null,
+      code: reserveStageCode(level.code, codes),
     })
     await reconcileSkills(stage, input.skills ?? [], trx)
   }
@@ -208,12 +238,20 @@ export default class ProgramAuthoringService {
    * Create a program and its levels in one transaction, converting each
    * level fee from cedis to minor units.
    */
-  async create(data: StoreData): Promise<Program> {
+  async create(data: StoreData, accountName: string): Promise<Program> {
     return db.transaction(async (trx) => {
+      const programCodes = (await trx.from('programs').select('code')).map(
+        (row: { code: unknown }) => String(row.code)
+      )
       const program = await Program.create(
-        { name: data.name, description: data.description },
+        {
+          name: data.name,
+          description: data.description,
+          code: programCode(accountName, nextTierNumber(programCodes, 'program')),
+        },
         { client: trx }
       )
+      const codes = await loadCodeState(trx)
       for (const input of data.levels) {
         const level = await program.related('levels').create({
           name: input.name,
@@ -221,8 +259,9 @@ export default class ProgramAuthoringService {
           description: input.description,
           defaultFee: toMinorUnits(input.defaultFee),
           capacity: input.capacity,
+          code: reserveLevelCode(program.code, codes),
         })
-        await reconcileStages(level, input.stages ?? [], trx)
+        await reconcileStages(level, input.stages ?? [], trx, codes)
       }
       return program
     })
@@ -243,6 +282,7 @@ export default class ProgramAuthoringService {
       const existing = await Level.query({ client: trx }).where('programId', program.id)
       const existingById = new Map(existing.map((level) => [level.id, level]))
       const keptIds = new Set<number>()
+      const codes = await loadCodeState(trx)
 
       for (const input of data.levels) {
         const attrs = {
@@ -263,13 +303,13 @@ export default class ProgramAuthoringService {
         } else {
           const created = new Level()
           created.programId = program.id
-          created.merge(attrs)
+          created.merge({ ...attrs, code: reserveLevelCode(program.code, codes) })
           created.useTransaction(trx)
           await created.save()
           level = created
         }
 
-        await reconcileStages(level, input.stages ?? [], trx)
+        await reconcileStages(level, input.stages ?? [], trx, codes)
       }
 
       for (const level of existing) {

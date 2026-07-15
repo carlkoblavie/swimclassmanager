@@ -12,7 +12,13 @@ export const SwimmingClassFactory = factory
       ? await LevelFactory.client($trx).merge({ capacity: 12 }).create()
       : await LevelFactory.merge({ capacity: 12 }).create()
     const stage = await LevelStage.create(
-      { levelId: level.id, name: 'Foundations', position: 1, description: null },
+      {
+        levelId: level.id,
+        code: `L00ST${faker.string.numeric(6)}`,
+        name: 'Foundations',
+        position: 1,
+        description: null,
+      },
       $trx ? { client: $trx } : undefined
     )
 

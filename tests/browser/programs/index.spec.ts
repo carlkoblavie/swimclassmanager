@@ -26,6 +26,7 @@ test.group('Programs index', (group) => {
     await joinSchool(user, school, RoleName.ADMINISTRATOR)
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     await Level.create({
+      code: 'P90L903',
       programId: program.id,
       name: 'Beginners',
       ageGroup: '4-7',
@@ -62,6 +63,7 @@ test.group('Programs index', (group) => {
     const schoolB = await SchoolFactory.merge({ createdByUserId: owner.id }).create()
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await Level.create({
+      code: 'P90L904',
       programId: program.id,
       name: 'Beginners',
       ageGroup: '4-7',
@@ -96,6 +98,7 @@ test.group('Programs index', (group) => {
     await joinSchool(manager, school, RoleName.ADMINISTRATOR)
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await Level.create({
+      code: 'P90L905',
       programId: program.id,
       name: 'Beginners',
       ageGroup: '4-7',
@@ -104,6 +107,7 @@ test.group('Programs index', (group) => {
       capacity: 8,
     })
     await LevelStage.create({
+      code: 'L90ST904',
       levelId: level.id,
       name: 'Water Discovery',
       position: 1,
@@ -130,6 +134,7 @@ test.group('Programs index', (group) => {
       await joinSchool(user, school, roleName)
       const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
       const level = await Level.create({
+      code: 'P90L906',
         programId: program.id,
         name: 'Beginners',
         ageGroup: '4-7',

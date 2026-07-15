@@ -81,6 +81,7 @@ test.group('Program activation', (group) => {
       .merge({ name: 'Splash Sandbox' })
       .create()
     await Level.create({
+      code: 'P90L902',
       programId: draftProgram.id,
       name: 'Draft Level',
       ageGroup: '8-12',

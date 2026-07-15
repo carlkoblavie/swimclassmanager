@@ -18,6 +18,7 @@ export type StageSkillDraft = {
 
 export type StageDraft = {
   id?: number
+  code?: string
   name: string
   position: string // as entered
   description: string

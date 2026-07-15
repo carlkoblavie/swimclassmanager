@@ -50,7 +50,6 @@ async function setupContext() {
     startTime: '17:00',
     durationMinutes: 45,
     name: 'Evening squad — Monday',
-    code: 'AQT-1001',
     levelStageId: curriculum.stage.id,
     skillIds: [curriculum.skill.id],
     activityIds: [curriculum.activity.id],
@@ -72,11 +71,14 @@ test.group('Class series authoring service', (group) => {
 
     const classes = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
-      days: [day(), day({ weekday: 3, name: 'Evening squad — Wednesday', code: 'AQT-1002' })],
+      days: [day(), day({ weekday: 3, name: 'Evening squad — Wednesday' })],
     })
 
     assert.equal(classes.length, 2)
     assert.equal(classes[0].levelStageId, stage.id)
+    // Codes derive from the stage segment with platform-continuous numbers.
+    assert.equal(classes[0].code, 'ST01CL01')
+    assert.equal(classes[1].code, 'ST01CL02')
     await classes[0].load('classSkills')
     await classes[0].load('classActivities')
     assert.equal(classes[0].classSkills[0].levelStageSkillId, skill.id)
@@ -88,6 +90,7 @@ test.group('Class series authoring service', (group) => {
     const draftProgram = await ProgramFactory.apply('draft').create()
     const draftLevel = await LevelFactory.merge({ programId: draftProgram.id }).create()
     const draftStage = await LevelStage.create({
+      code: 'L90ST905',
       levelId: draftLevel.id,
       name: 'Draft Stage',
       position: 1,
@@ -137,6 +140,7 @@ test.group('Class series authoring service', (group) => {
   test('skills must belong to the selected stage', async ({ assert }) => {
     const { school, level, stage, day } = await setupContext()
     const otherStage = await LevelStage.create({
+      code: 'L90ST906',
       levelId: level.id,
       name: 'Other Stage',
       position: 2,
@@ -194,30 +198,24 @@ test.group('Class series authoring service', (group) => {
       () =>
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: level.id,
-          days: [
-            day({ name: 'Same Name', code: 'AQT-1' }),
-            day({ weekday: 2, name: 'same name', code: 'AQT-2' }),
-          ],
+          days: [day({ name: 'Same Name' }), day({ weekday: 2, name: 'same name' })],
         }),
       'A class with this name already exists.'
     )
   })
 
-  test('existing class codes in the school are rejected', async ({ assert }) => {
+  test('class codes stay continuous across separate creations', async ({ assert }) => {
     const { school, level, day } = await setupContext()
     await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
-      days: [day({ code: 'AQT-TAKEN' })],
+      days: [day()],
     })
 
-    await expectAuthoringError(
-      assert,
-      () =>
-        new ClassSeriesAuthoringService().createMany(school, {
-          levelId: level.id,
-          days: [day({ weekday: 4, name: 'Another Name', code: 'aqt-taken' })],
-        }),
-      'A class with this code already exists.'
-    )
+    const [second] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      days: [day({ weekday: 4, name: 'Another Name' })],
+    })
+
+    assert.equal(second.code, 'ST01CL02')
   })
 })

@@ -68,7 +68,8 @@ test.group('Programs store', (group) => {
 
     await db.assertHas('programs', { name: 'Learn to Swim', activated_at: null })
     await db.assertHas('levels', { name: 'Beginners', default_fee: 5000, capacity: 10 })
-    await db.assertHas('level_stages', { name: 'Water Discovery', position: 1 })
+    await db.assertHas('levels', { name: 'Beginners', code: 'P01L01' })
+    await db.assertHas('level_stages', { name: 'Water Discovery', position: 1, code: 'L01ST01' })
     await db.assertHas('level_stage_skills', {
       name: 'Face in Water',
       pass_criteria: 'Submerge face for 5 seconds',

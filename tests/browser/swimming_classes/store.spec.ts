@@ -33,7 +33,6 @@ test.group('Swimming classes store', (group) => {
     await page.getByRole('button', { name: 'Create class' }).click()
 
     await page.getByLabel('Base class name').fill('Evening squad')
-    await page.getByLabel('Class code').fill('AQT-1001')
 
     // Pick the curriculum for Monday: the seeded skill and its drill.
     await page.getByLabel('Select skills').first().click()
@@ -44,7 +43,6 @@ test.group('Swimming classes store', (group) => {
     await page.keyboard.press('Escape')
 
     await page.getByRole('button', { name: 'Add another day' }).click()
-    await page.getByLabel('Class code').nth(1).fill('AQT-1002')
 
     await page.getByRole('button', { name: 'Create 2 classes' }).click()
 
@@ -53,13 +51,13 @@ test.group('Swimming classes store', (group) => {
 
     await db.assertHas('swimming_classes', {
       name: 'Evening squad — Monday',
-      code: 'AQT-1001',
+      code: 'ST01CL01',
       weekday: 1,
       duration_minutes: 45,
     })
     await db.assertHas('swimming_classes', {
       name: 'Evening squad — Tuesday',
-      code: 'AQT-1002',
+      code: 'ST01CL02',
       weekday: 2,
     })
     await db.assertCount('class_skills', 1)
@@ -77,27 +75,11 @@ test.group('Swimming classes store', (group) => {
 
     await page.assertPath(route('programs.index'))
     await page.assertVisible('text=Class created.')
-    await db.assertHas('swimming_classes', { name: 'Morning starfish — Monday', weekday: 1 })
-  })
-
-  test('duplicate class codes across days are rejected', async ({
-    visit,
-    route,
-    browserContext,
-    db,
-  }) => {
-    await browserContext.loginAs(await manager())
-    await seedCurriculum()
-
-    const page = await visit(route('programs.index'))
-    await page.getByRole('button', { name: 'Create class' }).click()
-    await page.getByLabel('Class code').fill('AQT-5000')
-    await page.getByRole('button', { name: 'Add another day' }).click()
-    await page.getByLabel('Class code').nth(1).fill('aqt-5000')
-    await page.getByRole('button', { name: 'Create 2 classes' }).click()
-
-    await page.assertVisible('text=A class with this code already exists.')
-    await db.assertCount('swimming_classes', 0)
+    await db.assertHas('swimming_classes', {
+      name: 'Morning starfish — Monday',
+      code: 'ST01CL01',
+      weekday: 1,
+    })
   })
 
   test('duplicate class names across days are rejected', async ({
@@ -115,8 +97,6 @@ test.group('Swimming classes store', (group) => {
     // Force both days to the same name.
     await page.getByLabel('Class name', { exact: true }).nth(0).fill('Same Name')
     await page.getByLabel('Class name', { exact: true }).nth(1).fill('same name')
-    await page.getByLabel('Class code').nth(0).fill('AQT-6001')
-    await page.getByLabel('Class code').nth(1).fill('AQT-6002')
     await page.getByRole('button', { name: 'Create 2 classes' }).click()
 
     await page.assertVisible('text=A class with this name already exists.')

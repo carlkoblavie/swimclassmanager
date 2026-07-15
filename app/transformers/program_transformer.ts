@@ -16,7 +16,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
     const levels = preloaded.levels ?? this.resource.levels ?? []
 
     return {
-      ...this.pick(this.resource, ['id', 'name', 'description']),
+      ...this.pick(this.resource, ['id', 'code', 'name', 'description']),
       isActive: this.resource.isActive,
       levels: LevelTransformer.transform(levels, this.schoolId),
     }
@@ -26,9 +26,10 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
     const preloaded = this.resource.$preloaded as { levels?: Level[] }
     const levels = preloaded.levels ?? this.resource.levels ?? []
     return {
-      ...this.pick(this.resource, ['id', 'name', 'description']),
+      ...this.pick(this.resource, ['id', 'code', 'name', 'description']),
       levels: levels.map((level) => ({
         id: level.id,
+        code: level.code,
         name: level.name,
         ageGroup: level.ageGroup,
         description: level.description,
@@ -36,6 +37,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
         defaultFee: level.defaultFee / 100,
         stages: (level.stages ?? []).map((stage) => ({
           id: stage.id,
+          code: stage.code,
           name: stage.name,
           position: stage.position,
           description: stage.description,

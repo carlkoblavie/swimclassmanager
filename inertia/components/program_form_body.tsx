@@ -221,6 +221,11 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                       <Text fw={700} fz="lg">
                         {level.name}
                       </Text>
+                      {level.code && (
+                        <Badge variant="light" color="gray" size="sm">
+                          {level.code}
+                        </Badge>
+                      )}
                     </Group>
                     <Text size="sm" mt={4}>
                       {level.ageGroup} · Capacity {level.capacity} · GHS {level.defaultFee} —{' '}

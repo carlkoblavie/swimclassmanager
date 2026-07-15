@@ -31,6 +31,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
       ...this.pick(this.resource, [
         'id',
         'programId',
+        'code',
         'name',
         'ageGroup',
         'description',
@@ -44,6 +45,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
       available,
       stages: stages.map((stage) => ({
         id: stage.id,
+        code: stage.code,
         name: stage.name,
         position: stage.position,
         description: stage.description,

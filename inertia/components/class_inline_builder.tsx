@@ -31,22 +31,12 @@ function weekdayLabel(value: string): string {
   return WEEKDAYS.find((day) => day.value === value)?.label ?? value
 }
 
-function codePrefix(levelName: string): string {
-  const letters = levelName.replace(/[^a-zA-Z]/g, '').toUpperCase()
-  return (letters.slice(0, 3) || 'CLS').padEnd(3, 'X')
-}
-
-function generateCode(levelName: string): string {
-  return `${codePrefix(levelName)}-${Math.floor(1000 + Math.random() * 9000)}`
-}
-
 type DayDraft = {
   weekday: string
   startTime: string
   durationMinutes: string
   name: string
   nameTouched: boolean
-  code: string
   levelStageId: string
   skillIds: string[]
   activityIds: string[]
@@ -72,7 +62,6 @@ export default function ClassInlineBuilder({
     durationMinutes: '45',
     name: autoName(baseName, level.name, weekday),
     nameTouched: false,
-    code: generateCode(level.name),
     levelStageId: stages[0] ? String(stages[0].id) : '',
     skillIds: [],
     activityIds: [],
@@ -215,24 +204,14 @@ export default function ClassInlineBuilder({
                       />
                     </Group>
 
-                    <Group gap="sm" align="flex-start">
-                      <TextInput
-                        label="Class name"
-                        flex={2}
-                        value={day.name}
-                        onChange={(event) =>
-                          setDay(index, { name: event.currentTarget.value, nameTouched: true })
-                        }
-                        error={errors[`days.${index}.name`]}
-                      />
-                      <TextInput
-                        label="Class code"
-                        flex={1}
-                        value={day.code}
-                        onChange={(event) => setDay(index, { code: event.currentTarget.value })}
-                        error={errors[`days.${index}.code`]}
-                      />
-                    </Group>
+                    <TextInput
+                      label="Class name"
+                      value={day.name}
+                      onChange={(event) =>
+                        setDay(index, { name: event.currentTarget.value, nameTouched: true })
+                      }
+                      error={errors[`days.${index}.name`]}
+                    />
 
                     <NativeSelect
                       label="Select stage"
@@ -313,7 +292,6 @@ export default function ClassInlineBuilder({
                       value={day.durationMinutes}
                     />
                     <input type="hidden" name={`${prefix}[name]`} value={day.name} />
-                    <input type="hidden" name={`${prefix}[code]`} value={day.code} />
                     <input
                       type="hidden"
                       name={`${prefix}[levelStageId]`}
