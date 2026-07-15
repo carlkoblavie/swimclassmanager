@@ -190,7 +190,9 @@ export default class ClassSeriesAuthoringService {
       const date = this.nextLessonDate(swimmingClass.weekday, latest?.date ?? null)
 
       swimmingClass.useTransaction(trx)
-      const lesson = await swimmingClass.related('lessons').create({ date })
+      const lesson = await swimmingClass
+        .related('lessons')
+        .create({ date, notes: data.notes ?? null })
       await lesson
         .related('lessonActivities')
         .createMany(activityIds.map((levelStageActivityId) => ({ levelStageActivityId })))

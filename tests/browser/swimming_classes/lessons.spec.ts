@@ -46,10 +46,15 @@ test.group('Class lessons', (group) => {
     await page.getByLabel('Hip rotation activities').first().click({ force: true })
     await page.getByRole('option', { name: 'Standing twists' }).click()
     await page.keyboard.press('Escape')
+    await page.getByLabel('Lesson notes (optional)').fill('Focus on slow, relaxed rotation.')
     await page.getByRole('button', { name: 'Plan next lesson' }).click()
 
     await page.assertVisible('text=Lesson planned.')
-    await db.assertHas('class_lessons', { swimming_class_id: swimmingClass.id })
+    await page.assertVisible('text=Focus on slow, relaxed rotation.')
+    await db.assertHas('class_lessons', {
+      swimming_class_id: swimmingClass.id,
+      notes: 'Focus on slow, relaxed rotation.',
+    })
     await db.assertCount('lesson_activities', 1)
   })
 

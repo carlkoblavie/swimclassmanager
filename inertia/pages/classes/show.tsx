@@ -150,6 +150,11 @@ export default function ClassShow({ swimmingClass }: PageProps) {
                         ))}
                       </Group>
                     )}
+                    {lesson.notes && (
+                      <Text size="xs" c="dimmed" fs="italic">
+                        {lesson.notes}
+                      </Text>
+                    )}
                   </Stack>
                   <Guard for="class.manage">
                     <Tooltip label="Remove lesson">

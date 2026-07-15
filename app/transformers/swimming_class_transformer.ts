@@ -119,6 +119,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             raw: lesson.date.toISODate() ?? '',
             formatted: lesson.date.toFormat('cccc d LLL yyyy'),
           },
+          notes: lesson.notes,
           activities: lessonActivities.flatMap((lessonActivity) => {
             const activity = lessonActivity.levelStageActivity
             if (!activity) {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Form } from '@adonisjs/inertia/react'
-import { Button, Card, Group, MultiSelect, Stack, Text } from '@mantine/core'
+import { Button, Card, Group, MultiSelect, Stack, Text, Textarea } from '@mantine/core'
 import type { Data } from '@generated/data'
 
 /** The next date falling on `weekday` (1=Monday) strictly after `after`. */
@@ -76,6 +76,13 @@ export default function PlanLessonForm({
             {activityIds.map((id, index) => (
               <input key={id} type="hidden" name={`activityIds[${index}]`} value={id} />
             ))}
+            <Textarea
+              label="Lesson notes (optional)"
+              name="notes"
+              autosize
+              minRows={2}
+              placeholder="Focus points, reminders, or anything the instructor should know…"
+            />
             <Group justify="flex-end">
               <Button type="submit" size="sm" loading={processing}>
                 Plan next lesson

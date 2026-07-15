@@ -41,6 +41,7 @@ export const updateSwimmingClassValidator = vine.create({
 
 export const storeClassLessonValidator = vine.create({
   activityIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
+  notes: vine.string().trim().maxLength(2000).nullable().optional(),
 })
 
 export type StoreSwimmingClassesInput = Awaited<

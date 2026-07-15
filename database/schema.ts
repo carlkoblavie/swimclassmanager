@@ -8,7 +8,7 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class ClassLessonSchema extends BaseModel {
-  static $columns = ['createdAt', 'date', 'id', 'swimmingClassId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'date', 'id', 'notes', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassLessonSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -16,6 +16,8 @@ export class ClassLessonSchema extends BaseModel {
   declare date: DateTime
   @column({ isPrimary: true })
   declare id: number
+  @column()
+  declare notes: string | null
   @column()
   declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
