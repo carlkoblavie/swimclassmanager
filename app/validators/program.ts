@@ -33,16 +33,19 @@ const stageObject = {
       vine.object({
         name: vine.string().trim().minLength(1).maxLength(120),
         passCriteria: vine.string().trim().minLength(1).maxLength(255),
+        description: vine.string().trim().maxLength(2000).nullable().optional(),
         activities: vine
           .array(
             vine.object({
               name: vine.string().trim().minLength(1).maxLength(120),
               durationMinutes: vine.number().withoutDecimals().positive(),
+              description: vine.string().trim().maxLength(2000).nullable().optional(),
             })
           )
           .optional(),
       })
     )
+    .distinct('name')
     .optional(),
 }
 

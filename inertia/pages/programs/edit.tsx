@@ -28,9 +28,11 @@ export default function EditProgram({ program }: PageProps) {
           skills: stage.skills.map((skill) => ({
             name: skill.name,
             passCriteria: skill.passCriteria,
+            description: skill.description ?? '',
             activities: skill.activities.map((activity) => ({
               name: activity.name,
               durationMinutes: String(activity.durationMinutes),
+              description: activity.description ?? '',
             })),
           })),
         })),

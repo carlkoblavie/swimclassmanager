@@ -17,11 +17,13 @@ import { IconCircleCheck, IconLadder, IconTrash } from '@tabler/icons-react'
 export type StageActivityDraft = {
   name: string
   durationMinutes: string // as entered
+  description: string
 }
 
 export type StageSkillDraft = {
   name: string
   passCriteria: string
+  description: string
   activities: StageActivityDraft[]
 }
 
@@ -58,7 +60,11 @@ function SkillCard({
   onRemoveActivity: (index: number) => void
 }) {
   const [adding, setAdding] = useState(false)
-  const [entry, setEntry] = useState<StageActivityDraft>({ name: '', durationMinutes: '' })
+  const [entry, setEntry] = useState<StageActivityDraft>({
+    name: '',
+    durationMinutes: '',
+    description: '',
+  })
   const [entryErrors, setEntryErrors] = useState<{ name?: string; durationMinutes?: string }>({})
 
   const confirmActivity = () => {
@@ -69,20 +75,27 @@ function SkillCard({
     if (Object.keys(next).length > 0) return
 
     onAddActivity(entry)
-    setEntry({ name: '', durationMinutes: '' })
+    setEntry({ name: '', durationMinutes: '', description: '' })
     setEntryErrors({})
     setAdding(false)
   }
 
   return (
-    <Card bg="gray.0" padding="md">
-      <Stack gap="xs">
+    <Card bg="gray.0" padding="sm">
+      <Stack gap={6}>
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <div>
-            <Text fw={600}>{skill.name}</Text>
+            <Text fw={600} size="sm">
+              {skill.name}
+            </Text>
             <Text size="sm" c="dimmed">
               {skill.passCriteria}
             </Text>
+            {skill.description.trim() !== '' && (
+              <Text size="xs" c="dimmed" fs="italic">
+                {skill.description}
+              </Text>
+            )}
           </div>
           <ActionIcon
             variant="subtle"
@@ -94,61 +107,88 @@ function SkillCard({
           </ActionIcon>
         </Group>
 
-        <Group justify="space-between" mt={4}>
+        <Group justify="space-between">
           <Text {...upperLabel}>Activities & drills</Text>
-          <Button type="button" variant="subtle" size="xs" onClick={() => setAdding(true)}>
+          <Button
+            type="button"
+            variant="subtle"
+            size="compact-sm"
+            onClick={() => setAdding(true)}
+          >
             Add activity
           </Button>
         </Group>
 
         {adding && (
-          <Group gap="sm" align="flex-start">
-            <TextInput
-              label="Activity name"
-              labelProps={upperLabel}
-              flex={2}
-              value={entry.name}
-              onChange={(event) => setEntry({ ...entry, name: event.currentTarget.value })}
-              error={entryErrors.name}
-            />
-            <TextInput
-              label="Duration (mins)"
-              labelProps={upperLabel}
-              type="number"
-              flex={1}
-              value={entry.durationMinutes}
-              onChange={(event) =>
-                setEntry({ ...entry, durationMinutes: event.currentTarget.value })
-              }
-              error={entryErrors.durationMinutes}
-            />
-            <Button type="button" mt={25} onClick={confirmActivity}>
-              Add
-            </Button>
-          </Group>
+          <Stack gap="xs">
+            <Group gap="xs" align="flex-start">
+              <TextInput
+                label="Activity name"
+                labelProps={upperLabel}
+                size="xs"
+                flex={2}
+                value={entry.name}
+                onChange={(event) => setEntry({ ...entry, name: event.currentTarget.value })}
+                error={entryErrors.name}
+              />
+              <TextInput
+                label="Duration (mins)"
+                labelProps={upperLabel}
+                size="xs"
+                type="number"
+                flex={1}
+                value={entry.durationMinutes}
+                onChange={(event) =>
+                  setEntry({ ...entry, durationMinutes: event.currentTarget.value })
+                }
+                error={entryErrors.durationMinutes}
+              />
+            </Group>
+            <Group gap="xs" align="flex-end">
+              <TextInput
+                label="Activity description (optional)"
+                labelProps={upperLabel}
+                size="xs"
+                flex={1}
+                value={entry.description}
+                onChange={(event) => setEntry({ ...entry, description: event.currentTarget.value })}
+              />
+              <Button type="button" size="xs" onClick={confirmActivity}>
+                Add
+              </Button>
+            </Group>
+          </Stack>
         )}
 
         {skill.activities.map((activity, index) => (
-          <Card key={index} padding="sm" bg="white">
+          <Card key={index} padding="xs" bg="white" withBorder>
             <Group justify="space-between" align="center" wrap="nowrap">
               <div>
-                <Text fw={500} size="sm">
-                  {activity.name}
-                </Text>
-                <Group gap={4}>
-                  <IconCircleCheck size={14} color="var(--mantine-color-green-6)" />
-                  <Text size="xs" c="dimmed" tt="uppercase">
-                    Typical duration: {activity.durationMinutes} mins
+                <Group gap="xs" wrap="nowrap">
+                  <Text fw={500} size="sm">
+                    {activity.name}
                   </Text>
+                  <Group gap={4} wrap="nowrap">
+                    <IconCircleCheck size={14} color="var(--mantine-color-green-6)" />
+                    <Text size="xs" c="dimmed" tt="uppercase">
+                      {activity.durationMinutes} mins
+                    </Text>
+                  </Group>
                 </Group>
+                {activity.description.trim() !== '' && (
+                  <Text size="xs" c="dimmed">
+                    {activity.description}
+                  </Text>
+                )}
               </div>
               <ActionIcon
                 variant="subtle"
                 color="red"
+                size="sm"
                 aria-label={`Remove activity ${activity.name}`}
                 onClick={() => onRemoveActivity(index)}
               >
-                <IconTrash size={16} />
+                <IconTrash size={14} />
               </ActionIcon>
             </Group>
           </Card>
@@ -163,10 +203,11 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
   const [draft, setDraft] = useState<StageDraft>(initial ?? emptyStageDraft(nextPosition))
   const [errors, setErrors] = useState<{ name?: string; position?: string }>({})
 
-  const [skillEntry, setSkillEntry] = useState<{ name: string; passCriteria: string }>({
-    name: '',
-    passCriteria: '',
-  })
+  const [skillEntry, setSkillEntry] = useState<{
+    name: string
+    passCriteria: string
+    description: string
+  }>({ name: '', passCriteria: '', description: '' })
   const [skillErrors, setSkillErrors] = useState<{ name?: string; passCriteria?: string }>({})
 
   const set =
@@ -178,7 +219,15 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
 
   const addSkill = () => {
     const next: typeof skillErrors = {}
-    if (!skillEntry.name.trim()) next.name = 'This field is required'
+    if (!skillEntry.name.trim()) {
+      next.name = 'This field is required'
+    } else if (
+      draft.skills.some(
+        (skill) => skill.name.trim().toLowerCase() === skillEntry.name.trim().toLowerCase()
+      )
+    ) {
+      next.name = 'A skill with this name already exists.'
+    }
     if (!skillEntry.passCriteria.trim()) next.passCriteria = 'This field is required'
     setSkillErrors(next)
     if (Object.keys(next).length > 0) return
@@ -187,7 +236,7 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
       ...current,
       skills: [...current.skills, { ...skillEntry, activities: [] }],
     }))
-    setSkillEntry({ name: '', passCriteria: '' })
+    setSkillEntry({ name: '', passCriteria: '', description: '' })
   }
 
   const removeSkill = (index: number) =>
@@ -224,13 +273,11 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
   }
 
   return (
-    <Card mt="sm">
-      <Stack gap="md">
+    <Card mt="sm" padding="md">
+      <Stack gap="sm">
         <div>
-          <Text fw={700} fz="lg">
-            {initial ? 'Edit stage' : 'Create a stage'}
-          </Text>
-          <Text size="sm" c="dimmed">
+          <Text fw={700}>{initial ? 'Edit stage' : 'Create a stage'}</Text>
+          <Text size="xs" c="dimmed">
             Define the requirements and curriculum for this milestone.
           </Text>
         </div>
@@ -238,6 +285,7 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
         <Group gap="sm" align="flex-start">
           <TextInput
             label="Stage name"
+            size="sm"
             flex={1}
             value={draft.name}
             onChange={set('name')}
@@ -246,6 +294,7 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
           <TextInput
             label="Order"
             type="number"
+            size="sm"
             w={90}
             value={draft.position}
             onChange={set('position')}
@@ -254,6 +303,7 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
         </Group>
         <Textarea
           label="Stage description (optional)"
+          size="sm"
           value={draft.description}
           onChange={set('description')}
           autosize
@@ -269,7 +319,9 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
               <IconLadder size={16} stroke={1.6} />
             </ThemeIcon>
             <div>
-              <Text fw={600}>Curriculum</Text>
+              <Text fw={600} size="sm">
+                Curriculum
+              </Text>
               <Text size="xs" c="dimmed">
                 Define skills and the drills used to teach them.
               </Text>
@@ -280,34 +332,50 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
           </Badge>
         </Group>
 
-        <Card bg="gray.0" padding="md">
-          <Group gap="sm" align="flex-start">
-            <TextInput
-              label="Skill name"
-              labelProps={upperLabel}
-              placeholder="e.g. Back Float"
-              flex={1}
-              value={skillEntry.name}
-              onChange={(event) =>
-                setSkillEntry({ ...skillEntry, name: event.currentTarget.value })
-              }
-              error={skillErrors.name}
-            />
-            <TextInput
-              label="Pass criteria"
-              labelProps={upperLabel}
-              placeholder="e.g. 10 seconds unassisted"
-              flex={2}
-              value={skillEntry.passCriteria}
-              onChange={(event) =>
-                setSkillEntry({ ...skillEntry, passCriteria: event.currentTarget.value })
-              }
-              error={skillErrors.passCriteria}
-            />
-            <Button type="button" mt={25} onClick={addSkill}>
-              Add skill
-            </Button>
-          </Group>
+        <Card bg="gray.0" padding="sm">
+          <Stack gap="xs">
+            <Group gap="xs" align="flex-start">
+              <TextInput
+                label="Skill name"
+                labelProps={upperLabel}
+                size="xs"
+                placeholder="e.g. Back Float"
+                flex={1}
+                value={skillEntry.name}
+                onChange={(event) =>
+                  setSkillEntry({ ...skillEntry, name: event.currentTarget.value })
+                }
+                error={skillErrors.name}
+              />
+              <TextInput
+                label="Pass criteria"
+                labelProps={upperLabel}
+                size="xs"
+                placeholder="e.g. 10 seconds unassisted"
+                flex={2}
+                value={skillEntry.passCriteria}
+                onChange={(event) =>
+                  setSkillEntry({ ...skillEntry, passCriteria: event.currentTarget.value })
+                }
+                error={skillErrors.passCriteria}
+              />
+            </Group>
+            <Group gap="xs" align="flex-end">
+              <TextInput
+                label="Skill description (optional)"
+                labelProps={upperLabel}
+                size="xs"
+                flex={1}
+                value={skillEntry.description}
+                onChange={(event) =>
+                  setSkillEntry({ ...skillEntry, description: event.currentTarget.value })
+                }
+              />
+              <Button type="button" size="xs" onClick={addSkill}>
+                Add skill
+              </Button>
+            </Group>
+          </Stack>
         </Card>
 
         {draft.skills.map((skill, index) => (
@@ -322,11 +390,11 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
 
         <Divider />
 
-        <Group justify="flex-end">
-          <Button type="button" variant="default" onClick={onCancel}>
+        <Group justify="flex-end" gap="sm">
+          <Button type="button" size="sm" variant="default" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="button" onClick={submit}>
+          <Button type="button" size="sm" onClick={submit}>
             Save stage
           </Button>
         </Group>

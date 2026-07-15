@@ -46,10 +46,12 @@ test.group('Programs store', (group) => {
     await page.getByLabel('Stage name').fill('Water Discovery')
     await page.getByLabel('Skill name').fill('Face in Water')
     await page.getByLabel('Pass criteria').fill('Submerge face for 5 seconds')
+    await page.getByLabel('Skill description (optional)').fill('Comfort with submersion.')
     await page.getByRole('button', { name: 'Add skill' }).click()
     await page.getByRole('button', { name: 'Add activity' }).click()
     await page.getByLabel('Activity name').fill('Bubble Blowing Contest')
     await page.getByLabel('Duration (mins)').fill('5')
+    await page.getByLabel('Activity description (optional)').fill('Group breathing game.')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await page.getByRole('button', { name: 'Save stage' }).click()
 
@@ -67,11 +69,38 @@ test.group('Programs store', (group) => {
     await db.assertHas('level_stage_skills', {
       name: 'Face in Water',
       pass_criteria: 'Submerge face for 5 seconds',
+      description: 'Comfort with submersion.',
     })
     await db.assertHas('level_stage_activities', {
       name: 'Bubble Blowing Contest',
       duration_minutes: 5,
+      description: 'Group breathing game.',
     })
+  })
+
+  test('rejects duplicate skill names within a stage', async ({ visit, route, browserContext }) => {
+    await browserContext.loginAs(await manager())
+
+    const page = await visit(route('programs.create'))
+    await page.getByRole('button', { name: 'Add level' }).click()
+    await page.getByLabel('Level name').fill('Beginners')
+    await page.getByLabel('Age group').fill('4-7')
+    await page.getByLabel('Capacity').fill('10')
+    await page.getByLabel('Fee (GHS)').fill('50')
+    await page.getByLabel('Level description').fill('Intro level.')
+    await page.getByRole('button', { name: 'Save level' }).click()
+
+    await page.getByRole('button', { name: 'Add stage' }).click()
+    await page.getByLabel('Skill name').fill('Back Float')
+    await page.getByLabel('Pass criteria').fill('2 seconds unassisted')
+    await page.getByRole('button', { name: 'Add skill' }).click()
+    // Same name, different case: still a duplicate.
+    await page.getByLabel('Skill name').fill('back float')
+    await page.getByLabel('Pass criteria').fill('10 seconds unassisted')
+    await page.getByRole('button', { name: 'Add skill' }).click()
+
+    await page.assertVisible('text=A skill with this name already exists.')
+    await page.assertVisible(page.getByText('1 skill', { exact: true }))
   })
 
   test('requires stage and skill fields in the stage builder', async ({

@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  Anchor,
+  ActionIcon,
   Badge,
   Button,
   Card,
@@ -13,7 +13,7 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core'
-import { IconFileDescription, IconStack2 } from '@tabler/icons-react'
+import { IconFileDescription, IconPencil, IconStack2, IconTrash } from '@tabler/icons-react'
 import LevelModal, { type LevelDraft } from '~/components/level_modal'
 import StageBuilder, { type StageDraft } from '~/components/stage_builder'
 
@@ -174,23 +174,23 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                               {stage.skills.reduce((total, s) => total + s.activities.length, 0)}{' '}
                               activities
                             </Text>
-                            <Anchor
-                              component="button"
-                              type="button"
+                            <ActionIcon
+                              variant="subtle"
                               size="sm"
+                              aria-label="Edit stage"
                               onClick={() => setStageTarget({ levelIndex: index, stageIndex })}
                             >
-                              Edit stage
-                            </Anchor>
-                            <Anchor
-                              component="button"
-                              type="button"
+                              <IconPencil size={14} />
+                            </ActionIcon>
+                            <ActionIcon
+                              variant="subtle"
                               size="sm"
-                              c="red"
+                              color="red"
+                              aria-label="Remove stage"
                               onClick={() => removeStage(index, stageIndex)}
                             >
-                              Remove stage
-                            </Anchor>
+                              <IconTrash size={14} />
+                            </ActionIcon>
                           </Group>
                         ))}
                     </Stack>
@@ -206,24 +206,22 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                     </Button>
                   </div>
                 </Stack>
-                <Group gap="md">
-                  <Anchor
-                    component="button"
-                    type="button"
-                    size="sm"
+                <Group gap="xs">
+                  <ActionIcon
+                    variant="subtle"
+                    aria-label="Edit"
                     onClick={() => openEdit(index)}
                   >
-                    Edit
-                  </Anchor>
-                  <Anchor
-                    component="button"
-                    type="button"
-                    size="sm"
-                    c="red"
+                    <IconPencil size={16} />
+                  </ActionIcon>
+                  <ActionIcon
+                    variant="subtle"
+                    color="red"
+                    aria-label="Remove"
                     onClick={() => remove(index)}
                   >
-                    Remove
-                  </Anchor>
+                    <IconTrash size={16} />
+                  </ActionIcon>
                 </Group>
               </Group>
               {stageTarget?.levelIndex === index && (
@@ -278,6 +276,13 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                           name={`${skillPrefix}[passCriteria]`}
                           value={skill.passCriteria}
                         />
+                        {skill.description.trim() !== '' && (
+                          <input
+                            type="hidden"
+                            name={`${skillPrefix}[description]`}
+                            value={skill.description}
+                          />
+                        )}
                         {skill.activities.map((activity, activityIndex) => (
                           <Fragment key={activityIndex}>
                             <input
@@ -290,6 +295,13 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                               name={`${skillPrefix}[activities][${activityIndex}][durationMinutes]`}
                               value={activity.durationMinutes}
                             />
+                            {activity.description.trim() !== '' && (
+                              <input
+                                type="hidden"
+                                name={`${skillPrefix}[activities][${activityIndex}][description]`}
+                                value={activity.description}
+                              />
+                            )}
                           </Fragment>
                         ))}
                       </Fragment>
