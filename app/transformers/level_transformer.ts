@@ -57,6 +57,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
             name: activity.name,
             durationMinutes: activity.durationMinutes,
             description: activity.description,
+            applicationNotes: activity.applicationNotes,
           })),
         })),
       })),

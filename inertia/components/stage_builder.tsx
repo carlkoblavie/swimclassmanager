@@ -18,6 +18,7 @@ export type StageActivityDraft = {
   name: string
   durationMinutes: string // as entered
   description: string
+  applicationNotes: string
 }
 
 export type StageSkillDraft = {
@@ -64,6 +65,7 @@ function SkillCard({
     name: '',
     durationMinutes: '',
     description: '',
+    applicationNotes: '',
   })
   const [entryErrors, setEntryErrors] = useState<{ name?: string; durationMinutes?: string }>({})
 
@@ -75,7 +77,7 @@ function SkillCard({
     if (Object.keys(next).length > 0) return
 
     onAddActivity(entry)
-    setEntry({ name: '', durationMinutes: '', description: '' })
+    setEntry({ name: '', durationMinutes: '', description: '', applicationNotes: '' })
     setEntryErrors({})
     setAdding(false)
   }
@@ -144,14 +146,23 @@ function SkillCard({
                 error={entryErrors.durationMinutes}
               />
             </Group>
+            <TextInput
+              label="Activity description (optional)"
+              labelProps={upperLabel}
+              size="xs"
+              value={entry.description}
+              onChange={(event) => setEntry({ ...entry, description: event.currentTarget.value })}
+            />
             <Group gap="xs" align="flex-end">
               <TextInput
-                label="Activity description (optional)"
+                label="Application notes (optional)"
                 labelProps={upperLabel}
                 size="xs"
                 flex={1}
-                value={entry.description}
-                onChange={(event) => setEntry({ ...entry, description: event.currentTarget.value })}
+                value={entry.applicationNotes}
+                onChange={(event) =>
+                  setEntry({ ...entry, applicationNotes: event.currentTarget.value })
+                }
               />
               <Button type="button" size="xs" onClick={confirmActivity}>
                 Add
@@ -178,6 +189,11 @@ function SkillCard({
                 {activity.description.trim() !== '' && (
                   <Text size="xs" c="dimmed">
                     {activity.description}
+                  </Text>
+                )}
+                {activity.applicationNotes.trim() !== '' && (
+                  <Text size="xs" c="dimmed" fs="italic">
+                    Notes: {activity.applicationNotes}
                   </Text>
                 )}
               </div>

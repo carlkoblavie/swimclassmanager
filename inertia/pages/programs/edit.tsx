@@ -33,6 +33,7 @@ export default function EditProgram({ program }: PageProps) {
               name: activity.name,
               durationMinutes: String(activity.durationMinutes),
               description: activity.description ?? '',
+              applicationNotes: activity.applicationNotes ?? '',
             })),
           })),
         })),

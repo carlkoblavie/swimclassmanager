@@ -302,6 +302,13 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                                 value={activity.description}
                               />
                             )}
+                            {activity.applicationNotes.trim() !== '' && (
+                              <input
+                                type="hidden"
+                                name={`${skillPrefix}[activities][${activityIndex}][applicationNotes]`}
+                                value={activity.applicationNotes}
+                              />
+                            )}
                           </Fragment>
                         ))}
                       </Fragment>

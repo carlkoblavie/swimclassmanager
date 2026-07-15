@@ -96,8 +96,10 @@ export class LearnerSchema extends BaseModel {
 }
 
 export class LevelStageActivitySchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'durationMinutes', 'id', 'levelStageSkillId', 'name', 'updatedAt'] as const
+  static $columns = ['applicationNotes', 'createdAt', 'description', 'durationMinutes', 'id', 'levelStageSkillId', 'name', 'updatedAt'] as const
   $columns = LevelStageActivitySchema.$columns
+  @column()
+  declare applicationNotes: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()

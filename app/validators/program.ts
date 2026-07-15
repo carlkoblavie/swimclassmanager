@@ -40,6 +40,7 @@ const stageObject = {
               name: vine.string().trim().minLength(1).maxLength(120),
               durationMinutes: vine.number().withoutDecimals().positive(),
               description: vine.string().trim().maxLength(2000).nullable().optional(),
+              applicationNotes: vine.string().trim().maxLength(2000).nullable().optional(),
             })
           )
           .optional(),

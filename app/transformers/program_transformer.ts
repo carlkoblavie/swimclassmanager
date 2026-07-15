@@ -46,6 +46,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
               name: activity.name,
               durationMinutes: activity.durationMinutes,
               description: activity.description,
+              applicationNotes: activity.applicationNotes,
             })),
           })),
         })),

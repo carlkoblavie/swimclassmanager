@@ -34,6 +34,7 @@ async function createStages(level: Level, stages: StageInput[]): Promise<void> {
           name: activity.name,
           durationMinutes: activity.durationMinutes,
           description: activity.description ?? null,
+          applicationNotes: activity.applicationNotes ?? null,
         }))
       )
     }
