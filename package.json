@@ -1,14 +1,14 @@
 {
-  "name": "marlin",
+  "name": "SwimClassManager",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=24.0.0"
+    "node": "24.x"
   },
   "scripts": {
-    "start": "node bin/server.js",
+    "start": "cd build && node bin/server.js",
     "build": "node ace build",
     "dev": "node ace serve --hmr",
     "test": "node ace test",
@@ -79,9 +79,13 @@
     "@adonisplus/permissions": "^0.0.3",
     "@adonisplus/persona": "^0.2.11",
     "@inertiajs/react": "^2.3.24",
+    "@mantine/core": "^9.4.1",
+    "@mantine/dates": "^9.4.1",
+    "@mantine/hooks": "^9.4.1",
     "@tuyau/core": "^1.2.2",
     "@vinejs/vine": "^4.4.0",
     "better-sqlite3": "^12.10.0",
+    "dayjs": "^1.11.21",
     "edge.js": "^6.5.1",
     "luxon": "^3.7.2",
     "mjml": "^5.4.0",
