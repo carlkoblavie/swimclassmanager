@@ -1,11 +1,51 @@
 import { type Data } from '@generated/data'
 import { toast, Toaster } from 'sonner'
 import { usePage } from '@inertiajs/react'
+import { useDisclosure } from '@mantine/hooks'
 import { type ReactElement, useEffect } from 'react'
 import { Form, Link } from '@adonisjs/inertia/react'
+import { Guard } from '~/utils/permissions'
+import {
+  AppShell,
+  Avatar,
+  Burger,
+  Button,
+  Container,
+  Group,
+  NativeSelect,
+  NavLink,
+  Stack,
+  Text,
+} from '@mantine/core'
 
-export default function Layout({ children }: { children: ReactElement<Data.SharedProps> }) {
+function Brand() {
+  return (
+    <Link route="home" aria-label="Home">
+      <Text span fw={800} fz="lg" c="blue.6">
+        Swim Class Manager
+      </Text>
+    </Link>
+  )
+}
+
+function UserMenu({ initials }: { initials: string }) {
+  return (
+    <Group gap="sm">
+      <Avatar radius="xl" size="sm" color="blue">
+        {initials}
+      </Avatar>
+      <Form route="sessions.destroy">
+        <Button type="submit" variant="subtle" color="gray" size="sm">
+          Logout
+        </Button>
+      </Form>
+    </Group>
+  )
+}
+
+function useFlashToasts(children: ReactElement<Data.SharedProps>) {
   const { url } = usePage()
+
   useEffect(() => {
     toast.dismiss()
   }, [url])
@@ -18,45 +58,125 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
       toast.success(children.props.flash.success)
     }
   })
+}
 
+export default function Layout({ children }: { children: ReactElement<Data.SharedProps> }) {
+  const [opened, { toggle }] = useDisclosure()
+  const { url } = usePage()
+  useFlashToasts(children)
+
+  const { user, activeOrganisation, activeSchool, availableSchools } = children.props
+
+  // Signed into a school → full app shell with a sidebar.
+  if (activeSchool) {
+    return (
+      <AppShell
+        header={{ height: 60 }}
+        navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+        padding="lg"
+      >
+        <AppShell.Header>
+          <Group h="100%" px="md" justify="space-between">
+            <Group gap="sm">
+              <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+              <Brand />
+            </Group>
+            {user && <UserMenu initials={user.initials} />}
+          </Group>
+        </AppShell.Header>
+
+        <AppShell.Navbar p="md">
+          <Stack gap={4}>
+            {activeOrganisation && (
+              <Text size="xs" tt="uppercase" c="dimmed" fw={700}>
+                {activeOrganisation.name}
+              </Text>
+            )}
+            <Text size="sm" fw={700} mb={4}>
+              {activeSchool.name}
+            </Text>
+            {availableSchools.length > 1 && (
+              <Form route="active_schools.update">
+                {({ processing }) => (
+                  <Group gap="xs" align="end" mb="sm">
+                    <NativeSelect
+                      flex={1}
+                      size="xs"
+                      label="Switch school"
+                      name="schoolId"
+                      defaultValue={String(activeSchool.id)}
+                      data={availableSchools.map((school) => ({
+                        value: String(school.id),
+                        label: school.name,
+                      }))}
+                    />
+                    <Button type="submit" size="xs" variant="light" loading={processing}>
+                      Switch
+                    </Button>
+                  </Group>
+                )}
+              </Form>
+            )}
+            <NavLink component={Link} route="home" label="Dashboard" active={url === '/'} />
+            <NavLink
+              component={Link}
+              route="programs.index"
+              label="Programs"
+              active={url.startsWith('/programs')}
+            />
+            <Guard for="signup.view">
+              <NavLink
+                component={Link}
+                route="signups.index"
+                label="Sign-ups"
+                active={url.startsWith('/signups')}
+              />
+            </Guard>
+            <Guard for="invitation.create">
+              <NavLink
+                component={Link}
+                route="invitations.create"
+                label="Invite member"
+                active={url.startsWith('/invitations')}
+              />
+            </Guard>
+            <NavLink
+              component={Link}
+              route="schools.create"
+              label="Create a school"
+              active={url.startsWith('/schools')}
+            />
+          </Stack>
+        </AppShell.Navbar>
+
+        <AppShell.Main>{children}</AppShell.Main>
+
+        <Toaster position="top-center" richColors />
+      </AppShell>
+    )
+  }
+
+  // Public / onboarding pages (login, register, errors, profile setup) → clean, no sidebar.
   return (
-    <>
-      <header>
-        <div>
-          <div>
-            <Link route="home">
-              <svg
-                width="120"
-                height="24"
-                viewBox="0 0 195 38"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M180 37.5v-30h-7.5V0H195v7.5h-7.5v30H180ZM150 15V7.5h-15V0h15v7.5h7.5V15H150Zm-15 22.5V30h-7.5V7.5h7.5V30h15v7.5h-15Zm15-7.5v-7.5h7.5V30H150ZM82.5 37.5v-30H90V0h15v7.5h7.5v30H105v-15H90v15h-7.5ZM90 15h15V7.8H90V15ZM45 37.5V0h22.5v7.5h-15V15h15v7.5h-15V30h15v7.5H45ZM0 37.5V0h22.5v7.5H30V15h-7.5v15H30v7.5h-7.5V30H15v-7.5H7.5v15H0ZM7.5 15h14.7V7.5H7.5V15Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </Link>
-          </div>
-          <div>
-            <nav>
-              {children.props.user ? (
-                <>
-                  <span>{children.props.user.initials}</span>
-                  <Form route="sessions.destroy">
-                    <button type="submit"> Logout </button>
-                  </Form>
-                </>
-              ) : (
-                <Link route="sign_in_links.create">Login</Link>
-              )}
-            </nav>
-          </div>
-        </div>
-      </header>
-      <main>{children}</main>
+    <AppShell header={{ height: 60 }} padding="lg">
+      <AppShell.Header>
+        <Container size="lg" h="100%">
+          <Group h="100%" justify="space-between">
+            <Brand />
+            {user ? (
+              <UserMenu initials={user.initials} />
+            ) : (
+              <Button component={Link} route="sign_in_links.create" variant="subtle" size="sm">
+                Login
+              </Button>
+            )}
+          </Group>
+        </Container>
+      </AppShell.Header>
+
+      <AppShell.Main>{children}</AppShell.Main>
+
       <Toaster position="top-center" richColors />
-    </>
+    </AppShell>
   )
 }

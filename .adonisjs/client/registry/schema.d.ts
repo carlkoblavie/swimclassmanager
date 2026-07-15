@@ -91,28 +91,40 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['destroy']>>>
     }
   }
-  'clubs.create': {
+  'schools.create': {
     methods: ["GET","HEAD"]
-    pattern: '/clubs/create'
+    pattern: '/schools/create'
     types: {
       body: {}
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['create']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['create']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['create']>>>
     }
   }
-  'clubs.store': {
+  'schools.store': {
     methods: ["POST"]
-    pattern: '/clubs'
+    pattern: '/schools'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/club').storeClubValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/school').storeSchoolValidator)>>
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/club').storeClubValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/clubs_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+      query: ExtractQuery<InferInput<(typeof import('#validators/school').storeSchoolValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/schools_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'active_schools.update': {
+    methods: ["PATCH"]
+    pattern: '/active-school'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/active_school').updateActiveSchoolValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/active_school').updateActiveSchoolValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/active_schools_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/active_schools_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'invitations.create': {
@@ -153,11 +165,11 @@ export interface Registry {
   }
   'signups.create': {
     methods: ["GET","HEAD"]
-    pattern: '/register/:slug'
+    pattern: '/register/:organisationSlug/:schoolSlug'
     types: {
       body: {}
-      paramsTuple: [ParamValue]
-      params: { slug: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['create']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['create']>>>
@@ -165,11 +177,11 @@ export interface Registry {
   }
   'signups.store': {
     methods: ["POST"]
-    pattern: '/register/:slug'
+    pattern: '/register/:organisationSlug/:schoolSlug'
     types: {
       body: ExtractBody<InferInput<(typeof import('#validators/signup').storeSignupValidator)>>
-      paramsTuple: [ParamValue]
-      params: { slug: ParamValue }
+      paramsTuple: [ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue }
       query: ExtractQuery<InferInput<(typeof import('#validators/signup').storeSignupValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
@@ -185,6 +197,174 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['index']>>>
+    }
+  }
+  'programs.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/programs'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['index']>>>
+    }
+  }
+  'programs.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/programs/create'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['create']>>>
+    }
+  }
+  'programs.store': {
+    methods: ["POST"]
+    pattern: '/programs'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/program').storeProgramValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/program').storeProgramValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'programs.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/programs/:id/edit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['edit']>>>
+    }
+  }
+  'programs.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/programs/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/program').updateProgramValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/program').updateProgramValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'programs.destroy': {
+    methods: ["DELETE"]
+    pattern: '/programs/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/programs_controller').default['destroy']>>>
+    }
+  }
+  'level_settings.update': {
+    methods: ["PATCH"]
+    pattern: '/levels/:id/settings'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/level_setting').updateLevelSettingsValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/level_setting').updateLevelSettingsValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/level_settings_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/level_settings_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'swimming_classes.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/classes'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['index']>>>
+    }
+  }
+  'swimming_classes.create': {
+    methods: ["GET","HEAD"]
+    pattern: '/classes/create'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['create']>>>
+    }
+  }
+  'swimming_classes.store': {
+    methods: ["POST"]
+    pattern: '/classes'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').storeSwimmingClassValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').storeSwimmingClassValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'swimming_classes.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/classes/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['show']>>>
+    }
+  }
+  'swimming_classes.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/classes/:id/edit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['edit']>>>
+    }
+  }
+  'swimming_classes.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/classes/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').updateSwimmingClassValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').updateSwimmingClassValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'swimming_class_sessions.update': {
+    methods: ["PATCH"]
+    pattern: '/class-sessions/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_class_sessions_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_class_sessions_controller').default['update']>>>
     }
   }
 }

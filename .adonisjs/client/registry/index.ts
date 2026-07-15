@@ -48,17 +48,23 @@ const routes = {
     tokens: [{"old":"/logout","type":0,"val":"logout","end":""}],
     types: placeholder as Registry['sessions.destroy']['types'],
   },
-  'clubs.create': {
+  'schools.create': {
     methods: ["GET","HEAD"],
-    pattern: '/clubs/create',
-    tokens: [{"old":"/clubs/create","type":0,"val":"clubs","end":""},{"old":"/clubs/create","type":0,"val":"create","end":""}],
-    types: placeholder as Registry['clubs.create']['types'],
+    pattern: '/schools/create',
+    tokens: [{"old":"/schools/create","type":0,"val":"schools","end":""},{"old":"/schools/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['schools.create']['types'],
   },
-  'clubs.store': {
+  'schools.store': {
     methods: ["POST"],
-    pattern: '/clubs',
-    tokens: [{"old":"/clubs","type":0,"val":"clubs","end":""}],
-    types: placeholder as Registry['clubs.store']['types'],
+    pattern: '/schools',
+    tokens: [{"old":"/schools","type":0,"val":"schools","end":""}],
+    types: placeholder as Registry['schools.store']['types'],
+  },
+  'active_schools.update': {
+    methods: ["PATCH"],
+    pattern: '/active-school',
+    tokens: [{"old":"/active-school","type":0,"val":"active-school","end":""}],
+    types: placeholder as Registry['active_schools.update']['types'],
   },
   'invitations.create': {
     methods: ["GET","HEAD"],
@@ -80,14 +86,14 @@ const routes = {
   },
   'signups.create': {
     methods: ["GET","HEAD"],
-    pattern: '/register/:slug',
-    tokens: [{"old":"/register/:slug","type":0,"val":"register","end":""},{"old":"/register/:slug","type":1,"val":"slug","end":""}],
+    pattern: '/register/:organisationSlug/:schoolSlug',
+    tokens: [{"old":"/register/:organisationSlug/:schoolSlug","type":0,"val":"register","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"organisationSlug","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"schoolSlug","end":""}],
     types: placeholder as Registry['signups.create']['types'],
   },
   'signups.store': {
     methods: ["POST"],
-    pattern: '/register/:slug',
-    tokens: [{"old":"/register/:slug","type":0,"val":"register","end":""},{"old":"/register/:slug","type":1,"val":"slug","end":""}],
+    pattern: '/register/:organisationSlug/:schoolSlug',
+    tokens: [{"old":"/register/:organisationSlug/:schoolSlug","type":0,"val":"register","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"organisationSlug","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"schoolSlug","end":""}],
     types: placeholder as Registry['signups.store']['types'],
   },
   'signups.index': {
@@ -95,6 +101,90 @@ const routes = {
     pattern: '/signups',
     tokens: [{"old":"/signups","type":0,"val":"signups","end":""}],
     types: placeholder as Registry['signups.index']['types'],
+  },
+  'programs.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/programs',
+    tokens: [{"old":"/programs","type":0,"val":"programs","end":""}],
+    types: placeholder as Registry['programs.index']['types'],
+  },
+  'programs.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/programs/create',
+    tokens: [{"old":"/programs/create","type":0,"val":"programs","end":""},{"old":"/programs/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['programs.create']['types'],
+  },
+  'programs.store': {
+    methods: ["POST"],
+    pattern: '/programs',
+    tokens: [{"old":"/programs","type":0,"val":"programs","end":""}],
+    types: placeholder as Registry['programs.store']['types'],
+  },
+  'programs.edit': {
+    methods: ["GET","HEAD"],
+    pattern: '/programs/:id/edit',
+    tokens: [{"old":"/programs/:id/edit","type":0,"val":"programs","end":""},{"old":"/programs/:id/edit","type":1,"val":"id","end":""},{"old":"/programs/:id/edit","type":0,"val":"edit","end":""}],
+    types: placeholder as Registry['programs.edit']['types'],
+  },
+  'programs.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/programs/:id',
+    tokens: [{"old":"/programs/:id","type":0,"val":"programs","end":""},{"old":"/programs/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['programs.update']['types'],
+  },
+  'programs.destroy': {
+    methods: ["DELETE"],
+    pattern: '/programs/:id',
+    tokens: [{"old":"/programs/:id","type":0,"val":"programs","end":""},{"old":"/programs/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['programs.destroy']['types'],
+  },
+  'level_settings.update': {
+    methods: ["PATCH"],
+    pattern: '/levels/:id/settings',
+    tokens: [{"old":"/levels/:id/settings","type":0,"val":"levels","end":""},{"old":"/levels/:id/settings","type":1,"val":"id","end":""},{"old":"/levels/:id/settings","type":0,"val":"settings","end":""}],
+    types: placeholder as Registry['level_settings.update']['types'],
+  },
+  'swimming_classes.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes',
+    tokens: [{"old":"/classes","type":0,"val":"classes","end":""}],
+    types: placeholder as Registry['swimming_classes.index']['types'],
+  },
+  'swimming_classes.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes/create',
+    tokens: [{"old":"/classes/create","type":0,"val":"classes","end":""},{"old":"/classes/create","type":0,"val":"create","end":""}],
+    types: placeholder as Registry['swimming_classes.create']['types'],
+  },
+  'swimming_classes.store': {
+    methods: ["POST"],
+    pattern: '/classes',
+    tokens: [{"old":"/classes","type":0,"val":"classes","end":""}],
+    types: placeholder as Registry['swimming_classes.store']['types'],
+  },
+  'swimming_classes.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes/:id',
+    tokens: [{"old":"/classes/:id","type":0,"val":"classes","end":""},{"old":"/classes/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swimming_classes.show']['types'],
+  },
+  'swimming_classes.edit': {
+    methods: ["GET","HEAD"],
+    pattern: '/classes/:id/edit',
+    tokens: [{"old":"/classes/:id/edit","type":0,"val":"classes","end":""},{"old":"/classes/:id/edit","type":1,"val":"id","end":""},{"old":"/classes/:id/edit","type":0,"val":"edit","end":""}],
+    types: placeholder as Registry['swimming_classes.edit']['types'],
+  },
+  'swimming_classes.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/classes/:id',
+    tokens: [{"old":"/classes/:id","type":0,"val":"classes","end":""},{"old":"/classes/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swimming_classes.update']['types'],
+  },
+  'swimming_class_sessions.update': {
+    methods: ["PATCH"],
+    pattern: '/class-sessions/:id',
+    tokens: [{"old":"/class-sessions/:id","type":0,"val":"class-sessions","end":""},{"old":"/class-sessions/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swimming_class_sessions.update']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 

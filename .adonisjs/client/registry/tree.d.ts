@@ -17,9 +17,12 @@ export interface ApiDefinition {
   sessions: {
     destroy: typeof routes['sessions.destroy']
   }
-  clubs: {
-    create: typeof routes['clubs.create']
-    store: typeof routes['clubs.store']
+  schools: {
+    create: typeof routes['schools.create']
+    store: typeof routes['schools.store']
+  }
+  activeSchools: {
+    update: typeof routes['active_schools.update']
   }
   invitations: {
     create: typeof routes['invitations.create']
@@ -32,5 +35,27 @@ export interface ApiDefinition {
     create: typeof routes['signups.create']
     store: typeof routes['signups.store']
     index: typeof routes['signups.index']
+  }
+  programs: {
+    index: typeof routes['programs.index']
+    create: typeof routes['programs.create']
+    store: typeof routes['programs.store']
+    edit: typeof routes['programs.edit']
+    update: typeof routes['programs.update']
+    destroy: typeof routes['programs.destroy']
+  }
+  levelSettings: {
+    update: typeof routes['level_settings.update']
+  }
+  swimmingClasses: {
+    index: typeof routes['swimming_classes.index']
+    create: typeof routes['swimming_classes.create']
+    store: typeof routes['swimming_classes.store']
+    show: typeof routes['swimming_classes.show']
+    edit: typeof routes['swimming_classes.edit']
+    update: typeof routes['swimming_classes.update']
+  }
+  swimmingClassSessions: {
+    update: typeof routes['swimming_class_sessions.update']
   }
 }
