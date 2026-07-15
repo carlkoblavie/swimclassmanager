@@ -1,9 +1,25 @@
-import { Badge, Button, Card, Container, Group, Pill, SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Card,
+  Container,
+  Group,
+  Pill,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+} from '@mantine/core'
+import { IconTrash } from '@tabler/icons-react'
+import { router } from '@inertiajs/react'
 import { Form, Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
+import PlanLessonForm from '~/components/plan_lesson_form'
 
 type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
@@ -85,28 +101,88 @@ export default function ClassShow({ swimmingClass }: PageProps) {
                 </Text>
               ) : (
                 swimmingClass.skills.map((skill) => (
-                  <Stack key={skill.id} gap={4}>
+                  <div key={skill.id}>
                     <Text fw={500} size="sm">
                       {skill.name}
                     </Text>
                     <Text size="xs" c="dimmed">
                       {skill.passCriteria}
                     </Text>
-                    <Group gap="xs">
-                      {swimmingClass.activities
-                        .filter((activity) => activity.skillId === skill.id)
-                        .map((activity) => (
-                          <Pill key={activity.id} bg="green.0" c="green.9">
-                            {activity.name}
-                          </Pill>
-                        ))}
-                    </Group>
-                  </Stack>
+                  </div>
                 ))
               )}
             </Stack>
           </Card>
         </SimpleGrid>
+
+        <Stack gap="sm">
+          <Group gap="xs">
+            <Text fw={700}>Lessons</Text>
+            <Badge variant="light" color="gray" size="sm">
+              {swimmingClass.lessons.length}
+            </Badge>
+          </Group>
+
+          {swimmingClass.lessons.length === 0 ? (
+            <Card>
+              <Text size="sm" c="dimmed">
+                No lessons planned yet.
+              </Text>
+            </Card>
+          ) : (
+            swimmingClass.lessons.map((lesson) => (
+              <Card key={lesson.id} padding="md">
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
+                  <Stack gap="xs">
+                    <Text fw={600} size="sm">
+                      {lesson.date.formatted}
+                    </Text>
+                    {lesson.activities.length === 0 ? (
+                      <Text size="xs" c="dimmed">
+                        No activities planned.
+                      </Text>
+                    ) : (
+                      <Group gap="xs">
+                        {lesson.activities.map((activity) => (
+                          <Pill key={activity.id} bg="green.0" c="green.9">
+                            {activity.name}
+                          </Pill>
+                        ))}
+                      </Group>
+                    )}
+                  </Stack>
+                  <Guard for="class.manage">
+                    <Tooltip label="Remove lesson">
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        size="sm"
+                        aria-label={`Remove lesson ${lesson.date.formatted}`}
+                        onClick={() =>
+                          router.delete(urlFor('class_lessons.destroy', { id: lesson.id }))
+                        }
+                      >
+                        <IconTrash size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Guard>
+                </Group>
+              </Card>
+            ))
+          )}
+
+          {!swimmingClass.isCancelled && (
+            <Guard for="class.manage">
+              <PlanLessonForm
+                classId={swimmingClass.id}
+                weekday={swimmingClass.weekday}
+                weekdayName={swimmingClass.weekdayName}
+                skills={swimmingClass.skills}
+                existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
+              />
+            </Guard>
+          )}
+        </Stack>
       </Stack>
     </Container>
   )

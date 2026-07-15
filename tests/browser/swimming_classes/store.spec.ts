@@ -33,15 +33,9 @@ test.group('Swimming classes store', (group) => {
     await page.getByRole('button', { name: 'Create class' }).click()
 
     await page.getByLabel('Base class name').fill('Evening squad')
-
-    // Pick the curriculum for Monday: the seeded skill and its drill.
-    await page.getByLabel('Select skills').first().click()
+    await page.getByLabel('Select skills').first().click({ force: true })
     await page.getByRole('option', { name: 'Hip rotation' }).click()
     await page.keyboard.press('Escape')
-    await page.getByLabel('Hip rotation', { exact: true }).first().click()
-    await page.getByRole('option', { name: 'Standing twists' }).click()
-    await page.keyboard.press('Escape')
-
     await page.getByRole('button', { name: 'Add another day' }).click()
 
     await page.getByRole('button', { name: 'Create 2 classes' }).click()
@@ -60,8 +54,9 @@ test.group('Swimming classes store', (group) => {
       code: 'ST01CL02',
       weekday: 2,
     })
+    // Skills live on the class; each class starts with its first dated lesson.
     await db.assertCount('class_skills', 1)
-    await db.assertCount('class_activities', 1)
+    await db.assertCount('class_lessons', 2)
   })
 
   test('a single day creates a single class', async ({ visit, route, browserContext, db }) => {
@@ -80,6 +75,7 @@ test.group('Swimming classes store', (group) => {
       code: 'ST01CL01',
       weekday: 1,
     })
+    await db.assertCount('class_lessons', 1)
   })
 
   test('duplicate class names across days are rejected', async ({

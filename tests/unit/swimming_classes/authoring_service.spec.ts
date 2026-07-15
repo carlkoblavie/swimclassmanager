@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import { DateTime } from 'luxon'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
@@ -50,9 +51,9 @@ async function setupContext() {
     startTime: '17:00',
     durationMinutes: 45,
     name: 'Evening squad — Monday',
+    lessonDate: DateTime.fromISO('2026-07-13'),
     levelStageId: curriculum.stage.id,
     skillIds: [curriculum.skill.id],
-    activityIds: [curriculum.activity.id],
     ...overrides,
   })
 
@@ -67,22 +68,29 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('creates one class per day with its curriculum', async ({ assert }) => {
-    const { school, level, stage, skill, activity, day } = await setupContext()
+    const { school, level, stage, skill, day } = await setupContext()
 
     const classes = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
-      days: [day(), day({ weekday: 3, name: 'Evening squad — Wednesday' })],
+      days: [
+        day(),
+        day({
+          weekday: 3,
+          name: 'Evening squad — Wednesday',
+          lessonDate: DateTime.fromISO('2026-07-15'),
+        }),
+      ],
     })
 
     assert.equal(classes.length, 2)
-    assert.equal(classes[0].levelStageId, stage.id)
     // Codes derive from the stage segment with platform-continuous numbers.
     assert.equal(classes[0].code, 'ST01CL01')
     assert.equal(classes[1].code, 'ST01CL02')
+    assert.equal(classes[0].levelStageId, stage.id)
     await classes[0].load('classSkills')
-    await classes[0].load('classActivities')
     assert.equal(classes[0].classSkills[0].levelStageSkillId, skill.id)
-    assert.equal(classes[0].classActivities[0].levelStageActivityId, activity.id)
+    await classes[0].load('lessons')
+    assert.equal(classes[0].lessons[0].date.toISODate(), '2026-07-13')
   })
 
   test('draft program levels cannot be used for class creation', async ({ assert }) => {
@@ -158,14 +166,14 @@ test.group('Class series authoring service', (group) => {
       () =>
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: level.id,
-          days: [day({ levelStageId: stage.id, skillIds: [foreignSkill.id], activityIds: [] })],
+          days: [day({ levelStageId: stage.id, skillIds: [foreignSkill.id] })],
         }),
       'A selected skill does not belong to this stage.'
     )
   })
 
-  test('activities must belong to the selected skills', async ({ assert }) => {
-    const { school, level, stage, skill, day } = await setupContext()
+  test('lesson activities must belong to the class skills', async ({ assert }) => {
+    const { school, level, stage, day } = await setupContext()
     const otherSkill = await LevelStageSkill.create({
       levelStageId: stage.id,
       name: 'Unselected Skill',
@@ -178,15 +186,18 @@ test.group('Class series authoring service', (group) => {
       description: null,
       applicationNotes: null,
     })
+    const [created] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      days: [day()],
+    })
 
     await expectAuthoringError(
       assert,
       () =>
-        new ClassSeriesAuthoringService().createMany(school, {
-          levelId: level.id,
-          days: [day({ skillIds: [skill.id], activityIds: [foreignActivity.id] })],
+        new ClassSeriesAuthoringService().planLesson(created, {
+          activityIds: [foreignActivity.id],
         }),
-      'A selected activity does not belong to the selected skills.'
+      'A selected activity does not belong to the class skills.'
     )
   })
 
@@ -204,6 +215,39 @@ test.group('Class series authoring service', (group) => {
     )
   })
 
+  test('the first lesson must fall on the class day', async ({ assert }) => {
+    const { school, level, day } = await setupContext()
+
+    await expectAuthoringError(
+      assert,
+      () =>
+        new ClassSeriesAuthoringService().createMany(school, {
+          levelId: level.id,
+          // 2026-07-14 is a Tuesday; the class runs on Mondays.
+          days: [day({ lessonDate: DateTime.fromISO('2026-07-14') })],
+        }),
+      'The first lesson must fall on the class day.'
+    )
+  })
+
+  test('planned lessons append on the class weekday', async ({ assert }) => {
+    const { school, level, day } = await setupContext()
+    // Anchor the first lesson on the next Monday from now so appends are
+    // deterministic regardless of when the test runs.
+    let firstDate = DateTime.now().startOf('day').plus({ days: 1 })
+    while (firstDate.weekday !== 1) {
+      firstDate = firstDate.plus({ days: 1 })
+    }
+    const [created] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      days: [day({ lessonDate: firstDate })],
+    })
+
+    const lesson = await new ClassSeriesAuthoringService().planLesson(created, {})
+
+    assert.equal(lesson.date.toISODate(), firstDate.plus({ days: 7 }).toISODate())
+  })
+
   test('class codes stay continuous across separate creations', async ({ assert }) => {
     const { school, level, day } = await setupContext()
     await new ClassSeriesAuthoringService().createMany(school, {
@@ -213,7 +257,13 @@ test.group('Class series authoring service', (group) => {
 
     const [second] = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
-      days: [day({ weekday: 4, name: 'Another Name' })],
+      days: [
+        day({
+          weekday: 4,
+          name: 'Another Name',
+          lessonDate: DateTime.fromISO('2026-07-16'),
+        }),
+      ],
     })
 
     assert.equal(second.code, 'ST01CL02')

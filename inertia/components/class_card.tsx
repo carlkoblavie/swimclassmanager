@@ -25,10 +25,9 @@ export default function ClassCard({ swimmingClass }: { swimmingClass: Data.Swimm
           </Text>
           <Text size="sm" c="dimmed">
             {swimmingClass.level?.programName} — {swimmingClass.level?.name}
-            {swimmingClass.stage ? ` · ${swimmingClass.stage.name}` : ''}
-            {swimmingClass.skills.length > 0
-              ? ` · ${swimmingClass.skills.length} ${swimmingClass.skills.length === 1 ? 'skill' : 'skills'}`
-              : ''}
+            {swimmingClass.lessons.length > 0
+              ? ` · ${swimmingClass.lessons.length} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} planned`
+              : ' · no lessons yet'}
           </Text>
           {swimmingClass.instructor && (
             <Group gap="xs">

@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { Form } from '@adonisjs/inertia/react'
 import {
   ActionIcon,
@@ -16,6 +16,7 @@ import {
 } from '@mantine/core'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import type { Data } from '@generated/data'
+import { nextWeekdayDate } from '~/components/plan_lesson_form'
 
 const WEEKDAYS = [
   { value: '1', label: 'Monday' },
@@ -37,9 +38,10 @@ type DayDraft = {
   durationMinutes: string
   name: string
   nameTouched: boolean
+  lessonDate: string
+  dateTouched: boolean
   levelStageId: string
   skillIds: string[]
-  activityIds: string[]
 }
 
 function autoName(baseName: string, levelName: string, weekday: string): string {
@@ -62,9 +64,10 @@ export default function ClassInlineBuilder({
     durationMinutes: '45',
     name: autoName(baseName, level.name, weekday),
     nameTouched: false,
+    lessonDate: nextWeekdayDate(Number(weekday), new Date()),
+    dateTouched: false,
     levelStageId: stages[0] ? String(stages[0].id) : '',
     skillIds: [],
-    activityIds: [],
   })
 
   const [baseName, setBaseName] = useState('')
@@ -90,6 +93,9 @@ export default function ClassInlineBuilder({
               ...day,
               weekday,
               name: day.nameTouched ? day.name : autoName(baseName, level.name, weekday),
+              lessonDate: day.dateTouched
+                ? day.lessonDate
+                : nextWeekdayDate(Number(weekday), new Date()),
             }
           : day
       )
@@ -150,12 +156,9 @@ export default function ClassInlineBuilder({
             />
 
             {days.map((day, index) => {
+              const prefix = `days[${index}]`
               const stage = stages.find((candidate) => String(candidate.id) === day.levelStageId)
               const stageSkills = stage?.skills ?? []
-              const selectedSkills = stageSkills.filter((skill) =>
-                day.skillIds.includes(String(skill.id))
-              )
-              const prefix = `days[${index}]`
 
               return (
                 <Card key={index} withBorder shadow="none" bg="white">
@@ -217,11 +220,7 @@ export default function ClassInlineBuilder({
                       label="Select stage"
                       value={day.levelStageId}
                       onChange={(event) =>
-                        setDay(index, {
-                          levelStageId: event.currentTarget.value,
-                          skillIds: [],
-                          activityIds: [],
-                        })
+                        setDay(index, { levelStageId: event.currentTarget.value, skillIds: [] })
                       }
                       data={stages.map((candidate) => ({
                         value: String(candidate.id),
@@ -231,58 +230,29 @@ export default function ClassInlineBuilder({
 
                     <MultiSelect
                       label="Select skills"
-                      placeholder={day.skillIds.length === 0 ? 'Add a skill…' : undefined}
                       value={day.skillIds}
-                      onChange={(skillIds) => {
-                        const allowed = new Set(
-                          stageSkills
-                            .filter((skill) => skillIds.includes(String(skill.id)))
-                            .flatMap((skill) => skill.activities.map((a) => String(a.id)))
-                        )
-                        setDay(index, {
-                          skillIds,
-                          activityIds: day.activityIds.filter((id) => allowed.has(id)),
-                        })
-                      }}
+                      onChange={(skillIds) => setDay(index, { skillIds })}
                       data={stageSkills.map((skill) => ({
                         value: String(skill.id),
                         label: skill.name,
                       }))}
                     />
 
-                    {selectedSkills.length > 0 && (
-                      <Stack gap="xs">
-                        <Text size="xs" tt="uppercase" c="dimmed" fw={600}>
-                          Select activities
-                        </Text>
-                        {selectedSkills.map((skill) => (
-                          <MultiSelect
-                            key={skill.id}
-                            label={skill.name}
-                            placeholder={
-                              day.activityIds.some((id) =>
-                                skill.activities.some((a) => String(a.id) === id)
-                              )
-                                ? undefined
-                                : 'Add activities…'
-                            }
-                            value={day.activityIds.filter((id) =>
-                              skill.activities.some((a) => String(a.id) === id)
-                            )}
-                            onChange={(selected) => {
-                              const others = day.activityIds.filter(
-                                (id) => !skill.activities.some((a) => String(a.id) === id)
-                              )
-                              setDay(index, { activityIds: [...others, ...selected] })
-                            }}
-                            data={skill.activities.map((activity) => ({
-                              value: String(activity.id),
-                              label: activity.name,
-                            }))}
-                          />
-                        ))}
-                      </Stack>
-                    )}
+                    <Group gap="sm" align="flex-start">
+                      <TextInput
+                        label="First lesson date"
+                        type="date"
+                        w={170}
+                        value={day.lessonDate}
+                        onChange={(event) =>
+                          setDay(index, {
+                            lessonDate: event.currentTarget.value,
+                            dateTouched: true,
+                          })
+                        }
+                        error={errors[`days.${index}.lessonDate`]}
+                      />
+                    </Group>
 
                     <input type="hidden" name={`${prefix}[weekday]`} value={day.weekday} />
                     <input type="hidden" name={`${prefix}[startTime]`} value={day.startTime} />
@@ -292,6 +262,7 @@ export default function ClassInlineBuilder({
                       value={day.durationMinutes}
                     />
                     <input type="hidden" name={`${prefix}[name]`} value={day.name} />
+                    <input type="hidden" name={`${prefix}[lessonDate]`} value={day.lessonDate} />
                     <input
                       type="hidden"
                       name={`${prefix}[levelStageId]`}
@@ -299,20 +270,11 @@ export default function ClassInlineBuilder({
                     />
                     {day.skillIds.map((id, skillIndex) => (
                       <input
-                        key={`skill-${id}`}
+                        key={id}
                         type="hidden"
                         name={`${prefix}[skillIds][${skillIndex}]`}
                         value={id}
                       />
-                    ))}
-                    {day.activityIds.map((id, activityIndex) => (
-                      <Fragment key={`activity-${id}`}>
-                        <input
-                          type="hidden"
-                          name={`${prefix}[activityIds][${activityIndex}]`}
-                          value={id}
-                        />
-                      </Fragment>
                     ))}
                   </Stack>
                 </Card>

@@ -12,13 +12,7 @@ import {
   Text,
   Tooltip,
 } from '@mantine/core'
-import {
-  IconChevronDown,
-  IconChevronRight,
-  IconCornerDownRight,
-  IconPencil,
-  IconTrash,
-} from '@tabler/icons-react'
+import { IconChevronDown, IconChevronRight, IconPencil, IconTrash } from '@tabler/icons-react'
 import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
@@ -41,13 +35,6 @@ function LevelRow({
         {/* Indent under the parent program row to read as a child entry. */}
         <Group justify="space-between" align="flex-start" wrap="wrap" pl="xl">
           <Group gap="xs" align="flex-start" wrap="nowrap">
-            <IconCornerDownRight
-              size={16}
-              stroke={1.6}
-              color="var(--mantine-color-dimmed)"
-              aria-hidden
-              style={{ marginTop: 4 }}
-            />
             <Stack gap={4}>
               <Group gap="xs">
                 <Text fw={500}>{level.name}</Text>
@@ -179,6 +166,21 @@ function ProgramRows({ program }: { program: Data.Program }) {
           </Guard>
         </Table.Td>
       </Table.Tr>
+      {expanded && levels.length > 0 && (
+        <Table.Tr bg="gray.0">
+          <Table.Td />
+          <Table.Td colSpan={4}>
+            <Group gap="xs" pl="xl">
+              <Text size="xs" tt="uppercase" c="dimmed" fw={700}>
+                Levels
+              </Text>
+              <Badge variant="light" color="gray" size="xs">
+                {levels.length}
+              </Badge>
+            </Group>
+          </Table.Td>
+        </Table.Tr>
+      )}
       {expanded &&
         levels.map((level) => (
           <Fragment key={level.id}>

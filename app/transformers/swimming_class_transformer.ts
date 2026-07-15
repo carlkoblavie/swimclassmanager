@@ -1,8 +1,9 @@
 import { BaseTransformer } from '@adonisjs/core/transformers'
 import { DateTime } from 'luxon'
-import type ClassActivity from '#models/class_activity'
+import type ClassLesson from '#models/class_lesson'
 import type ClassSkill from '#models/class_skill'
 import type Invitation from '#models/invitation'
+import type LessonActivity from '#models/lesson_activity'
 import type Level from '#models/level'
 import type LevelStage from '#models/level_stage'
 import type Membership from '#models/membership'
@@ -33,7 +34,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       instructorMembership?: Membership
       pendingInstructorInvitation?: Invitation
       classSkills?: ClassSkill[]
-      classActivities?: ClassActivity[]
+      lessons?: ClassLesson[]
     }
     const level = preloaded.level
     const levelPreloaded = level?.$preloaded as { program?: Program } | undefined
@@ -44,7 +45,9 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
     const instructorUser = membershipPreloaded?.user ?? instructorMembership?.user
     const pendingInvitation = preloaded.pendingInstructorInvitation
     const classSkills = preloaded.classSkills ?? []
-    const classActivities = preloaded.classActivities ?? []
+    const lessons = (preloaded.lessons ?? []).toSorted(
+      (a, b) => a.date.toMillis() - b.date.toMillis()
+    )
 
     const activeInstructorLabel =
       instructorUser?.fullName?.trim() || instructorUser?.email || 'Assigned instructor'
@@ -99,21 +102,31 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             id: skill.id,
             name: skill.name,
             passCriteria: skill.passCriteria,
+            activities: (skill.activities ?? []).map((activity) => ({
+              id: activity.id,
+              name: activity.name,
+            })),
           },
         ]
       }),
-      activities: classActivities.flatMap((classActivity) => {
-        const activity = classActivity.levelStageActivity
-        if (!activity) {
-          return []
-        }
-        return [
-          {
-            id: activity.id,
-            name: activity.name,
-            skillId: activity.levelStageSkillId,
+      lessons: lessons.map((lesson) => {
+        const lessonPreloaded = lesson.$preloaded as { lessonActivities?: LessonActivity[] }
+        const lessonActivities = lessonPreloaded.lessonActivities ?? []
+
+        return {
+          id: lesson.id,
+          date: {
+            raw: lesson.date.toISODate() ?? '',
+            formatted: lesson.date.toFormat('cccc d LLL yyyy'),
           },
-        ]
+          activities: lessonActivities.flatMap((lessonActivity) => {
+            const activity = lessonActivity.levelStageActivity
+            if (!activity) {
+              return []
+            }
+            return [{ id: activity.id, name: activity.name, skillId: activity.levelStageSkillId }]
+          }),
+        }
       }),
     }
   }

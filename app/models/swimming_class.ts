@@ -7,8 +7,8 @@ import Level from '#models/level'
 import LevelStage from '#models/level_stage'
 import Membership from '#models/membership'
 import Invitation from '#models/invitation'
+import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
-import ClassActivity from '#models/class_activity'
 
 export default class SwimmingClass extends SwimmingClassSchema {
   @belongsTo(() => School)
@@ -29,8 +29,8 @@ export default class SwimmingClass extends SwimmingClassSchema {
   @hasMany(() => ClassSkill)
   declare classSkills: HasMany<typeof ClassSkill>
 
-  @hasMany(() => ClassActivity)
-  declare classActivities: HasMany<typeof ClassActivity>
+  @hasMany(() => ClassLesson)
+  declare lessons: HasMany<typeof ClassLesson>
 
   get isCancelled(): boolean {
     return this.cancelledAt !== null

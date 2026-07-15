@@ -35,14 +35,13 @@ type PageProps = InertiaProps<{
 
 export default function ClassEdit({ swimmingClass, level, instructorOptions }: PageProps) {
   const stages = level.stages ?? []
-
   const [levelStageId, setLevelStageId] = useState(String(swimmingClass.levelStageId))
   const [skillIds, setSkillIds] = useState<string[]>(
     swimmingClass.skills.map((skill) => String(skill.id))
   )
-  const [activityIds, setActivityIds] = useState<string[]>(
-    swimmingClass.activities.map((activity) => String(activity.id))
-  )
+  const stage = stages.find((candidate) => String(candidate.id) === levelStageId)
+  const stageSkills = stage?.skills ?? []
+
   const [instructorMode, setInstructorMode] = useState<InstructorMode>(
     swimmingClass.pendingInstructorInvitationId
       ? 'invite'
@@ -50,16 +49,6 @@ export default function ClassEdit({ swimmingClass, level, instructorOptions }: P
         ? 'existing'
         : 'none'
   )
-
-  const stage = stages.find((candidate) => String(candidate.id) === levelStageId)
-  const stageSkills = stage?.skills ?? []
-  const selectedSkills = stageSkills.filter((skill) => skillIds.includes(String(skill.id)))
-
-  const changeStage = (value: string) => {
-    setLevelStageId(value)
-    setSkillIds([])
-    setActivityIds([])
-  }
 
   return (
     <Container size="md" py="xl">
@@ -70,8 +59,8 @@ export default function ClassEdit({ swimmingClass, level, instructorOptions }: P
               <div>
                 <Title order={1}>Edit class</Title>
                 <Text c="dimmed" size="sm">
-                  {swimmingClass.code} · {level.name} · schedule, curriculum, location, and
-                  instructor.
+                  {swimmingClass.code} · {swimmingClass.level?.name} · lessons are planned from the
+                  class page.
                 </Text>
               </div>
               <Group gap="sm">
@@ -133,11 +122,17 @@ export default function ClassEdit({ swimmingClass, level, instructorOptions }: P
             <Card>
               <Stack gap="sm">
                 <Text fw={700}>Curriculum</Text>
+                <Text size="xs" c="dimmed">
+                  Activities are planned per lesson from the class page.
+                </Text>
                 <input type="hidden" name="levelStageId" value={levelStageId} />
                 <NativeSelect
                   label="Select stage"
                   value={levelStageId}
-                  onChange={(event) => changeStage(event.currentTarget.value)}
+                  onChange={(event) => {
+                    setLevelStageId(event.currentTarget.value)
+                    setSkillIds([])
+                  }}
                   data={stages.map((candidate) => ({
                     value: String(candidate.id),
                     label: candidate.name,
@@ -146,44 +141,14 @@ export default function ClassEdit({ swimmingClass, level, instructorOptions }: P
                 <MultiSelect
                   label="Select skills"
                   value={skillIds}
-                  onChange={(next) => {
-                    const allowed = new Set(
-                      stageSkills
-                        .filter((skill) => next.includes(String(skill.id)))
-                        .flatMap((skill) => skill.activities.map((a) => String(a.id)))
-                    )
-                    setSkillIds(next)
-                    setActivityIds((current) => current.filter((id) => allowed.has(id)))
-                  }}
+                  onChange={setSkillIds}
                   data={stageSkills.map((skill) => ({
                     value: String(skill.id),
                     label: skill.name,
                   }))}
                 />
-                {selectedSkills.map((skill) => (
-                  <MultiSelect
-                    key={skill.id}
-                    label={`${skill.name} activities`}
-                    value={activityIds.filter((id) =>
-                      skill.activities.some((a) => String(a.id) === id)
-                    )}
-                    onChange={(selected) => {
-                      const others = activityIds.filter(
-                        (id) => !skill.activities.some((a) => String(a.id) === id)
-                      )
-                      setActivityIds([...others, ...selected])
-                    }}
-                    data={skill.activities.map((activity) => ({
-                      value: String(activity.id),
-                      label: activity.name,
-                    }))}
-                  />
-                ))}
                 {skillIds.map((id, index) => (
                   <input key={id} type="hidden" name={`skillIds[${index}]`} value={id} />
-                ))}
-                {activityIds.map((id, index) => (
-                  <input key={id} type="hidden" name={`activityIds[${index}]`} value={id} />
                 ))}
               </Stack>
             </Card>

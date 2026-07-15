@@ -6,6 +6,7 @@
 export const controllers = {
   Accounts: () => import('#controllers/accounts_controller'),
   ActiveSchools: () => import('#controllers/active_schools_controller'),
+  ClassLessons: () => import('#controllers/class_lessons_controller'),
   Invitations: () => import('#controllers/invitations_controller'),
   LevelSettings: () => import('#controllers/level_settings_controller'),
   Memberships: () => import('#controllers/memberships_controller'),

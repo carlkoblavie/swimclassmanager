@@ -4,8 +4,10 @@ import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { InvitationFactory } from '#database/factories/invitation_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
-import ClassActivity from '#models/class_activity'
+import { DateTime } from 'luxon'
+import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
+import LessonActivity from '#models/lesson_activity'
 import Role from '#models/role'
 import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
 import { RoleName } from '#values/role'
@@ -37,10 +39,11 @@ test.group('Swimming classes show', (group) => {
       durationMinutes: 45,
     }).create()
     await ClassSkill.create({ swimmingClassId: swimmingClass.id, levelStageSkillId: skill.id })
-    await ClassActivity.create({
+    const lesson = await ClassLesson.create({
       swimmingClassId: swimmingClass.id,
-      levelStageActivityId: activity.id,
+      date: DateTime.fromISO('2026-07-13'),
     })
+    await LessonActivity.create({ classLessonId: lesson.id, levelStageActivityId: activity.id })
     await browserContext.loginAs(user)
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
@@ -48,6 +51,7 @@ test.group('Swimming classes show', (group) => {
     await page.assertVisible('text=Monday Splash')
     await page.assertVisible('text=AQT-4820')
     await page.assertVisible('text=Monday · 5:00 PM · 45 min')
+    await page.assertVisible('text=Monday 13 Jul 2026')
     await page.assertVisible('text=Waist movement')
     await page.assertVisible('text=Hip rotation')
     await page.assertVisible('text=Standing twists')

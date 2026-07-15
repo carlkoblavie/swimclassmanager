@@ -7,15 +7,15 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-export class ClassActivitySchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'levelStageActivityId', 'swimmingClassId', 'updatedAt'] as const
-  $columns = ClassActivitySchema.$columns
+export class ClassLessonSchema extends BaseModel {
+  static $columns = ['createdAt', 'date', 'id', 'swimmingClassId', 'updatedAt'] as const
+  $columns = ClassLessonSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column.date()
+  declare date: DateTime
   @column({ isPrimary: true })
   declare id: number
-  @column()
-  declare levelStageActivityId: number
   @column()
   declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -89,6 +89,21 @@ export class LearnerSchema extends BaseModel {
   declare signupId: number
   @column()
   declare swimmingExperience: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class LessonActivitySchema extends BaseModel {
+  static $columns = ['classLessonId', 'createdAt', 'id', 'levelStageActivityId', 'updatedAt'] as const
+  $columns = LessonActivitySchema.$columns
+  @column()
+  declare classLessonId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare levelStageActivityId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

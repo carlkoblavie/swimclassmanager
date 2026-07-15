@@ -32,6 +32,8 @@ export type ScannedRoutes = {
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
     'home': { paramsTuple?: []; params?: {} }
@@ -75,6 +77,7 @@ export type ScannedRoutes = {
     'signups.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'programs.store': { paramsTuple?: []; params?: {} }
     'swimming_classes.store': { paramsTuple?: []; params?: {} }
+    'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }
@@ -89,6 +92,7 @@ export type ScannedRoutes = {
   }
   DELETE: {
     'programs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

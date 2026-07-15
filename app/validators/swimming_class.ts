@@ -6,10 +6,9 @@ const timeRule = () =>
     .trim()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
-const curriculumFields = {
+const classCurriculumFields = {
   levelStageId: vine.number().withoutDecimals().positive(),
   skillIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
-  activityIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
 }
 
 const dayObject = {
@@ -17,7 +16,8 @@ const dayObject = {
   startTime: timeRule(),
   durationMinutes: vine.number().withoutDecimals().positive(),
   name: vine.string().trim().minLength(1).maxLength(120),
-  ...curriculumFields,
+  lessonDate: vine.date({ formats: ['YYYY-MM-DD'] }),
+  ...classCurriculumFields,
 }
 
 export const storeSwimmingClassesValidator = vine.create({
@@ -36,7 +36,11 @@ export const updateSwimmingClassValidator = vine.create({
   inviteTeacherEmail: vine.string().trim().normalizeEmail().email().maxLength(254).optional(),
   inviteTeacherName: vine.string().trim().minLength(1).maxLength(255).optional(),
   inviteTeacherPhone: vine.string().trim().minLength(1).maxLength(50).optional(),
-  ...curriculumFields,
+  ...classCurriculumFields,
+})
+
+export const storeClassLessonValidator = vine.create({
+  activityIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
 })
 
 export type StoreSwimmingClassesInput = Awaited<
@@ -45,3 +49,4 @@ export type StoreSwimmingClassesInput = Awaited<
 export type UpdateSwimmingClassInput = Awaited<
   ReturnType<typeof updateSwimmingClassValidator.validate>
 >
+export type StoreClassLessonInput = Awaited<ReturnType<typeof storeClassLessonValidator.validate>>

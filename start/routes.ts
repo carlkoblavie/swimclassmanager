@@ -106,6 +106,18 @@ router
       .where('id', router.matchers.number())
       .use(['index', 'show'], middleware.authorize('class.view'))
       .use(['store', 'edit', 'update'], middleware.authorize('class.manage'))
+
+    router
+      .post('classes/:id/lessons', [controllers.ClassLessons, 'store'])
+      .as('class_lessons.store')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('class.manage'))
+
+    router
+      .delete('class-lessons/:id', [controllers.ClassLessons, 'destroy'])
+      .as('class_lessons.destroy')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('class.manage'))
   })
   .use(middleware.auth())
   .use(middleware.completeProfile())

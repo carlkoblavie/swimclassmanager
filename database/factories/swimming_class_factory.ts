@@ -26,7 +26,7 @@ export const SwimmingClassFactory = factory
       schoolId: school.id,
       levelId: level.id,
       levelStageId: stage.id,
-      code: `CLS-${faker.string.alphanumeric(6).toUpperCase()}`,
+      code: `ST00CL${faker.string.numeric(6)}`,
       name: `${faker.word.adjective()} Swim Class ${faker.string.alphanumeric(4)}`,
       weekday: 1,
       startTime: '09:00',

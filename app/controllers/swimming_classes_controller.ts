@@ -29,6 +29,7 @@ export default class SwimmingClassesController {
       )
       .preload('pendingInstructorInvitation')
       .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
+      .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
       .orderBy('weekday')
       .orderBy('startTime')
 
@@ -59,7 +60,7 @@ export default class SwimmingClassesController {
   }
 
   /**
-   * Show individual class
+   * Show a class with its planned lessons
    */
   async show({ auth, inertia, params }: HttpContext) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
@@ -72,9 +73,15 @@ export default class SwimmingClassesController {
         membershipQuery.preload('user').preload('roles')
       )
       .preload('pendingInstructorInvitation')
-      .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
-      .preload('classActivities', (activitiesQuery) =>
-        activitiesQuery.preload('levelStageActivity')
+      .preload('classSkills', (skillsQuery) =>
+        skillsQuery.preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+      )
+      .preload('lessons', (lessonsQuery) =>
+        lessonsQuery
+          .preload('lessonActivities', (activitiesQuery) =>
+            activitiesQuery.preload('levelStageActivity')
+          )
+          .orderBy('date')
       )
       .firstOrFail()
 
@@ -84,7 +91,7 @@ export default class SwimmingClassesController {
   }
 
   /**
-   * Edit a class: schedule, curriculum, location, and instructor
+   * Edit a class: schedule, name, location, and instructor
    */
   async edit({ auth, inertia, params }: HttpContext) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
@@ -98,11 +105,9 @@ export default class SwimmingClassesController {
       )
       .preload('pendingInstructorInvitation')
       .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
-      .preload('classActivities', (activitiesQuery) =>
-        activitiesQuery.preload('levelStageActivity')
-      )
       .firstOrFail()
 
+    // Stage and skill pickers need the level's curriculum tree.
     const level = await Level.query()
       .where('id', swimmingClass.levelId)
       .preload('program')

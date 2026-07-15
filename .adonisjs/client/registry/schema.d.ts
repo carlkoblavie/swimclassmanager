@@ -343,4 +343,28 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
+  'class_lessons.store': {
+    methods: ["POST"]
+    pattern: '/classes/:id/lessons'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').storeClassLessonValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').storeClassLessonValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'class_lessons.destroy': {
+    methods: ["DELETE"]
+    pattern: '/class-lessons/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['destroy']>>>
+    }
+  }
 }

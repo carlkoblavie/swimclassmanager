@@ -8,15 +8,18 @@ import InvitationMail from '#mails/invitation'
 import Invitation from '#models/invitation'
 import Level from '#models/level'
 import LevelStage from '#models/level_stage'
+import LevelStageActivity from '#models/level_stage_activity'
 import Membership from '#models/membership'
 import Role from '#models/role'
 import School from '#models/school'
 import SwimmingClass from '#models/swimming_class'
-import ClassActivity from '#models/class_activity'
+import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
+import LessonActivity from '#models/lesson_activity'
 import { RoleName } from '#values/role'
 import { classCode, codeSegment, nextTierNumber } from '#values/account_code'
 import {
+  type StoreClassLessonInput,
   type StoreSwimmingClassesInput,
   type UpdateSwimmingClassInput,
 } from '#validators/swimming_class'
@@ -36,14 +39,13 @@ type DayInput = StoreSwimmingClassesInput['days'][number]
 type CurriculumSelection = {
   stage: LevelStage
   skillIds: number[]
-  activityIds: number[]
 }
 
 export default class ClassSeriesAuthoringService {
   /**
-   * Create one class per submitted day under an available level, each with
-   * its own curriculum picked from the level's stages. Instructor and
-   * location are assigned later via edit.
+   * Create one class per submitted day under an available level. Each class
+   * carries its stage and skills; its first dated lesson is created empty of
+   * activities, which are planned lesson by lesson.
    */
   async createMany(school: School, data: StoreSwimmingClassesInput): Promise<SwimmingClass[]> {
     return db.transaction(async (trx) => {
@@ -54,15 +56,19 @@ export default class ClassSeriesAuthoringService {
         await this.assertNameAvailable(school, day.name, trx)
       }
 
-      const existingCodes = (
-        await SwimmingClass.query({ client: trx }).select('code')
-      ).map((row) => row.code)
+      const existingCodes = (await SwimmingClass.query({ client: trx }).select('code')).map(
+        (row) => row.code
+      )
 
       const classes: SwimmingClass[] = []
       for (const day of data.days) {
-        const selection = this.resolveCurriculum(level, day)
+        if (day.lessonDate.weekday !== day.weekday) {
+          throw new ClassAuthoringException('The first lesson must fall on the class day.')
+        }
+        const selection = this.resolveClassCurriculum(level, day)
         const code = classCode(selection.stage.code, nextTierNumber(existingCodes, 'class'))
         existingCodes.push(code)
+
         const swimmingClass = new SwimmingClass()
         swimmingClass.useTransaction(trx)
         swimmingClass.merge({
@@ -77,7 +83,10 @@ export default class ClassSeriesAuthoringService {
           location: null,
         })
         await swimmingClass.save()
-        await this.replaceCurriculum(swimmingClass, selection, trx)
+        await swimmingClass
+          .related('classSkills')
+          .createMany(selection.skillIds.map((levelStageSkillId) => ({ levelStageSkillId })))
+        await swimmingClass.related('lessons').create({ date: day.lessonDate })
         classes.push(swimmingClass)
       }
 
@@ -86,8 +95,9 @@ export default class ClassSeriesAuthoringService {
   }
 
   /**
-   * Update one class: schedule, name/code, curriculum, location, and
-   * instructor (existing member, invited Teacher, or none).
+   * Update one class: schedule, name, location, instructor, and its
+   * stage/skills. Changing curriculum is refused while lessons use
+   * activities outside the new skill set.
    */
   async update(
     swimmingClass: SwimmingClass,
@@ -98,8 +108,10 @@ export default class ClassSeriesAuthoringService {
       const level = await this.loadAvailableLevel(school, swimmingClass.levelId, trx)
 
       await this.assertNameAvailable(school, data.name, trx, swimmingClass.id)
-      const selection = this.resolveCurriculum(level, data)
+      const selection = this.resolveClassCurriculum(level, data)
       const instructor = await this.resolveInstructor(school, data, trx)
+
+      await this.assertLessonActivitiesCovered(swimmingClass, selection, trx)
 
       // Codes are strictly system-generated: the class keeps its own CL
       // number, but the parent segment follows the class to its new stage.
@@ -107,7 +119,7 @@ export default class ClassSeriesAuthoringService {
       if (selection.stage.id !== swimmingClass.levelStageId) {
         const parent = codeSegment(selection.stage.code, 'stage') ?? selection.stage.code
         const own = codeSegment(swimmingClass.code, 'class')
-        code = own ? `${parent}-${own}` : swimmingClass.code
+        code = own ? `${parent}${own}` : swimmingClass.code
       }
 
       swimmingClass.useTransaction(trx)
@@ -125,10 +137,9 @@ export default class ClassSeriesAuthoringService {
       await swimmingClass.save()
 
       await ClassSkill.query({ client: trx }).where('swimmingClassId', swimmingClass.id).delete()
-      await ClassActivity.query({ client: trx })
-        .where('swimmingClassId', swimmingClass.id)
-        .delete()
-      await this.replaceCurriculum(swimmingClass, selection, trx)
+      await swimmingClass
+        .related('classSkills')
+        .createMany(selection.skillIds.map((levelStageSkillId) => ({ levelStageSkillId })))
 
       if (instructor.invitation) {
         trx.after('commit', async () => {
@@ -144,6 +155,65 @@ export default class ClassSeriesAuthoringService {
       }
 
       return swimmingClass
+    })
+  }
+
+  /**
+   * Plan the class's next lesson: dates are system-appended on the class's
+   * weekday after the last planned lesson; the payload carries only that
+   * week's activities, drawn from the class's skills.
+   */
+  async planLesson(swimmingClass: SwimmingClass, data: StoreClassLessonInput): Promise<ClassLesson> {
+    return db.transaction(async (trx) => {
+      const classSkills = await ClassSkill.query({ client: trx })
+        .where('swimmingClassId', swimmingClass.id)
+        .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+
+      const allowedActivityIds = new Set(
+        classSkills.flatMap((classSkill) =>
+          (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
+        )
+      )
+      const activityIds = uniqueNumbers(data.activityIds ?? [])
+      for (const activityId of activityIds) {
+        if (!allowedActivityIds.has(activityId)) {
+          throw new ClassAuthoringException(
+            'A selected activity does not belong to the class skills.'
+          )
+        }
+      }
+
+      const latest = await ClassLesson.query({ client: trx })
+        .where('swimmingClassId', swimmingClass.id)
+        .orderBy('date', 'desc')
+        .first()
+      const date = this.nextLessonDate(swimmingClass.weekday, latest?.date ?? null)
+
+      swimmingClass.useTransaction(trx)
+      const lesson = await swimmingClass.related('lessons').create({ date })
+      await lesson
+        .related('lessonActivities')
+        .createMany(activityIds.map((levelStageActivityId) => ({ levelStageActivityId })))
+      return lesson
+    })
+  }
+
+  /** The next occurrence of the class weekday strictly after the anchor. */
+  protected nextLessonDate(weekday: number, latest: DateTime | null): DateTime {
+    const today = DateTime.now().startOf('day')
+    let anchor = latest && latest > today ? latest : today
+    let candidate = anchor.plus({ days: 1 })
+    while (candidate.weekday !== weekday) {
+      candidate = candidate.plus({ days: 1 })
+    }
+    return candidate
+  }
+
+  async removeLesson(lesson: ClassLesson): Promise<void> {
+    await db.transaction(async (trx) => {
+      await LessonActivity.query({ client: trx }).where('classLessonId', lesson.id).delete()
+      lesson.useTransaction(trx)
+      await lesson.delete()
     })
   }
 
@@ -179,51 +249,50 @@ export default class ClassSeriesAuthoringService {
     return level
   }
 
-  protected resolveCurriculum(
+  protected resolveClassCurriculum(
     level: Level,
-    day: Pick<DayInput, 'levelStageId' | 'skillIds' | 'activityIds'>
+    selection: Pick<DayInput, 'levelStageId' | 'skillIds'>
   ): CurriculumSelection {
-    const stage = level.stages.find((candidate) => candidate.id === day.levelStageId)
+    const stage = level.stages.find((candidate) => candidate.id === selection.levelStageId)
     if (!stage) {
       throw new ClassAuthoringException('Choose a stage from this level.')
     }
 
     const stageSkillIds = new Set(stage.skills.map((skill) => skill.id))
-    const skillIds = uniqueNumbers(day.skillIds ?? [])
+    const skillIds = uniqueNumbers(selection.skillIds ?? [])
     for (const skillId of skillIds) {
       if (!stageSkillIds.has(skillId)) {
         throw new ClassAuthoringException('A selected skill does not belong to this stage.')
       }
     }
 
-    const selectableActivityIds = new Set(
-      stage.skills
-        .filter((skill) => skillIds.includes(skill.id))
-        .flatMap((skill) => skill.activities.map((activity) => activity.id))
-    )
-    const activityIds = uniqueNumbers(day.activityIds ?? [])
-    for (const activityId of activityIds) {
-      if (!selectableActivityIds.has(activityId)) {
-        throw new ClassAuthoringException(
-          'A selected activity does not belong to the selected skills.'
-        )
-      }
-    }
-
-    return { stage, skillIds, activityIds }
+    return { stage, skillIds }
   }
 
-  protected async replaceCurriculum(
+  protected async assertLessonActivitiesCovered(
     swimmingClass: SwimmingClass,
     selection: CurriculumSelection,
-    _trx: TransactionClientContract
+    trx: TransactionClientContract
   ): Promise<void> {
-    await swimmingClass
-      .related('classSkills')
-      .createMany(selection.skillIds.map((levelStageSkillId) => ({ levelStageSkillId })))
-    await swimmingClass
-      .related('classActivities')
-      .createMany(selection.activityIds.map((levelStageActivityId) => ({ levelStageActivityId })))
+    const usedActivityIds = (
+      await LessonActivity.query({ client: trx }).whereHas('classLesson', (lessonQuery) =>
+        lessonQuery.where('swimmingClassId', swimmingClass.id)
+      )
+    ).map((lessonActivity) => lessonActivity.levelStageActivityId)
+
+    if (usedActivityIds.length === 0) {
+      return
+    }
+
+    const allowed = await LevelStageActivity.query({ client: trx })
+      .whereIn('id', uniqueNumbers(usedActivityIds))
+      .whereIn('levelStageSkillId', selection.skillIds)
+
+    if (allowed.length !== uniqueNumbers(usedActivityIds).length) {
+      throw new ClassAuthoringException(
+        'Lessons use activities outside the selected skills; adjust the lessons first.'
+      )
+    }
   }
 
   protected assertUniqueWithinPayload(days: DayInput[]): void {

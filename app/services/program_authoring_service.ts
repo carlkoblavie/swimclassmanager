@@ -5,8 +5,8 @@ import Level from '#models/level'
 import LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import LevelStageSkill from '#models/level_stage_skill'
-import ClassActivity from '#models/class_activity'
 import ClassSkill from '#models/class_skill'
+import LessonActivity from '#models/lesson_activity'
 import SwimmingClass from '#models/swimming_class'
 import ProgramAuthoringException from '#exceptions/program_authoring_exception'
 import { levelCode, nextTierNumber, programCode, stageCode } from '#values/account_code'
@@ -87,7 +87,7 @@ async function reconcileActivities(
 
   const removedIds = existing.filter((activity) => !keptIds.has(activity.id)).map((a) => a.id)
   if (removedIds.length > 0) {
-    const used = await ClassActivity.query({ client: trx })
+    const used = await LessonActivity.query({ client: trx })
       .whereIn('levelStageActivityId', removedIds)
       .first()
     if (used) {
@@ -110,7 +110,7 @@ async function assertSkillsUnused(
   if (usedSkill) {
     throw new ProgramAuthoringException('A skill in use by classes cannot be removed.')
   }
-  const usedActivity = await ClassActivity.query({ client: trx })
+  const usedActivity = await LessonActivity.query({ client: trx })
     .whereHas('levelStageActivity', (query) => query.whereIn('levelStageSkillId', skillIds))
     .first()
   if (usedActivity) {

@@ -54,4 +54,8 @@ export interface ApiDefinition {
     edit: typeof routes['swimming_classes.edit']
     update: typeof routes['swimming_classes.update']
   }
+  classLessons: {
+    store: typeof routes['class_lessons.store']
+    destroy: typeof routes['class_lessons.destroy']
+  }
 }
