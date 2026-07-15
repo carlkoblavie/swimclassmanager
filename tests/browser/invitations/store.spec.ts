@@ -2,9 +2,9 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import mail from '@adonisjs/mail/services/main'
 import { UserFactory } from '#database/factories/user_factory'
-import { ClubFactory } from '#database/factories/club_factory'
+import { SchoolFactory } from '#database/factories/school_factory'
 import { InvitationFactory } from '#database/factories/invitation_factory'
-import { seedRoles, joinClub } from '#tests/helpers'
+import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import Role from '#models/role'
 import InvitationMail from '#mails/invitation'
@@ -22,8 +22,8 @@ test.group('Invitations store', (group) => {
     .with([{ inviterRole: RoleName.ADMINISTRATOR }, { inviterRole: RoleName.HEAD_COACH }])
     .run(async ({ visit, route, browserContext, db }, row) => {
       const inviter = await UserFactory.apply('completed').create()
-      const club = await ClubFactory.merge({ createdByUserId: inviter.id }).create()
-      await joinClub(inviter, club, row.inviterRole)
+      const school = await SchoolFactory.merge({ createdByUserId: inviter.id }).create()
+      await joinSchool(inviter, school, row.inviterRole)
       await browserContext.loginAs(inviter)
       using fake = mail.fake()
 
@@ -36,7 +36,7 @@ test.group('Invitations store', (group) => {
       await page.assertVisible('text=Invitation sent')
       fake.mails.assertQueued(InvitationMail, (m) => m.message.hasTo('invitee@example.com'))
       await db.assertHas('invitations', {
-        club_id: club.id,
+        school_id: school.id,
         email: 'invitee@example.com',
         accepted_at: null,
       })
@@ -48,8 +48,8 @@ test.group('Invitations store', (group) => {
     browserContext,
   }) => {
     const member = await UserFactory.apply('completed').create()
-    const club = await ClubFactory.merge({ createdByUserId: member.id }).create()
-    await joinClub(member, club, RoleName.PARENT)
+    const school = await SchoolFactory.merge({ createdByUserId: member.id }).create()
+    await joinSchool(member, school, RoleName.PARENT)
     await browserContext.loginAs(member)
     using fake = mail.fake()
 
@@ -66,8 +66,8 @@ test.group('Invitations store', (group) => {
     db,
   }) => {
     const inviter = await UserFactory.apply('completed').create()
-    const club = await ClubFactory.merge({ createdByUserId: inviter.id }).create()
-    await joinClub(inviter, club, RoleName.ADMINISTRATOR)
+    const school = await SchoolFactory.merge({ createdByUserId: inviter.id }).create()
+    await joinSchool(inviter, school, RoleName.ADMINISTRATOR)
     await browserContext.loginAs(inviter)
     using fake = mail.fake()
 
@@ -89,10 +89,10 @@ test.group('Invitations store', (group) => {
     db,
   }) => {
     const inviter = await UserFactory.apply('completed').create()
-    const club = await ClubFactory.merge({ createdByUserId: inviter.id }).create()
-    await joinClub(inviter, club, RoleName.ADMINISTRATOR)
+    const school = await SchoolFactory.merge({ createdByUserId: inviter.id }).create()
+    await joinSchool(inviter, school, RoleName.ADMINISTRATOR)
     const member = await UserFactory.merge({ email: 'member@example.com' }).create()
-    await joinClub(member, club, RoleName.PARENT)
+    await joinSchool(member, school, RoleName.PARENT)
     await browserContext.loginAs(inviter)
     using fake = mail.fake()
 
@@ -114,12 +114,12 @@ test.group('Invitations store', (group) => {
     db,
   }) => {
     const inviter = await UserFactory.apply('completed').create()
-    const club = await ClubFactory.merge({ createdByUserId: inviter.id }).create()
-    await joinClub(inviter, club, RoleName.ADMINISTRATOR)
+    const school = await SchoolFactory.merge({ createdByUserId: inviter.id }).create()
+    await joinSchool(inviter, school, RoleName.ADMINISTRATOR)
     const teacher = await Role.findByOrFail('name', RoleName.TEACHER)
     const parent = await Role.findByOrFail('name', RoleName.PARENT)
     await InvitationFactory.merge({
-      clubId: club.id,
+      schoolId: school.id,
       roleId: teacher.id,
       email: 'invitee@example.com',
     }).create()
@@ -135,7 +135,7 @@ test.group('Invitations store', (group) => {
     fake.mails.assertQueued(InvitationMail, (m) => m.message.hasTo('invitee@example.com'))
     await db.assertCount('invitations', 1)
     await db.assertHas('invitations', {
-      club_id: club.id,
+      school_id: school.id,
       email: 'invitee@example.com',
       role_id: parent.id,
     })

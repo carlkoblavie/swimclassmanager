@@ -2,7 +2,7 @@ import { DateTime } from 'luxon'
 import string from '@adonisjs/core/helpers/string'
 import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
-import Club from '#models/club'
+import School from '#models/school'
 import Role from '#models/role'
 import Invitation from '#models/invitation'
 import InvitationMail from '#mails/invitation'
@@ -23,14 +23,14 @@ export default class InvitationsController {
 
   async store({ auth, request, response, session }: HttpContext) {
     const user = auth.getUserOrFail()
-    const clubId = user.activeClubId!
-    const payload = await request.validateUsing(storeInvitationValidator, { meta: { clubId } })
+    const schoolId = user.activeSchoolId!
+    const payload = await request.validateUsing(storeInvitationValidator, { meta: { schoolId } })
 
     const role = await Role.findByOrFail('name', payload.role)
-    const club = await Club.findOrFail(clubId)
+    const school = await School.findOrFail(schoolId)
 
     const invitation = await Invitation.updateOrCreate(
-      { clubId, email: payload.email },
+      { schoolId, email: payload.email },
       {
         roleId: role.id,
         token: string.random(48),
@@ -40,7 +40,7 @@ export default class InvitationsController {
     )
 
     await mail.sendLater(
-      new InvitationMail(invitation.email, invitation.token, club.name, payload.role)
+      new InvitationMail(invitation.email, invitation.token, school.name, payload.role)
     )
 
     session.flash('success', `Invitation sent to ${invitation.email}.`)

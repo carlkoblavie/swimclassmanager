@@ -6,7 +6,7 @@ import Membership from '#models/membership'
 
 /**
  * Scope-membership authorization: the subject is the current user's membership
- * in their active club. Denies when they have no such membership or it lacks
+ * in their active school. Denies when they have no such membership or it lacks
  * the required permission.
  */
 export default class AuthorizeMiddleware {
@@ -14,7 +14,7 @@ export default class AuthorizeMiddleware {
     const user = ctx.auth.getUserOrFail()
 
     const membership = await Membership.query()
-      .where('clubId', user.activeClubId!)
+      .where('schoolId', user.activeSchoolId!)
       .where('userId', user.id)
       .first()
 

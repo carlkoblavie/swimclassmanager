@@ -1,9 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import Club from '#models/club'
+import School from '#models/school'
+import Organisation from '#models/organisation'
 import Membership from '#models/membership'
 import UserTransformer from '#transformers/user_transformer'
-import ClubTransformer from '#transformers/club_transformer'
+import SchoolTransformer from '#transformers/school_transformer'
+import OrganisationTransformer from '#transformers/organisation_transformer'
 import { permissions } from '#start/permissions'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 
@@ -19,17 +21,25 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
     const error = session?.flashMessages.get('error') as string
     const success = session?.flashMessages.get('success') as string
 
-    const activeClubId = auth?.user?.activeClubId
-    const activeClub = activeClubId ? await Club.find(activeClubId) : null
+    const activeOrganisationId = auth?.user?.activeOrganisationId
+    const activeSchoolId = auth?.user?.activeSchoolId
+
+    const activeOrganisation = activeOrganisationId
+      ? await Organisation.find(activeOrganisationId)
+      : null
+    const activeSchool = activeSchoolId ? await School.find(activeSchoolId) : null
+    const availableSchools = activeOrganisationId
+      ? await School.query().where('organisationId', activeOrganisationId).orderBy('name')
+      : []
 
     /**
-     * The permission keys the current user holds through their active-club
-     * membership. Empty for guests or users without an active-club membership.
+     * The permission keys the current user holds through their active-school
+     * membership. Empty for guests or users without an active-school membership.
      */
     let userPermissions: string[] = []
-    if (auth?.user && activeClubId) {
+    if (auth?.user && activeSchoolId) {
       const membership = await Membership.query()
-        .where('clubId', activeClubId)
+        .where('schoolId', activeSchoolId)
         .where('userId', auth.user.id)
         .first()
       if (membership) {
@@ -45,9 +55,13 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
         success,
       }),
       user: ctx.inertia.always(auth?.user ? UserTransformer.transform(auth.user) : undefined),
-      activeClub: ctx.inertia.always(
-        activeClub ? ClubTransformer.transform(activeClub) : undefined
+      activeOrganisation: ctx.inertia.always(
+        activeOrganisation ? OrganisationTransformer.transform(activeOrganisation) : undefined
       ),
+      activeSchool: ctx.inertia.always(
+        activeSchool ? SchoolTransformer.transform(activeSchool) : undefined
+      ),
+      availableSchools: ctx.inertia.always(SchoolTransformer.transform(availableSchools)),
       userPermissions: ctx.inertia.always(userPermissions),
     }
   }

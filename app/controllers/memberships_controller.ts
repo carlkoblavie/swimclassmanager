@@ -12,7 +12,7 @@ export default class MembershipsController {
     const invitation = await Invitation.query()
       .where('token', params.token)
       .preload('role')
-      .preload('club')
+      .preload('school', (schoolQuery) => schoolQuery.preload('organisation'))
       .first()
 
     if (!invitation || (invitation.isPending && invitation.isExpired)) {
