@@ -27,7 +27,23 @@ const uniqueProgramNameRule = vine.createRule(uniqueProgramName)
 const stageObject = {
   name: vine.string().trim().minLength(1).maxLength(120),
   position: vine.number().withoutDecimals().positive(),
-  completionRequirement: vine.string().trim().minLength(1).maxLength(255),
+  description: vine.string().trim().maxLength(2000).nullable().optional(),
+  skills: vine
+    .array(
+      vine.object({
+        name: vine.string().trim().minLength(1).maxLength(120),
+        passCriteria: vine.string().trim().minLength(1).maxLength(255),
+      })
+    )
+    .optional(),
+  activities: vine
+    .array(
+      vine.object({
+        name: vine.string().trim().minLength(1).maxLength(120),
+        durationMinutes: vine.number().withoutDecimals().positive(),
+      })
+    )
+    .optional(),
 }
 
 const levelObject = {

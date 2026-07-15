@@ -1,23 +1,6 @@
 import { type ChangeEvent, useState } from 'react'
-import {
-  ActionIcon,
-  Button,
-  Divider,
-  Group,
-  Modal,
-  SimpleGrid,
-  Stack,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core'
-import { IconTrash } from '@tabler/icons-react'
-
-export type StageDraft = {
-  name: string
-  position: string // as entered
-  completionRequirement: string
-}
+import { Button, Group, Modal, SimpleGrid, Stack, Textarea, TextInput } from '@mantine/core'
+import type { StageDraft } from '~/components/stage_builder_modal'
 
 export type LevelDraft = {
   id?: number
@@ -37,10 +20,8 @@ type Props = {
 }
 
 type LevelField = 'name' | 'ageGroup' | 'description' | 'defaultFee' | 'capacity'
-type StageField = keyof StageDraft
 
 const REQUIRED: LevelField[] = ['name', 'ageGroup', 'description', 'defaultFee', 'capacity']
-const STAGE_REQUIRED: StageField[] = ['name', 'position', 'completionRequirement']
 
 function emptyDraft(): LevelDraft {
   return { name: '', ageGroup: '', description: '', defaultFee: '', capacity: '', stages: [] }
@@ -78,9 +59,6 @@ type FormProps = {
 function LevelForm({ initial, submitLabel, onCancel, onSubmit }: FormProps) {
   const [draft, setDraft] = useState<LevelDraft>(initial ?? emptyDraft())
   const [errors, setErrors] = useState<Partial<Record<LevelField, string>>>({})
-  const [stageErrors, setStageErrors] = useState<
-    Record<number, Partial<Record<StageField, string>>>
-  >({})
 
   const set =
     (field: LevelField) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -88,53 +66,13 @@ function LevelForm({ initial, submitLabel, onCancel, onSubmit }: FormProps) {
       setDraft((current) => ({ ...current, [field]: value }))
     }
 
-  const setStage =
-    (index: number, field: StageField) => (event: ChangeEvent<HTMLInputElement>) => {
-      const value = event.currentTarget.value
-      setDraft((current) => ({
-        ...current,
-        stages: current.stages.map((stage, i) =>
-          i === index ? { ...stage, [field]: value } : stage
-        ),
-      }))
-    }
-
-  const addStage = () =>
-    setDraft((current) => ({
-      ...current,
-      stages: [
-        ...current.stages,
-        { name: '', position: String(current.stages.length + 1), completionRequirement: '' },
-      ],
-    }))
-
-  const removeStage = (index: number) =>
-    setDraft((current) => ({
-      ...current,
-      stages: current.stages.filter((_, i) => i !== index),
-    }))
-
   const submit = () => {
     const next: Partial<Record<LevelField, string>> = {}
     for (const field of REQUIRED) {
       if (!String(draft[field]).trim()) next[field] = 'This field is required'
     }
-
-    const nextStageErrors: Record<number, Partial<Record<StageField, string>>> = {}
-    draft.stages.forEach((stage, index) => {
-      for (const field of STAGE_REQUIRED) {
-        if (!String(stage[field]).trim()) {
-          nextStageErrors[index] = {
-            ...nextStageErrors[index],
-            [field]: 'This field is required',
-          }
-        }
-      }
-    })
-
-    if (Object.keys(next).length > 0 || Object.keys(nextStageErrors).length > 0) {
+    if (Object.keys(next).length > 0) {
       setErrors(next)
-      setStageErrors(nextStageErrors)
       return
     }
     onSubmit(draft)
@@ -173,65 +111,6 @@ function LevelForm({ initial, submitLabel, onCancel, onSubmit }: FormProps) {
         autosize
         minRows={2}
       />
-
-      <Divider />
-
-      <Group justify="space-between">
-        <div>
-          <Text fw={600} size="sm">
-            Stages within this level
-          </Text>
-          <Text size="xs" c="dimmed">
-            The ordered milestones a swimmer completes to pass the level.
-          </Text>
-        </div>
-        <Button variant="light" size="xs" onClick={addStage}>
-          Add stage
-        </Button>
-      </Group>
-
-      {draft.stages.length === 0 ? (
-        <Text c="dimmed" size="sm">
-          No stages added yet.
-        </Text>
-      ) : (
-        draft.stages.map((stage, index) => (
-          <Group key={index} gap="sm" align="flex-start" wrap="nowrap">
-            <TextInput
-              label="Stage name"
-              flex={1}
-              value={stage.name}
-              onChange={setStage(index, 'name')}
-              error={stageErrors[index]?.name}
-            />
-            <TextInput
-              label="Order"
-              type="number"
-              w={80}
-              value={stage.position}
-              onChange={setStage(index, 'position')}
-              error={stageErrors[index]?.position}
-            />
-            <TextInput
-              label="Completion requirement"
-              flex={1}
-              value={stage.completionRequirement}
-              onChange={setStage(index, 'completionRequirement')}
-              error={stageErrors[index]?.completionRequirement}
-            />
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              mt={28}
-              aria-label={`Remove stage ${index + 1}`}
-              onClick={() => removeStage(index)}
-            >
-              <IconTrash size={16} />
-            </ActionIcon>
-          </Group>
-        ))
-      )}
-
       <Group justify="flex-end">
         <Button variant="default" onClick={onCancel}>
           Cancel

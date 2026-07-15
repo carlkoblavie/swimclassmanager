@@ -40,10 +40,17 @@ test.group('Programs store', (group) => {
     await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
+    await page.getByRole('button', { name: 'Save level' }).click()
+
     await page.getByRole('button', { name: 'Add stage' }).click()
     await page.getByLabel('Stage name').fill('Water Discovery')
-    await page.getByLabel('Completion requirement').fill('Float unaided for 5 seconds')
-    await page.getByRole('button', { name: 'Save level' }).click()
+    await page.getByLabel('Skill name').fill('Face in Water')
+    await page.getByLabel('Pass criteria').fill('Submerge face for 5 seconds')
+    await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByLabel('Activity name').fill('Bubble Blowing Contest')
+    await page.getByLabel('Duration (mins)').fill('5')
+    await page.getByRole('button', { name: 'Add activity' }).click()
+    await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Save as draft' }).click()
 
@@ -55,14 +62,18 @@ test.group('Programs store', (group) => {
 
     await db.assertHas('programs', { name: 'Learn to Swim', activated_at: null })
     await db.assertHas('levels', { name: 'Beginners', default_fee: 5000, capacity: 10 })
-    await db.assertHas('level_stages', {
-      name: 'Water Discovery',
-      position: 1,
-      completion_requirement: 'Float unaided for 5 seconds',
+    await db.assertHas('level_stages', { name: 'Water Discovery', position: 1 })
+    await db.assertHas('level_stage_skills', {
+      name: 'Face in Water',
+      pass_criteria: 'Submerge face for 5 seconds',
+    })
+    await db.assertHas('level_stage_activities', {
+      name: 'Bubble Blowing Contest',
+      duration_minutes: 5,
     })
   })
 
-  test('requires every stage field in the level modal', async ({
+  test('requires stage and skill fields in the stage builder', async ({
     visit,
     route,
     browserContext,
@@ -77,13 +88,18 @@ test.group('Programs store', (group) => {
     await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
-    await page.getByRole('button', { name: 'Add stage' }).click()
-    // Stage name and completion requirement left empty; order is prefilled.
     await page.getByRole('button', { name: 'Save level' }).click()
 
+    await page.getByRole('button', { name: 'Add stage' }).click()
+    // Skill fields left empty: adding the skill is rejected in place.
+    await page.getByRole('button', { name: 'Add skill' }).click()
     await page.assertVisible(page.getByText('This field is required').first())
-    await page.assertVisible(page.getByRole('button', { name: 'Save level' }))
+    // Stage name left empty: saving the stage is rejected too.
+    await page.getByRole('button', { name: 'Save stage' }).click()
+    await page.assertVisible(page.getByRole('button', { name: 'Save stage' }))
+
     await db.assertCount('level_stages', 0)
+    await db.assertCount('level_stage_skills', 0)
   })
 
   test('publishes a program directly from the builder', async ({

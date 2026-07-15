@@ -15,11 +15,14 @@ import {
 } from '@mantine/core'
 import { IconFileDescription, IconStack2 } from '@tabler/icons-react'
 import LevelModal, { type LevelDraft } from '~/components/level_modal'
+import StageBuilderModal, { type StageDraft } from '~/components/stage_builder_modal'
 
 type Props = {
   errors: Record<string, string>
   initial?: { name: string; description: string; levels: LevelDraft[] }
 }
+
+type StageTarget = { levelIndex: number; stageIndex: number | null }
 
 function SectionHeading({
   icon,
@@ -66,6 +69,29 @@ export default function ProgramFormBody({ errors, initial }: Props) {
       editingIndex === null
         ? [...current, draft]
         : current.map((level, i) => (i === editingIndex ? draft : level))
+    )
+
+  const [stageTarget, setStageTarget] = useState<StageTarget | null>(null)
+  const saveStage = (draft: StageDraft) => {
+    if (!stageTarget) return
+    setLevels((current) =>
+      current.map((level, i) => {
+        if (i !== stageTarget.levelIndex) return level
+        const stages =
+          stageTarget.stageIndex === null
+            ? [...level.stages, draft]
+            : level.stages.map((stage, s) => (s === stageTarget.stageIndex ? draft : stage))
+        return { ...level, stages }
+      })
+    )
+  }
+  const removeStage = (levelIndex: number, stageIndex: number) =>
+    setLevels((current) =>
+      current.map((level, i) =>
+        i === levelIndex
+          ? { ...level, stages: level.stages.filter((_, s) => s !== stageIndex) }
+          : level
+      )
     )
 
   return (
@@ -130,14 +156,52 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                     {level.description}
                   </Text>
                   {level.stages.length > 0 && (
-                    <Text size="sm" c="dimmed">
-                      Stages:{' '}
+                    <Stack gap={4} mt={4}>
                       {[...level.stages]
-                        .sort((a, b) => Number(a.position) - Number(b.position))
-                        .map((stage) => stage.name)
-                        .join(' → ')}
-                    </Text>
+                        .map((stage, stageIndex) => ({ stage, stageIndex }))
+                        .sort((a, b) => Number(a.stage.position) - Number(b.stage.position))
+                        .map(({ stage, stageIndex }) => (
+                          <Group key={stageIndex} gap="xs">
+                            <Badge variant="light" color="gray" size="sm">
+                              {stage.position}
+                            </Badge>
+                            <Text size="sm" fw={500}>
+                              {stage.name}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              {stage.skills.length} skills · {stage.activities.length} activities
+                            </Text>
+                            <Anchor
+                              component="button"
+                              type="button"
+                              size="sm"
+                              onClick={() => setStageTarget({ levelIndex: index, stageIndex })}
+                            >
+                              Edit stage
+                            </Anchor>
+                            <Anchor
+                              component="button"
+                              type="button"
+                              size="sm"
+                              c="red"
+                              onClick={() => removeStage(index, stageIndex)}
+                            >
+                              Remove stage
+                            </Anchor>
+                          </Group>
+                        ))}
+                    </Stack>
                   )}
+                  <div>
+                    <Button
+                      variant="subtle"
+                      size="xs"
+                      px={0}
+                      onClick={() => setStageTarget({ levelIndex: index, stageIndex: null })}
+                    >
+                      Add stage
+                    </Button>
+                  </div>
                 </Stack>
                 <Group gap="md">
                   <Anchor
@@ -179,25 +243,46 @@ export default function ProgramFormBody({ errors, initial }: Props) {
             <input type="hidden" name={`levels[${index}][description]`} value={level.description} />
             <input type="hidden" name={`levels[${index}][defaultFee]`} value={level.defaultFee} />
             <input type="hidden" name={`levels[${index}][capacity]`} value={level.capacity} />
-            {level.stages.map((stage, stageIndex) => (
-              <Fragment key={stageIndex}>
-                <input
-                  type="hidden"
-                  name={`levels[${index}][stages][${stageIndex}][name]`}
-                  value={stage.name}
-                />
-                <input
-                  type="hidden"
-                  name={`levels[${index}][stages][${stageIndex}][position]`}
-                  value={stage.position}
-                />
-                <input
-                  type="hidden"
-                  name={`levels[${index}][stages][${stageIndex}][completionRequirement]`}
-                  value={stage.completionRequirement}
-                />
-              </Fragment>
-            ))}
+            {level.stages.map((stage, stageIndex) => {
+              const prefix = `levels[${index}][stages][${stageIndex}]`
+              return (
+                <Fragment key={stageIndex}>
+                  <input type="hidden" name={`${prefix}[name]`} value={stage.name} />
+                  <input type="hidden" name={`${prefix}[position]`} value={stage.position} />
+                  {stage.description.trim() !== '' && (
+                    <input type="hidden" name={`${prefix}[description]`} value={stage.description} />
+                  )}
+                  {stage.skills.map((skill, skillIndex) => (
+                    <Fragment key={skillIndex}>
+                      <input
+                        type="hidden"
+                        name={`${prefix}[skills][${skillIndex}][name]`}
+                        value={skill.name}
+                      />
+                      <input
+                        type="hidden"
+                        name={`${prefix}[skills][${skillIndex}][passCriteria]`}
+                        value={skill.passCriteria}
+                      />
+                    </Fragment>
+                  ))}
+                  {stage.activities.map((activity, activityIndex) => (
+                    <Fragment key={activityIndex}>
+                      <input
+                        type="hidden"
+                        name={`${prefix}[activities][${activityIndex}][name]`}
+                        value={activity.name}
+                      />
+                      <input
+                        type="hidden"
+                        name={`${prefix}[activities][${activityIndex}][durationMinutes]`}
+                        value={activity.durationMinutes}
+                      />
+                    </Fragment>
+                  ))}
+                </Fragment>
+              )
+            })}
           </Fragment>
         ))}
       </Stack>
@@ -207,6 +292,19 @@ export default function ProgramFormBody({ errors, initial }: Props) {
         onClose={close}
         onSave={save}
         initial={editingIndex !== null ? levels[editingIndex] : undefined}
+      />
+
+      <StageBuilderModal
+        opened={stageTarget !== null}
+        onClose={() => setStageTarget(null)}
+        onSave={saveStage}
+        levelName={stageTarget ? (levels[stageTarget.levelIndex]?.name ?? '') : ''}
+        nextPosition={stageTarget ? (levels[stageTarget.levelIndex]?.stages.length ?? 0) + 1 : 1}
+        initial={
+          stageTarget && stageTarget.stageIndex !== null
+            ? levels[stageTarget.levelIndex]?.stages[stageTarget.stageIndex]
+            : undefined
+        }
       />
     </>
   )

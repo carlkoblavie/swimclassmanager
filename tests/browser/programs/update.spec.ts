@@ -57,14 +57,16 @@ test.group('Programs update', (group) => {
       levelId: level.id,
       name: 'Old Stage',
       position: 1,
-      completionRequirement: 'Old requirement',
+      description: 'Old requirement',
     })
 
     const page = await visit(route('programs.edit', { id: program.id }))
-    await page.getByRole('button', { name: 'Edit' }).click()
+    await page.getByRole('button', { name: 'Edit stage' }).click()
     await page.getByLabel('Stage name').fill('Blowing Bubbles')
-    await page.getByLabel('Completion requirement').fill('Exhale underwater 3 times')
-    await page.getByRole('button', { name: 'Save level' }).click()
+    await page.getByLabel('Skill name').fill('Rhythmic Breathing')
+    await page.getByLabel('Pass criteria').fill('Exhale underwater 3 times')
+    await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Save stage' }).click()
     await page.getByRole('button', { name: 'Save changes' }).click()
 
     await page.assertPath(route('programs.index'))
@@ -72,7 +74,10 @@ test.group('Programs update', (group) => {
       level_id: level.id,
       name: 'Blowing Bubbles',
       position: 1,
-      completion_requirement: 'Exhale underwater 3 times',
+    })
+    await db.assertHas('level_stage_skills', {
+      name: 'Rhythmic Breathing',
+      pass_criteria: 'Exhale underwater 3 times',
     })
     await db.assertMissing('level_stages', { level_id: level.id, name: 'Old Stage' })
   })

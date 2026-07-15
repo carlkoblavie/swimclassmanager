@@ -37,7 +37,15 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
         stages: (level.stages ?? []).map((stage) => ({
           name: stage.name,
           position: stage.position,
-          completionRequirement: stage.completionRequirement,
+          description: stage.description,
+          skills: (stage.skills ?? []).map((skill) => ({
+            name: skill.name,
+            passCriteria: skill.passCriteria,
+          })),
+          activities: (stage.activities ?? []).map((activity) => ({
+            name: activity.name,
+            durationMinutes: activity.durationMinutes,
+          })),
         })),
       })),
     }
