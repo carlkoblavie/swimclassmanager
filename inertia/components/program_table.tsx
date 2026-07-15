@@ -11,7 +11,13 @@ import {
   Table,
   Text,
 } from '@mantine/core'
-import { IconChevronDown, IconChevronRight, IconPencil, IconTrash } from '@tabler/icons-react'
+import {
+  IconChevronDown,
+  IconChevronRight,
+  IconCornerDownRight,
+  IconPencil,
+  IconTrash,
+} from '@tabler/icons-react'
 import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
@@ -22,30 +28,40 @@ function LevelRow({ level }: { level: Data.Level }) {
     <Table.Tr bg="gray.0">
       <Table.Td />
       <Table.Td colSpan={4}>
-        <Group justify="space-between" align="flex-start" wrap="wrap">
-          <Stack gap={4}>
-            <Group gap="xs">
-              <Text fw={500}>{level.name}</Text>
-              <Badge variant="light" size="sm">
-                {level.ageGroup}
-              </Badge>
-              {level.available ? (
-                <Badge variant="light" color="green" size="sm">
-                  Available
+        {/* Indent under the parent program row to read as a child entry. */}
+        <Group justify="space-between" align="flex-start" wrap="wrap" pl="xl">
+          <Group gap="xs" align="flex-start" wrap="nowrap">
+            <IconCornerDownRight
+              size={16}
+              stroke={1.6}
+              color="var(--mantine-color-dimmed)"
+              aria-hidden
+              style={{ marginTop: 4 }}
+            />
+            <Stack gap={4}>
+              <Group gap="xs">
+                <Text fw={500}>{level.name}</Text>
+                <Badge variant="light" size="sm">
+                  {level.ageGroup}
                 </Badge>
-              ) : (
-                <Badge variant="light" color="red" size="sm">
-                  Unavailable
-                </Badge>
-              )}
-            </Group>
-            <Text size="sm" c="dimmed">
-              {level.description}
-            </Text>
-            <Text size="sm">
-              Capacity: {level.capacity} · {level.fee.formatted}
-            </Text>
-          </Stack>
+                {level.available ? (
+                  <Badge variant="light" color="green" size="sm">
+                    Available
+                  </Badge>
+                ) : (
+                  <Badge variant="light" color="red" size="sm">
+                    Unavailable
+                  </Badge>
+                )}
+              </Group>
+              <Text size="sm" c="dimmed">
+                {level.description}
+              </Text>
+              <Text size="sm">
+                Capacity: {level.capacity} · {level.fee.formatted}
+              </Text>
+            </Stack>
+          </Group>
           <Stack gap="xs" align="flex-end">
             {level.available && (
               <Guard for="class.manage">
