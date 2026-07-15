@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Card,
+  Divider,
   Group,
   Stack,
   Text,
@@ -13,9 +14,20 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core'
-import { IconFileDescription, IconPencil, IconStack2, IconTrash } from '@tabler/icons-react'
+import {
+  IconFileDescription,
+  IconPencil,
+  IconPlus,
+  IconStack2,
+  IconTrash,
+} from '@tabler/icons-react'
 import LevelModal, { type LevelDraft } from '~/components/level_modal'
-import StageBuilder, { type StageDraft } from '~/components/stage_builder'
+import StageBuilder, {
+  type StageActivityDraft,
+  type StageDraft,
+  type StageSkillDraft,
+} from '~/components/stage_builder'
+import StageTree from '~/components/stage_tree'
 
 type Props = {
   errors: Record<string, string>
@@ -95,6 +107,62 @@ export default function ProgramFormBody({ errors, initial }: Props) {
       )
     )
 
+  const updateStage = (
+    levelIndex: number,
+    stageIndex: number,
+    updater: (stage: StageDraft) => StageDraft
+  ) =>
+    setLevels((current) =>
+      current.map((level, i) =>
+        i === levelIndex
+          ? {
+              ...level,
+              stages: level.stages.map((stage, s) => (s === stageIndex ? updater(stage) : stage)),
+            }
+          : level
+      )
+    )
+
+  const addSkill = (levelIndex: number, stageIndex: number, skill: StageSkillDraft) =>
+    updateStage(levelIndex, stageIndex, (stage) => ({
+      ...stage,
+      skills: [...stage.skills, skill],
+    }))
+
+  const removeSkill = (levelIndex: number, stageIndex: number, skillIndex: number) =>
+    updateStage(levelIndex, stageIndex, (stage) => ({
+      ...stage,
+      skills: stage.skills.filter((_, s) => s !== skillIndex),
+    }))
+
+  const addActivity = (
+    levelIndex: number,
+    stageIndex: number,
+    skillIndex: number,
+    activity: StageActivityDraft
+  ) =>
+    updateStage(levelIndex, stageIndex, (stage) => ({
+      ...stage,
+      skills: stage.skills.map((skill, s) =>
+        s === skillIndex ? { ...skill, activities: [...skill.activities, activity] } : skill
+      ),
+    }))
+
+  const removeActivity = (
+    levelIndex: number,
+    stageIndex: number,
+    skillIndex: number,
+    activityIndex: number
+  ) =>
+    updateStage(levelIndex, stageIndex, (stage) => ({
+      ...stage,
+      skills: stage.skills.map((skill, s) =>
+        s === skillIndex
+          ? { ...skill, activities: skill.activities.filter((_, a) => a !== activityIndex) }
+          : skill
+      ),
+    }))
+
   return (
     <>
       <Stack gap="lg">
@@ -142,101 +210,86 @@ export default function ProgramFormBody({ errors, initial }: Props) {
         ) : (
           levels.map((level, index) => (
             <Card key={index}>
-              <Group justify="space-between" align="flex-start">
-                <Stack gap={4}>
-                  <Group gap="xs">
-                    <Badge variant="light" size="sm">
-                      Level
-                    </Badge>
-                    <Text fw={600}>{level.name}</Text>
-                  </Group>
-                  <Text size="sm">
-                    {level.ageGroup} · Capacity {level.capacity} · GHS {level.defaultFee}
-                  </Text>
-                  <Text size="sm" c="dimmed">
-                    {level.description}
-                  </Text>
-                  {level.stages.length > 0 && (
-                    <Stack gap={4} mt={4}>
-                      {[...level.stages]
-                        .map((stage, stageIndex) => ({ stage, stageIndex }))
-                        .sort((a, b) => Number(a.stage.position) - Number(b.stage.position))
-                        .map(({ stage, stageIndex }) => (
-                          <Group key={stageIndex} gap="xs">
-                            <Badge variant="light" color="gray" size="sm">
-                              {stage.position}
-                            </Badge>
-                            <Text size="sm" fw={500}>
-                              {stage.name}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                              {stage.skills.length} skills ·{' '}
-                              {stage.skills.reduce((total, s) => total + s.activities.length, 0)}{' '}
-                              activities
-                            </Text>
-                            <ActionIcon
-                              variant="subtle"
-                              size="sm"
-                              aria-label="Edit stage"
-                              onClick={() => setStageTarget({ levelIndex: index, stageIndex })}
-                            >
-                              <IconPencil size={14} />
-                            </ActionIcon>
-                            <ActionIcon
-                              variant="subtle"
-                              size="sm"
-                              color="red"
-                              aria-label="Remove stage"
-                              onClick={() => removeStage(index, stageIndex)}
-                            >
-                              <IconTrash size={14} />
-                            </ActionIcon>
-                          </Group>
-                        ))}
-                    </Stack>
-                  )}
+              <Stack gap="sm">
+                <Group justify="space-between" align="flex-start" wrap="nowrap">
                   <div>
-                    <Button
-                      variant="subtle"
-                      size="xs"
-                      px={0}
-                      onClick={() => setStageTarget({ levelIndex: index, stageIndex: null })}
-                    >
-                      Add stage
-                    </Button>
+                    <Group gap="xs">
+                      <Badge variant="light" size="lg">
+                        Level
+                      </Badge>
+                      <Text fw={700} fz="lg">
+                        {level.name}
+                      </Text>
+                    </Group>
+                    <Text size="sm" mt={4}>
+                      {level.ageGroup} · Capacity {level.capacity} · GHS {level.defaultFee} —{' '}
+                      <Text span size="sm" c="dimmed">
+                        {level.description}
+                      </Text>
+                    </Text>
                   </div>
-                </Stack>
-                <Group gap="xs">
-                  <ActionIcon
-                    variant="subtle"
-                    aria-label="Edit"
-                    onClick={() => openEdit(index)}
-                  >
-                    <IconPencil size={16} />
-                  </ActionIcon>
-                  <ActionIcon
-                    variant="subtle"
-                    color="red"
-                    aria-label="Remove"
-                    onClick={() => remove(index)}
-                  >
-                    <IconTrash size={16} />
-                  </ActionIcon>
+                  <Group gap="xs" wrap="nowrap">
+                    <ActionIcon variant="default" aria-label="Edit" onClick={() => openEdit(index)}>
+                      <IconPencil size={16} />
+                    </ActionIcon>
+                    <ActionIcon variant="default" aria-label="Remove" onClick={() => remove(index)}>
+                      <IconTrash size={16} color="var(--mantine-color-red-7)" />
+                    </ActionIcon>
+                  </Group>
                 </Group>
-              </Group>
-              {stageTarget?.levelIndex === index && (
-                <StageBuilder
-                  key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
-                  nextPosition={level.stages.length + 1}
-                  initial={
-                    stageTarget.stageIndex !== null
-                      ? level.stages[stageTarget.stageIndex]
-                      : undefined
-                  }
-                  onCancel={() => setStageTarget(null)}
-                  onSave={saveStage}
-                />
-              )}
+
+                <Divider />
+
+                <Group justify="space-between" align="center">
+                  <Group gap="xs">
+                    <Text fw={700}>Stages</Text>
+                    <Badge variant="light" color="gray" size="sm">
+                      {level.stages.length}
+                    </Badge>
+                  </Group>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="xs"
+                    leftSection={<IconPlus size={14} />}
+                    onClick={() => setStageTarget({ levelIndex: index, stageIndex: null })}
+                  >
+                    Add stage
+                  </Button>
+                </Group>
+
+                {level.stages.length > 0 && (
+                  <StageTree
+                    stages={level.stages}
+                    onEditStage={(stageIndex) => setStageTarget({ levelIndex: index, stageIndex })}
+                    onRemoveStage={(stageIndex) => removeStage(index, stageIndex)}
+                    onAddSkill={(stageIndex, skill) => addSkill(index, stageIndex, skill)}
+                    onRemoveSkill={(stageIndex, skillIndex) =>
+                      removeSkill(index, stageIndex, skillIndex)
+                    }
+                    onAddActivity={(stageIndex, skillIndex, activity) =>
+                      addActivity(index, stageIndex, skillIndex, activity)
+                    }
+                    onRemoveActivity={(stageIndex, skillIndex, activityIndex) =>
+                      removeActivity(index, stageIndex, skillIndex, activityIndex)
+                    }
+                  />
+                )}
+
+                {stageTarget?.levelIndex === index && (
+                  <StageBuilder
+                    key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
+                    nextPosition={level.stages.length + 1}
+                    initial={
+                      stageTarget.stageIndex !== null
+                        ? level.stages[stageTarget.stageIndex]
+                        : undefined
+                    }
+                    onCancel={() => setStageTarget(null)}
+                    onSave={saveStage}
+                  />
+                )}
+              </Stack>
             </Card>
           ))
         )}

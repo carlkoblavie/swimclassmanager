@@ -63,10 +63,12 @@ test.group('Programs update', (group) => {
     const page = await visit(route('programs.edit', { id: program.id }))
     await page.getByRole('button', { name: 'Edit stage' }).click()
     await page.getByLabel('Stage name').fill('Blowing Bubbles')
+    await page.getByRole('button', { name: 'Save stage' }).click()
+
+    await page.getByRole('button', { name: 'Add skill' }).click()
     await page.getByLabel('Skill name').fill('Rhythmic Breathing')
     await page.getByLabel('Pass criteria').fill('Exhale underwater 3 times')
-    await page.getByRole('button', { name: 'Add skill' }).click()
-    await page.getByRole('button', { name: 'Save stage' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
     await page.getByRole('button', { name: 'Save changes' }).click()
 
     await page.assertPath(route('programs.index'))

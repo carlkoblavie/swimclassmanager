@@ -44,17 +44,20 @@ test.group('Programs store', (group) => {
 
     await page.getByRole('button', { name: 'Add stage' }).click()
     await page.getByLabel('Stage name').fill('Water Discovery')
+    await page.getByRole('button', { name: 'Save stage' }).click()
+
+    await page.getByRole('button', { name: 'Add skill' }).click()
     await page.getByLabel('Skill name').fill('Face in Water')
     await page.getByLabel('Pass criteria').fill('Submerge face for 5 seconds')
     await page.getByLabel('Skill description (optional)').fill('Comfort with submersion.')
-    await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+
     await page.getByRole('button', { name: 'Add activity' }).click()
     await page.getByLabel('Activity name').fill('Bubble Blowing Contest')
     await page.getByLabel('Duration (mins)').fill('5')
     await page.getByLabel('Activity description (optional)').fill('Group breathing game.')
     await page.getByLabel('Application notes (optional)').fill('Best in shallow water.')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
-    await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Save as draft' }).click()
 
@@ -93,16 +96,21 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Save level' }).click()
 
     await page.getByRole('button', { name: 'Add stage' }).click()
+    await page.getByLabel('Stage name').fill('Water Discovery')
+    await page.getByRole('button', { name: 'Save stage' }).click()
+
+    await page.getByRole('button', { name: 'Add skill' }).click()
     await page.getByLabel('Skill name').fill('Back Float')
     await page.getByLabel('Pass criteria').fill('2 seconds unassisted')
-    await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
     // Same name, different case: still a duplicate.
+    await page.getByRole('button', { name: 'Add skill' }).click()
     await page.getByLabel('Skill name').fill('back float')
     await page.getByLabel('Pass criteria').fill('10 seconds unassisted')
-    await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
 
     await page.assertVisible('text=A skill with this name already exists.')
-    await page.assertVisible(page.getByText('1 skill', { exact: true }))
+    await page.assertVisible('text=1 skill · 0 activities')
   })
 
   test('requires stage and skill fields in the stage builder', async ({
@@ -123,12 +131,16 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Save level' }).click()
 
     await page.getByRole('button', { name: 'Add stage' }).click()
+    // Stage name left empty: saving is rejected in place.
+    await page.getByRole('button', { name: 'Save stage' }).click()
+    await page.assertVisible(page.getByText('This field is required').first())
+    await page.getByLabel('Stage name').fill('Water Discovery')
+    await page.getByRole('button', { name: 'Save stage' }).click()
+
     // Skill fields left empty: adding the skill is rejected in place.
     await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
     await page.assertVisible(page.getByText('This field is required').first())
-    // Stage name left empty: saving the stage is rejected too.
-    await page.getByRole('button', { name: 'Save stage' }).click()
-    await page.assertVisible(page.getByRole('button', { name: 'Save stage' }))
 
     await db.assertCount('level_stages', 0)
     await db.assertCount('level_stage_skills', 0)
