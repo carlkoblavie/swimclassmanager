@@ -54,7 +54,6 @@ test.group('Programs store', (group) => {
 
     await page.getByRole('button', { name: 'Add activity' }).click()
     await page.getByLabel('Activity name').fill('Bubble Blowing Contest')
-    await page.getByLabel('Duration (mins)').fill('5')
     await page.getByLabel('Activity description (optional)').fill('Group breathing game.')
     await page.getByLabel('Application notes (optional)').fill('Best in shallow water.')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
@@ -77,7 +76,6 @@ test.group('Programs store', (group) => {
     })
     await db.assertHas('level_stage_activities', {
       name: 'Bubble Blowing Contest',
-      duration_minutes: 5,
       description: 'Group breathing game.',
       application_notes: 'Best in shallow water.',
     })

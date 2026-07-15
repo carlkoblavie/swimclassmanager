@@ -44,7 +44,6 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
             description: skill.description,
             activities: (skill.activities ?? []).map((activity) => ({
               name: activity.name,
-              durationMinutes: activity.durationMinutes,
               description: activity.description,
               applicationNotes: activity.applicationNotes,
             })),

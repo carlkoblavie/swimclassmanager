@@ -31,7 +31,6 @@ export default function EditProgram({ program }: PageProps) {
             description: skill.description ?? '',
             activities: skill.activities.map((activity) => ({
               name: activity.name,
-              durationMinutes: String(activity.durationMinutes),
               description: activity.description ?? '',
               applicationNotes: activity.applicationNotes ?? '',
             })),

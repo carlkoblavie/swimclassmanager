@@ -13,6 +13,7 @@ import {
   TextInput,
   ThemeIcon,
   Title,
+  Tooltip,
 } from '@mantine/core'
 import {
   IconFileDescription,
@@ -229,12 +230,24 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                     </Text>
                   </div>
                   <Group gap="xs" wrap="nowrap">
-                    <ActionIcon variant="default" aria-label="Edit" onClick={() => openEdit(index)}>
-                      <IconPencil size={16} />
-                    </ActionIcon>
-                    <ActionIcon variant="default" aria-label="Remove" onClick={() => remove(index)}>
-                      <IconTrash size={16} color="var(--mantine-color-red-7)" />
-                    </ActionIcon>
+                    <Tooltip label="Edit level">
+                      <ActionIcon
+                        variant="default"
+                        aria-label="Edit"
+                        onClick={() => openEdit(index)}
+                      >
+                        <IconPencil size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Remove level">
+                      <ActionIcon
+                        variant="default"
+                        aria-label="Remove"
+                        onClick={() => remove(index)}
+                      >
+                        <IconTrash size={16} color="var(--mantine-color-red-7)" />
+                      </ActionIcon>
+                    </Tooltip>
                   </Group>
                 </Group>
 
@@ -342,11 +355,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                               type="hidden"
                               name={`${skillPrefix}[activities][${activityIndex}][name]`}
                               value={activity.name}
-                            />
-                            <input
-                              type="hidden"
-                              name={`${skillPrefix}[activities][${activityIndex}][durationMinutes]`}
-                              value={activity.durationMinutes}
                             />
                             {activity.description.trim() !== '' && (
                               <input

@@ -10,6 +10,7 @@ import {
   Stack,
   Table,
   Text,
+  Tooltip,
 } from '@mantine/core'
 import {
   IconChevronDown,
@@ -142,21 +143,25 @@ function ProgramRows({ program }: { program: Data.Program }) {
                   )}
                 </Form>
               )}
-              <ActionIcon
-                variant="subtle"
-                aria-label="Edit"
-                onClick={() => router.visit(urlFor('programs.edit', { id: program.id }))}
-              >
-                <IconPencil size={16} />
-              </ActionIcon>
-              <ActionIcon
-                variant="subtle"
-                color="red"
-                aria-label="Remove"
-                onClick={() => router.delete(urlFor('programs.destroy', { id: program.id }))}
-              >
-                <IconTrash size={16} />
-              </ActionIcon>
+              <Tooltip label="Edit program">
+                <ActionIcon
+                  variant="subtle"
+                  aria-label="Edit"
+                  onClick={() => router.visit(urlFor('programs.edit', { id: program.id }))}
+                >
+                  <IconPencil size={16} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Remove program">
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  aria-label="Remove"
+                  onClick={() => router.delete(urlFor('programs.destroy', { id: program.id }))}
+                >
+                  <IconTrash size={16} />
+                </ActionIcon>
+              </Tooltip>
             </Group>
           </Guard>
         </Table.Td>

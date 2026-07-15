@@ -3,7 +3,6 @@ import { Button, Card, Group, Stack, Text, Textarea, TextInput } from '@mantine/
 
 export type StageActivityDraft = {
   name: string
-  durationMinutes: string // as entered
   description: string
   applicationNotes: string
 }

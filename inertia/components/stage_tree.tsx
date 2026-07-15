@@ -12,6 +12,7 @@ import {
   Textarea,
   TextInput,
   ThemeIcon,
+  Tooltip,
 } from '@mantine/core'
 import { IconPencil, IconPlus, IconTarget, IconTrash } from '@tabler/icons-react'
 import type { StageActivityDraft, StageDraft, StageSkillDraft } from '~/components/stage_builder'
@@ -103,21 +104,19 @@ function AddActivityPopover({ onAdd }: { onAdd: (activity: StageActivityDraft) =
   const [opened, setOpened] = useState(false)
   const [entry, setEntry] = useState({
     name: '',
-    durationMinutes: '',
     description: '',
     applicationNotes: '',
   })
-  const [errors, setErrors] = useState<{ name?: string; durationMinutes?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string }>({})
 
   const submit = () => {
     const next: typeof errors = {}
     if (!entry.name.trim()) next.name = 'This field is required'
-    if (!entry.durationMinutes.trim()) next.durationMinutes = 'This field is required'
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
     onAdd(entry)
-    setEntry({ name: '', durationMinutes: '', description: '', applicationNotes: '' })
+    setEntry({ name: '', description: '', applicationNotes: '' })
     setErrors({})
     setOpened(false)
   }
@@ -125,42 +124,29 @@ function AddActivityPopover({ onAdd }: { onAdd: (activity: StageActivityDraft) =
   return (
     <Popover opened={opened} onChange={setOpened} position="bottom-start" withArrow trapFocus>
       <Popover.Target>
-        <ActionIcon
-          variant="default"
-          radius="xl"
-          size="md"
-          style={{ borderStyle: 'dashed' }}
-          aria-label="Add activity"
-          onClick={() => setOpened((value) => !value)}
-        >
-          <IconPlus size={14} />
-        </ActionIcon>
+        <Tooltip label="Add activity">
+          <ActionIcon
+            variant="default"
+            radius="xl"
+            size="md"
+            style={{ borderStyle: 'dashed' }}
+            aria-label="Add activity"
+            onClick={() => setOpened((value) => !value)}
+          >
+            <IconPlus size={14} />
+          </ActionIcon>
+        </Tooltip>
       </Popover.Target>
       <Popover.Dropdown w={360}>
         <Stack gap="xs">
-          <Group gap="xs" align="flex-start">
-            <TextInput
-              label="Activity name"
-              labelProps={upperLabel}
-              size="xs"
-              flex={2}
-              value={entry.name}
-              onChange={(event) => setEntry({ ...entry, name: event.currentTarget.value })}
-              error={errors.name}
-            />
-            <TextInput
-              label="Duration (mins)"
-              labelProps={upperLabel}
-              size="xs"
-              type="number"
-              flex={1}
-              value={entry.durationMinutes}
-              onChange={(event) =>
-                setEntry({ ...entry, durationMinutes: event.currentTarget.value })
-              }
-              error={errors.durationMinutes}
-            />
-          </Group>
+          <TextInput
+            label="Activity name"
+            labelProps={upperLabel}
+            size="xs"
+            value={entry.name}
+            onChange={(event) => setEntry({ ...entry, name: event.currentTarget.value })}
+            error={errors.name}
+          />
           <Textarea
             label="Activity description (optional)"
             labelProps={upperLabel}
@@ -217,15 +203,17 @@ function SkillBranch({
           <Text size="xs" c="dimmed">
             {countLabel(skill.activities.length, 'activity', 'activities')}
           </Text>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            size="sm"
-            aria-label={`Remove skill ${skill.name}`}
-            onClick={onRemove}
-          >
-            <IconTrash size={14} />
-          </ActionIcon>
+          <Tooltip label="Remove skill">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              size="sm"
+              aria-label={`Remove skill ${skill.name}`}
+              onClick={onRemove}
+            >
+              <IconTrash size={14} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
         <Group gap="xs">
           {skill.activities.map((activity, index) => (
@@ -291,21 +279,25 @@ export default function StageTree({
                   </Text>
                 </Group>
                 <Group gap="xs" wrap="nowrap">
-                  <ActionIcon
-                    variant="default"
-                    aria-label="Edit stage"
-                    onClick={() => onEditStage(stageIndex)}
-                  >
-                    <IconPencil size={14} />
-                  </ActionIcon>
-                  <ActionIcon
-                    variant="default"
-                    color="red"
-                    aria-label="Remove stage"
-                    onClick={() => onRemoveStage(stageIndex)}
-                  >
-                    <IconTrash size={14} color="var(--mantine-color-red-7)" />
-                  </ActionIcon>
+                  <Tooltip label="Edit stage">
+                    <ActionIcon
+                      variant="default"
+                      aria-label="Edit stage"
+                      onClick={() => onEditStage(stageIndex)}
+                    >
+                      <IconPencil size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Remove stage">
+                    <ActionIcon
+                      variant="default"
+                      color="red"
+                      aria-label="Remove stage"
+                      onClick={() => onRemoveStage(stageIndex)}
+                    >
+                      <IconTrash size={14} color="var(--mantine-color-red-7)" />
+                    </ActionIcon>
+                  </Tooltip>
                 </Group>
               </Group>
 

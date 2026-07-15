@@ -32,7 +32,6 @@ async function createStages(level: Level, stages: StageInput[]): Promise<void> {
       await skill.related('activities').createMany(
         (skillInput.activities ?? []).map((activity) => ({
           name: activity.name,
-          durationMinutes: activity.durationMinutes,
           description: activity.description ?? null,
           applicationNotes: activity.applicationNotes ?? null,
         }))
