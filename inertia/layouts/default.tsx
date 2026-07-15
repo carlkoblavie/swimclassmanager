@@ -2,7 +2,7 @@ import { type Data } from '@generated/data'
 import { toast, Toaster } from 'sonner'
 import { usePage } from '@inertiajs/react'
 import { useDisclosure } from '@mantine/hooks'
-import { type ReactElement, useEffect } from 'react'
+import { type ComponentProps, type ReactElement, type ReactNode, useEffect } from 'react'
 import { Form, Link } from '@adonisjs/inertia/react'
 import { Guard } from '~/utils/permissions'
 import {
@@ -11,19 +11,40 @@ import {
   Burger,
   Button,
   Container,
+  Divider,
   Group,
   NativeSelect,
   NavLink,
   Stack,
   Text,
+  ThemeIcon,
 } from '@mantine/core'
+import {
+  IconClipboardList,
+  IconLayoutDashboard,
+  IconRipple,
+  IconSchool,
+  IconStack2,
+  IconSwimming,
+  IconUserPlus,
+} from '@tabler/icons-react'
 
 function Brand() {
   return (
-    <Link route="home" aria-label="Home">
-      <Text span fw={800} fz="lg" c="blue.6">
-        Swim Class Manager
-      </Text>
+    <Link route="home" aria-label="Home" style={{ textDecoration: 'none' }}>
+      <Group gap="sm" wrap="nowrap">
+        <ThemeIcon size="lg" radius="md">
+          <IconRipple size={22} stroke={1.8} />
+        </ThemeIcon>
+        <div>
+          <Text fw={800} fz="md" c="var(--mantine-color-text)" lh={1.2}>
+            Swim Class Manager
+          </Text>
+          <Text fz={10} tt="uppercase" c="dimmed" fw={600} lh={1.2} style={{ letterSpacing: 1 }}>
+            Management
+          </Text>
+        </div>
+      </Group>
     </Link>
   )
 }
@@ -31,7 +52,7 @@ function Brand() {
 function UserMenu({ initials }: { initials: string }) {
   return (
     <Group gap="sm">
-      <Avatar radius="xl" size="sm" color="blue">
+      <Avatar radius="xl" size="sm" color="aqua">
         {initials}
       </Avatar>
       <Form route="sessions.destroy">
@@ -40,6 +61,29 @@ function UserMenu({ initials }: { initials: string }) {
         </Button>
       </Form>
     </Group>
+  )
+}
+
+function SidebarLink({
+  route,
+  label,
+  icon,
+  active,
+}: {
+  route: ComponentProps<typeof Link>['route']
+  label: string
+  icon: ReactNode
+  active: boolean
+}) {
+  return (
+    <NavLink
+      component={Link}
+      route={route}
+      label={label}
+      leftSection={icon}
+      active={active}
+      style={{ borderRadius: 'var(--mantine-radius-md)' }}
+    />
   )
 }
 
@@ -86,70 +130,89 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
         </AppShell.Header>
 
         <AppShell.Navbar p="md">
-          <Stack gap={4}>
-            {activeOrganisation && (
-              <Text size="xs" tt="uppercase" c="dimmed" fw={700}>
-                {activeOrganisation.name}
+          <Stack h="100%" justify="space-between" gap="md">
+            <Stack gap={4}>
+              {activeOrganisation && (
+                <Text size="xs" tt="uppercase" c="dimmed" fw={700}>
+                  {activeOrganisation.name}
+                </Text>
+              )}
+              <Text size="sm" fw={700} mb={4}>
+                {activeSchool.name}
               </Text>
-            )}
-            <Text size="sm" fw={700} mb={4}>
-              {activeSchool.name}
-            </Text>
-            {availableSchools.length > 1 && (
-              <Form route="active_schools.update">
-                {({ processing }) => (
-                  <Group gap="xs" align="end" mb="sm">
-                    <NativeSelect
-                      flex={1}
-                      size="xs"
-                      label="Switch school"
-                      name="schoolId"
-                      defaultValue={String(activeSchool.id)}
-                      data={availableSchools.map((school) => ({
-                        value: String(school.id),
-                        label: school.name,
-                      }))}
-                    />
-                    <Button type="submit" size="xs" variant="light" loading={processing}>
-                      Switch
-                    </Button>
-                  </Group>
-                )}
-              </Form>
-            )}
-            <NavLink component={Link} route="home" label="Dashboard" active={url === '/'} />
-            <NavLink
-              component={Link}
-              route="programs.index"
-              label="Programs"
-              active={url.startsWith('/programs')}
-            />
-            <Guard for="signup.view">
-              <NavLink
-                component={Link}
-                route="signups.index"
-                label="Sign-ups"
-                active={url.startsWith('/signups')}
+              {availableSchools.length > 1 && (
+                <Form route="active_schools.update">
+                  {({ processing }) => (
+                    <Group gap="xs" align="end" mb="sm">
+                      <NativeSelect
+                        flex={1}
+                        size="xs"
+                        label="Switch school"
+                        name="schoolId"
+                        defaultValue={String(activeSchool.id)}
+                        data={availableSchools.map((school) => ({
+                          value: String(school.id),
+                          label: school.name,
+                        }))}
+                      />
+                      <Button type="submit" size="xs" variant="light" loading={processing}>
+                        Switch
+                      </Button>
+                    </Group>
+                  )}
+                </Form>
+              )}
+              <SidebarLink
+                route="home"
+                label="Dashboard"
+                icon={<IconLayoutDashboard size={18} stroke={1.6} />}
+                active={url === '/'}
               />
-            </Guard>
-            <Guard for="invitation.create">
-              <NavLink
-                component={Link}
-                route="invitations.create"
-                label="Invite member"
-                active={url.startsWith('/invitations')}
+              <SidebarLink
+                route="programs.index"
+                label="Programs"
+                icon={<IconStack2 size={18} stroke={1.6} />}
+                active={url.startsWith('/programs')}
               />
-            </Guard>
-            <NavLink
-              component={Link}
-              route="schools.create"
-              label="Create a school"
-              active={url.startsWith('/schools')}
-            />
+              <Guard for="class.view">
+                <SidebarLink
+                  route="swimming_classes.index"
+                  label="Classes"
+                  icon={<IconSwimming size={18} stroke={1.6} />}
+                  active={url.startsWith('/classes')}
+                />
+              </Guard>
+              <Guard for="signup.view">
+                <SidebarLink
+                  route="signups.index"
+                  label="Sign-ups"
+                  icon={<IconClipboardList size={18} stroke={1.6} />}
+                  active={url.startsWith('/signups')}
+                />
+              </Guard>
+              <Guard for="invitation.create">
+                <SidebarLink
+                  route="invitations.create"
+                  label="Invite member"
+                  icon={<IconUserPlus size={18} stroke={1.6} />}
+                  active={url.startsWith('/invitations')}
+                />
+              </Guard>
+            </Stack>
+
+            <Stack gap={4}>
+              <Divider />
+              <SidebarLink
+                route="schools.create"
+                label="Create a school"
+                icon={<IconSchool size={18} stroke={1.6} />}
+                active={url.startsWith('/schools')}
+              />
+            </Stack>
           </Stack>
         </AppShell.Navbar>
 
-        <AppShell.Main>{children}</AppShell.Main>
+        <AppShell.Main bg="gray.0">{children}</AppShell.Main>
 
         <Toaster position="top-center" richColors />
       </AppShell>
@@ -174,7 +237,7 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
         </Container>
       </AppShell.Header>
 
-      <AppShell.Main>{children}</AppShell.Main>
+      <AppShell.Main bg="gray.0">{children}</AppShell.Main>
 
       <Toaster position="top-center" richColors />
     </AppShell>
