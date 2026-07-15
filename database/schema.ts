@@ -95,6 +95,25 @@ export class LearnerSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class LevelStageSchema extends BaseModel {
+  static $columns = ['completionRequirement', 'createdAt', 'id', 'levelId', 'name', 'position', 'updatedAt'] as const
+  $columns = LevelStageSchema.$columns
+  @column()
+  declare completionRequirement: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare levelId: number
+  @column()
+  declare name: string
+  @column()
+  declare position: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class LevelSchema extends BaseModel {
   static $columns = ['ageGroup', 'capacity', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'updatedAt'] as const
   $columns = LevelSchema.$columns

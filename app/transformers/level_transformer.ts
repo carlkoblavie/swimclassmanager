@@ -1,5 +1,6 @@
 import { BaseTransformer } from '@adonisjs/core/transformers'
 import type Level from '#models/level'
+import type LevelStage from '#models/level_stage'
 import type Program from '#models/program'
 import type SchoolLevelSetting from '#models/school_level_setting'
 
@@ -16,11 +17,15 @@ export default class LevelTransformer extends BaseTransformer<Level> {
   }
 
   toObject() {
-    const preloaded = this.resource.$preloaded as { schoolLevelSettings?: SchoolLevelSetting[] }
+    const preloaded = this.resource.$preloaded as {
+      schoolLevelSettings?: SchoolLevelSetting[]
+      stages?: LevelStage[]
+    }
     const settings = preloaded.schoolLevelSettings ?? this.resource.schoolLevelSettings ?? []
     const setting = settings[0]
     const effectiveFee = setting?.fee ?? this.resource.defaultFee
     const available = setting?.available ?? true
+    const stages = preloaded.stages ?? []
 
     return {
       ...this.pick(this.resource, [
@@ -37,6 +42,12 @@ export default class LevelTransformer extends BaseTransformer<Level> {
       },
       fee: { raw: effectiveFee, formatted: formatCedis(effectiveFee) },
       available,
+      stages: stages.map((stage) => ({
+        id: stage.id,
+        name: stage.name,
+        position: stage.position,
+        completionRequirement: stage.completionRequirement,
+      })),
     }
   }
 

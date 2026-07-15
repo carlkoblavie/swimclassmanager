@@ -24,12 +24,19 @@ async function uniqueProgramName(value: unknown, _options: undefined, field: Fie
 
 const uniqueProgramNameRule = vine.createRule(uniqueProgramName)
 
+const stageObject = {
+  name: vine.string().trim().minLength(1).maxLength(120),
+  position: vine.number().withoutDecimals().positive(),
+  completionRequirement: vine.string().trim().minLength(1).maxLength(255),
+}
+
 const levelObject = {
   name: vine.string().trim().minLength(1).maxLength(120),
   ageGroup: vine.string().trim().minLength(1).maxLength(80),
   description: vine.string().trim().minLength(1).maxLength(2000),
   defaultFee: vine.number().min(0).decimal([0, 2]), // cedis; converted to minor units in the service
   capacity: vine.number().withoutDecimals().positive(),
+  stages: vine.array(vine.object(stageObject)).distinct('position').optional(),
 }
 
 export const storeProgramValidator = vine.create({

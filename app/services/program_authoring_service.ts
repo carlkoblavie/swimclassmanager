@@ -1,6 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import Program from '#models/program'
 import Level from '#models/level'
+import LevelStage from '#models/level_stage'
 import type { Infer } from '@vinejs/vine/types'
 import type { storeProgramValidator, updateProgramValidator } from '#validators/program'
 
@@ -22,15 +23,22 @@ export default class ProgramAuthoringService {
         { name: data.name, description: data.description },
         { client: trx }
       )
-      await program.related('levels').createMany(
-        data.levels.map((level) => ({
-          name: level.name,
-          ageGroup: level.ageGroup,
-          description: level.description,
-          defaultFee: toMinorUnits(level.defaultFee),
-          capacity: level.capacity,
-        }))
-      )
+      for (const input of data.levels) {
+        const level = await program.related('levels').create({
+          name: input.name,
+          ageGroup: input.ageGroup,
+          description: input.description,
+          defaultFee: toMinorUnits(input.defaultFee),
+          capacity: input.capacity,
+        })
+        await level.related('stages').createMany(
+          (input.stages ?? []).map((stage) => ({
+            name: stage.name,
+            position: stage.position,
+            completionRequirement: stage.completionRequirement,
+          }))
+        )
+      }
       return program
     })
   }
@@ -59,18 +67,31 @@ export default class ProgramAuthoringService {
           capacity: input.capacity,
         }
         const target = input.id ? existingById.get(input.id) : undefined
+        let level: Level
         if (target) {
           target.useTransaction(trx)
           target.merge(attrs)
           await target.save()
           keptIds.add(target.id)
+          level = target
         } else {
           const created = new Level()
           created.programId = program.id
           created.merge(attrs)
           created.useTransaction(trx)
           await created.save()
+          level = created
         }
+
+        // Stages are replaced wholesale from the submitted set.
+        await LevelStage.query({ client: trx }).where('levelId', level.id).delete()
+        await level.related('stages').createMany(
+          (input.stages ?? []).map((stage) => ({
+            name: stage.name,
+            position: stage.position,
+            completionRequirement: stage.completionRequirement,
+          }))
+        )
       }
 
       for (const level of existing) {

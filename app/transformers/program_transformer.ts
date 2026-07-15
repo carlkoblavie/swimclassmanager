@@ -34,6 +34,11 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
         description: level.description,
         capacity: level.capacity,
         defaultFee: level.defaultFee / 100,
+        stages: (level.stages ?? []).map((stage) => ({
+          name: stage.name,
+          position: stage.position,
+          completionRequirement: stage.completionRequirement,
+        })),
       })),
     }
   }

@@ -28,6 +28,7 @@ export default class ProgramsController {
           .preload('schoolLevelSettings', (settingsQuery) =>
             settingsQuery.where('schoolId', schoolId)
           )
+          .preload('stages', (stagesQuery) => stagesQuery.orderBy('position'))
           .orderBy('id')
       )
       .orderBy('name')
@@ -62,7 +63,9 @@ export default class ProgramsController {
 
     const program = await Program.query()
       .where('id', params.id)
-      .preload('levels', (levelsQuery) => levelsQuery.orderBy('id'))
+      .preload('levels', (levelsQuery) =>
+        levelsQuery.preload('stages', (stagesQuery) => stagesQuery.orderBy('position')).orderBy('id')
+      )
       .firstOrFail()
 
     return inertia.render('programs/edit', {

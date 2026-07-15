@@ -40,6 +40,9 @@ test.group('Programs store', (group) => {
     await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
+    await page.getByRole('button', { name: 'Add stage' }).click()
+    await page.getByLabel('Stage name').fill('Water Discovery')
+    await page.getByLabel('Completion requirement').fill('Float unaided for 5 seconds')
     await page.getByRole('button', { name: 'Save level' }).click()
 
     await page.getByRole('button', { name: 'Save as draft' }).click()
@@ -48,9 +51,39 @@ test.group('Programs store', (group) => {
     await page.assertVisible('text=Program created')
     await page.assertVisible('text=Learn to Swim')
     await page.assertVisible(page.getByText('Draft', { exact: true }))
+    await page.assertVisible('text=Water Discovery')
 
     await db.assertHas('programs', { name: 'Learn to Swim', activated_at: null })
     await db.assertHas('levels', { name: 'Beginners', default_fee: 5000, capacity: 10 })
+    await db.assertHas('level_stages', {
+      name: 'Water Discovery',
+      position: 1,
+      completion_requirement: 'Float unaided for 5 seconds',
+    })
+  })
+
+  test('requires every stage field in the level modal', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    await browserContext.loginAs(await manager())
+
+    const page = await visit(route('programs.create'))
+    await page.getByRole('button', { name: 'Add level' }).click()
+    await page.getByLabel('Level name').fill('Beginners')
+    await page.getByLabel('Age group').fill('4-7')
+    await page.getByLabel('Capacity').fill('10')
+    await page.getByLabel('Fee (GHS)').fill('50')
+    await page.getByLabel('Level description').fill('Intro level.')
+    await page.getByRole('button', { name: 'Add stage' }).click()
+    // Stage name and completion requirement left empty; order is prefilled.
+    await page.getByRole('button', { name: 'Save level' }).click()
+
+    await page.assertVisible(page.getByText('This field is required').first())
+    await page.assertVisible(page.getByRole('button', { name: 'Save level' }))
+    await db.assertCount('level_stages', 0)
   })
 
   test('publishes a program directly from the builder', async ({

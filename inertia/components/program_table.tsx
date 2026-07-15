@@ -60,6 +60,11 @@ function LevelRow({ level }: { level: Data.Level }) {
               <Text size="sm">
                 Capacity: {level.capacity} · {level.fee.formatted}
               </Text>
+              {level.stages.length > 0 && (
+                <Text size="sm" c="dimmed">
+                  Stages: {level.stages.map((stage) => stage.name).join(' → ')}
+                </Text>
+              )}
             </Stack>
           </Group>
           <Stack gap="xs" align="flex-end">

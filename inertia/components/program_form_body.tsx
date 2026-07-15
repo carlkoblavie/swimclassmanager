@@ -129,6 +129,15 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                   <Text size="sm" c="dimmed">
                     {level.description}
                   </Text>
+                  {level.stages.length > 0 && (
+                    <Text size="sm" c="dimmed">
+                      Stages:{' '}
+                      {[...level.stages]
+                        .sort((a, b) => Number(a.position) - Number(b.position))
+                        .map((stage) => stage.name)
+                        .join(' → ')}
+                    </Text>
+                  )}
                 </Stack>
                 <Group gap="md">
                   <Anchor
@@ -170,6 +179,25 @@ export default function ProgramFormBody({ errors, initial }: Props) {
             <input type="hidden" name={`levels[${index}][description]`} value={level.description} />
             <input type="hidden" name={`levels[${index}][defaultFee]`} value={level.defaultFee} />
             <input type="hidden" name={`levels[${index}][capacity]`} value={level.capacity} />
+            {level.stages.map((stage, stageIndex) => (
+              <Fragment key={stageIndex}>
+                <input
+                  type="hidden"
+                  name={`levels[${index}][stages][${stageIndex}][name]`}
+                  value={stage.name}
+                />
+                <input
+                  type="hidden"
+                  name={`levels[${index}][stages][${stageIndex}][position]`}
+                  value={stage.position}
+                />
+                <input
+                  type="hidden"
+                  name={`levels[${index}][stages][${stageIndex}][completionRequirement]`}
+                  value={stage.completionRequirement}
+                />
+              </Fragment>
+            ))}
           </Fragment>
         ))}
       </Stack>
