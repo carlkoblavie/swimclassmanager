@@ -29,7 +29,9 @@ export default class ProgramsController {
             settingsQuery.where('schoolId', schoolId)
           )
           .preload('stages', (stagesQuery) =>
-            stagesQuery.preload('skills').preload('activities').orderBy('position')
+            stagesQuery
+              .preload('skills', (skillsQuery) => skillsQuery.preload('activities'))
+              .orderBy('position')
           )
           .orderBy('id')
       )
@@ -68,7 +70,9 @@ export default class ProgramsController {
       .preload('levels', (levelsQuery) =>
         levelsQuery
           .preload('stages', (stagesQuery) =>
-            stagesQuery.preload('skills').preload('activities').orderBy('position')
+            stagesQuery
+              .preload('skills', (skillsQuery) => skillsQuery.preload('activities'))
+              .orderBy('position')
           )
           .orderBy('id')
       )

@@ -47,9 +47,10 @@ test.group('Programs store', (group) => {
     await page.getByLabel('Skill name').fill('Face in Water')
     await page.getByLabel('Pass criteria').fill('Submerge face for 5 seconds')
     await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add activity' }).click()
     await page.getByLabel('Activity name').fill('Bubble Blowing Contest')
     await page.getByLabel('Duration (mins)').fill('5')
-    await page.getByRole('button', { name: 'Add activity' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
     await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Save as draft' }).click()

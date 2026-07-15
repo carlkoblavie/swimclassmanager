@@ -23,18 +23,18 @@ async function createStages(level: Level, stages: StageInput[]): Promise<void> {
       position: input.position,
       description: input.description ?? null,
     })
-    await stage.related('skills').createMany(
-      (input.skills ?? []).map((skill) => ({
-        name: skill.name,
-        passCriteria: skill.passCriteria,
-      }))
-    )
-    await stage.related('activities').createMany(
-      (input.activities ?? []).map((activity) => ({
-        name: activity.name,
-        durationMinutes: activity.durationMinutes,
-      }))
-    )
+    for (const skillInput of input.skills ?? []) {
+      const skill = await stage.related('skills').create({
+        name: skillInput.name,
+        passCriteria: skillInput.passCriteria,
+      })
+      await skill.related('activities').createMany(
+        (skillInput.activities ?? []).map((activity) => ({
+          name: activity.name,
+          durationMinutes: activity.durationMinutes,
+        }))
+      )
+    }
   }
 }
 
@@ -108,10 +108,17 @@ export default class ProgramAuthoringService {
         const existingStages = await LevelStage.query({ client: trx }).where('levelId', level.id)
         const stageIds = existingStages.map((stage) => stage.id)
         if (stageIds.length > 0) {
+          const existingSkills = await LevelStageSkill.query({ client: trx }).whereIn(
+            'levelStageId',
+            stageIds
+          )
+          const skillIds = existingSkills.map((skill) => skill.id)
+          if (skillIds.length > 0) {
+            await LevelStageActivity.query({ client: trx })
+              .whereIn('levelStageSkillId', skillIds)
+              .delete()
+          }
           await LevelStageSkill.query({ client: trx }).whereIn('levelStageId', stageIds).delete()
-          await LevelStageActivity.query({ client: trx })
-            .whereIn('levelStageId', stageIds)
-            .delete()
         }
         await LevelStage.query({ client: trx }).where('levelId', level.id).delete()
         await createStages(level, input.stages ?? [])

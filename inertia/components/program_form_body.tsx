@@ -170,7 +170,9 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                               {stage.name}
                             </Text>
                             <Text size="xs" c="dimmed">
-                              {stage.skills.length} skills · {stage.activities.length} activities
+                              {stage.skills.length} skills ·{' '}
+                              {stage.skills.reduce((total, s) => total + s.activities.length, 0)}{' '}
+                              activities
                             </Text>
                             <Anchor
                               component="button"
@@ -266,34 +268,33 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                   {stage.description.trim() !== '' && (
                     <input type="hidden" name={`${prefix}[description]`} value={stage.description} />
                   )}
-                  {stage.skills.map((skill, skillIndex) => (
-                    <Fragment key={skillIndex}>
-                      <input
-                        type="hidden"
-                        name={`${prefix}[skills][${skillIndex}][name]`}
-                        value={skill.name}
-                      />
-                      <input
-                        type="hidden"
-                        name={`${prefix}[skills][${skillIndex}][passCriteria]`}
-                        value={skill.passCriteria}
-                      />
-                    </Fragment>
-                  ))}
-                  {stage.activities.map((activity, activityIndex) => (
-                    <Fragment key={activityIndex}>
-                      <input
-                        type="hidden"
-                        name={`${prefix}[activities][${activityIndex}][name]`}
-                        value={activity.name}
-                      />
-                      <input
-                        type="hidden"
-                        name={`${prefix}[activities][${activityIndex}][durationMinutes]`}
-                        value={activity.durationMinutes}
-                      />
-                    </Fragment>
-                  ))}
+                  {stage.skills.map((skill, skillIndex) => {
+                    const skillPrefix = `${prefix}[skills][${skillIndex}]`
+                    return (
+                      <Fragment key={skillIndex}>
+                        <input type="hidden" name={`${skillPrefix}[name]`} value={skill.name} />
+                        <input
+                          type="hidden"
+                          name={`${skillPrefix}[passCriteria]`}
+                          value={skill.passCriteria}
+                        />
+                        {skill.activities.map((activity, activityIndex) => (
+                          <Fragment key={activityIndex}>
+                            <input
+                              type="hidden"
+                              name={`${skillPrefix}[activities][${activityIndex}][name]`}
+                              value={activity.name}
+                            />
+                            <input
+                              type="hidden"
+                              name={`${skillPrefix}[activities][${activityIndex}][durationMinutes]`}
+                              value={activity.durationMinutes}
+                            />
+                          </Fragment>
+                        ))}
+                      </Fragment>
+                    )
+                  })}
                 </Fragment>
               )
             })}

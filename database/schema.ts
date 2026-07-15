@@ -96,7 +96,7 @@ export class LearnerSchema extends BaseModel {
 }
 
 export class LevelStageActivitySchema extends BaseModel {
-  static $columns = ['createdAt', 'durationMinutes', 'id', 'levelStageId', 'name', 'updatedAt'] as const
+  static $columns = ['createdAt', 'durationMinutes', 'id', 'levelStageSkillId', 'name', 'updatedAt'] as const
   $columns = LevelStageActivitySchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -105,7 +105,7 @@ export class LevelStageActivitySchema extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare levelStageId: number
+  declare levelStageSkillId: number
   @column()
   declare name: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })

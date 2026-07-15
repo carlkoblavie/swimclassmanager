@@ -51,11 +51,11 @@ export default class LevelTransformer extends BaseTransformer<Level> {
           id: skill.id,
           name: skill.name,
           passCriteria: skill.passCriteria,
-        })),
-        activities: (stage.activities ?? []).map((activity) => ({
-          id: activity.id,
-          name: activity.name,
-          durationMinutes: activity.durationMinutes,
+          activities: (skill.activities ?? []).map((activity) => ({
+            id: activity.id,
+            name: activity.name,
+            durationMinutes: activity.durationMinutes,
+          })),
         })),
       })),
     }
