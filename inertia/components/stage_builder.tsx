@@ -146,24 +146,27 @@ function SkillCard({
                 error={entryErrors.durationMinutes}
               />
             </Group>
-            <TextInput
+            <Textarea
               label="Activity description (optional)"
               labelProps={upperLabel}
               size="xs"
+              autosize
+              minRows={2}
               value={entry.description}
               onChange={(event) => setEntry({ ...entry, description: event.currentTarget.value })}
             />
-            <Group gap="xs" align="flex-end">
-              <TextInput
-                label="Application notes (optional)"
-                labelProps={upperLabel}
-                size="xs"
-                flex={1}
-                value={entry.applicationNotes}
-                onChange={(event) =>
-                  setEntry({ ...entry, applicationNotes: event.currentTarget.value })
-                }
-              />
+            <Textarea
+              label="Application notes (optional)"
+              labelProps={upperLabel}
+              size="xs"
+              autosize
+              minRows={2}
+              value={entry.applicationNotes}
+              onChange={(event) =>
+                setEntry({ ...entry, applicationNotes: event.currentTarget.value })
+              }
+            />
+            <Group justify="flex-end">
               <Button type="button" size="xs" onClick={confirmActivity}>
                 Add
               </Button>
@@ -376,17 +379,18 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
                 error={skillErrors.passCriteria}
               />
             </Group>
-            <Group gap="xs" align="flex-end">
-              <TextInput
-                label="Skill description (optional)"
-                labelProps={upperLabel}
-                size="xs"
-                flex={1}
-                value={skillEntry.description}
-                onChange={(event) =>
-                  setSkillEntry({ ...skillEntry, description: event.currentTarget.value })
-                }
-              />
+            <Textarea
+              label="Skill description (optional)"
+              labelProps={upperLabel}
+              size="xs"
+              autosize
+              minRows={2}
+              value={skillEntry.description}
+              onChange={(event) =>
+                setSkillEntry({ ...skillEntry, description: event.currentTarget.value })
+              }
+            />
+            <Group justify="flex-end">
               <Button type="button" size="xs" onClick={addSkill}>
                 Add skill
               </Button>
