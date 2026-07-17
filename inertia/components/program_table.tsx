@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { router } from '@inertiajs/react'
 import { Form, Link } from '@adonisjs/inertia/react'
 import {
@@ -34,12 +34,18 @@ const ROW_GRID = {
 
 type Stage = Data.Level['stages'][number]
 
-function StageAccordion({ stage }: { stage: Stage }) {
-  const [open, setOpen] = useState(false)
-
+function StageAccordion({
+  stage,
+  open,
+  onToggle,
+}: {
+  stage: Stage
+  open: boolean
+  onToggle: () => void
+}) {
   return (
     <Card withBorder shadow="none" padding={0} radius="md">
-      <UnstyledButton w="100%" p="sm" px="md" onClick={() => setOpen((value) => !value)}>
+      <UnstyledButton w="100%" p="sm" px="md" onClick={onToggle}>
         <Group gap="sm" wrap="nowrap">
           <ThemeIcon variant="light" radius="md" size={26}>
             <Text fz={12} fw={800}>
@@ -143,6 +149,9 @@ function LevelCard({
   canCreateClass: boolean
   onCreateClass: () => void
 }) {
+  // Exclusive within the level: opening a stage closes its siblings.
+  const [openStageId, setOpenStageId] = useState<number | null>(null)
+
   return (
     <Card withBorder shadow="none" radius="md">
       <Group justify="space-between" align="flex-start" wrap="wrap">
@@ -204,7 +213,12 @@ function LevelCard({
             Stages
           </Text>
           {level.stages.map((stage) => (
-            <StageAccordion key={stage.id} stage={stage} />
+            <StageAccordion
+              key={stage.id}
+              stage={stage}
+              open={openStageId === stage.id}
+              onToggle={() => setOpenStageId((current) => (current === stage.id ? null : stage.id))}
+            />
           ))}
         </Stack>
       )}
@@ -215,24 +229,45 @@ function LevelCard({
 function ProgramRows({
   program,
   termOptions,
+  instructorOptions,
+  expanded,
+  onToggle,
 }: {
   program: Data.Program
   termOptions: Data.SwimYear[]
+  instructorOptions: Data.Membership[]
+  expanded: boolean
+  onToggle: () => void
 }) {
-  const [expanded, setExpanded] = useState(true)
   const [builderLevelId, setBuilderLevelId] = useState<number | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [confirmName, setConfirmName] = useState('')
   const levels = program.levels ?? []
 
+  // When this program opens (collapsing siblings above may shift the page),
+  // bring its heading row back into view under the fixed app header. The
+  // initially open program must not scroll on page load.
+  const headerRef = useRef<HTMLDivElement>(null)
+  const skippedInitial = useRef(false)
+
+  useEffect(() => {
+    if (!skippedInitial.current) {
+      skippedInitial.current = true
+      return
+    }
+    if (expanded) {
+      headerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [expanded])
+
   return (
     <Box style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
-      <Box px="lg" py="lg" style={ROW_GRID}>
+      <Box ref={headerRef} px="lg" py="lg" style={{ ...ROW_GRID, scrollMarginTop: 76 }}>
         <Group gap="md" align="flex-start" wrap="nowrap">
           <ActionIcon
             variant="default"
             aria-label={`Toggle ${program.name} levels`}
-            onClick={() => setExpanded((value) => !value)}
+            onClick={onToggle}
             style={{
               transition: 'transform .15s',
               transform: expanded ? 'rotate(180deg)' : undefined,
@@ -387,6 +422,7 @@ function ProgramRows({
                   <ClassInlineBuilder
                     level={level}
                     termOptions={termOptions}
+                    instructorOptions={instructorOptions}
                     onClose={() => setBuilderLevelId(null)}
                   />
                 </Box>
@@ -402,10 +438,15 @@ function ProgramRows({
 export default function ProgramTable({
   programs,
   termOptions,
+  instructorOptions,
 }: {
   programs: Data.Program[]
   termOptions: Data.SwimYear[]
+  instructorOptions: Data.Membership[]
 }) {
+  // Exclusive accordion: at most one program panel open, first one initially.
+  const [openProgramId, setOpenProgramId] = useState<number | null>(programs[0]?.id ?? null)
+
   return (
     <Card padding={0}>
       <Box px="lg" py="md" style={ROW_GRID}>
@@ -417,7 +458,16 @@ export default function ProgramTable({
         <span />
       </Box>
       {programs.map((program) => (
-        <ProgramRows key={program.id} program={program} termOptions={termOptions} />
+        <ProgramRows
+          key={program.id}
+          program={program}
+          termOptions={termOptions}
+          instructorOptions={instructorOptions}
+          expanded={openProgramId === program.id}
+          onToggle={() =>
+            setOpenProgramId((current) => (current === program.id ? null : program.id))
+          }
+        />
       ))}
     </Card>
   )
