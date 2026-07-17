@@ -1,14 +1,16 @@
 import {
   ActionIcon,
+  Anchor,
   Badge,
+  Box,
   Button,
   Card,
   Container,
+  Divider,
   Group,
-  Pill,
-  SimpleGrid,
   Stack,
   Text,
+  ThemeIcon,
   Title,
   Tooltip,
 } from '@mantine/core'
@@ -21,202 +23,386 @@ import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
 import EditLessonForm from '~/components/edit_lesson_form'
+import MetaStrip from '~/components/meta_strip'
 import PlanLessonForm from '~/components/plan_lesson_form'
 
 type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
 }>
 
+type Lesson = Data.SwimmingClass['lessons'][number]
+
+// Names of the skills this lesson's activities belong to.
+function skillFocus(lesson: Lesson, skills: Data.SwimmingClass['skills']): string[] {
+  const skillIds = new Set(lesson.activities.map((activity) => activity.skillId))
+  return skills.filter((skill) => skillIds.has(skill.id)).map((skill) => skill.name)
+}
+
+// The lesson's activities grouped under their parent skill, in skill order.
+function lessonSkillGroups(lesson: Lesson, skills: Data.SwimmingClass['skills']) {
+  const groups = skills
+    .map((skill) => ({
+      name: skill.name,
+      activities: lesson.activities.filter((activity) => activity.skillId === skill.id),
+    }))
+    .filter((group) => group.activities.length > 0)
+
+  const skillIds = new Set(skills.map((skill) => skill.id))
+  const orphans = lesson.activities.filter((activity) => !skillIds.has(activity.skillId))
+  if (orphans.length > 0) {
+    groups.push({ name: 'Other activities', activities: orphans })
+  }
+
+  return groups
+}
+
 export default function ClassShow({ swimmingClass }: PageProps) {
   const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
 
-  return (
-    <Container size="md" py="xl">
-      <Stack gap="lg">
-        <Group justify="space-between" align="flex-start">
-          <div>
-            <Group gap="sm">
-              <Title order={1}>{swimmingClass.name}</Title>
-              {swimmingClass.isCancelled && <Badge color="red">Cancelled</Badge>}
-            </Group>
-            <Text c="dimmed">{swimmingClass.code}</Text>
-          </div>
-          <Group gap="sm">
-            <Guard for="class.manage">
-              <Button
-                component={Link}
-                href={urlFor('swimming_classes.edit', { id: swimmingClass.id })}
-                variant="light"
-              >
-                Edit class
-              </Button>
-              {!swimmingClass.isCancelled && (
-                <Form route="swimming_classes.update" routeParams={{ id: swimmingClass.id }}>
-                  {({ processing }) => (
-                    <>
-                      <input type="hidden" name="intent" value="cancel" />
-                      <Button type="submit" color="red" variant="light" loading={processing}>
-                        Cancel class
-                      </Button>
-                    </>
-                  )}
-                </Form>
-              )}
-            </Guard>
-            <Button component={Link} route="swimming_classes.index" variant="subtle">
-              Back to classes
-            </Button>
-          </Group>
-        </Group>
+  const plannedCount = swimmingClass.lessons.filter((lesson) => lesson.activities.length > 0).length
 
-        <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <Card>
-            <Stack gap="xs">
-              <Text fw={700}>Class details</Text>
-              <Text>
-                {swimmingClass.level?.programName} — {swimmingClass.level?.name}
-              </Text>
-              <Text>
-                {swimmingClass.weekdayName} · {swimmingClass.startTime.formatted} ·{' '}
-                {swimmingClass.durationMinutes} min
-              </Text>
-              <Text>Capacity: {swimmingClass.level?.capacity} learners</Text>
-              <Text>Location: {swimmingClass.location ?? 'Not set'}</Text>
-              <Group gap="xs">
-                <Text>Instructor: {swimmingClass.instructor?.label ?? 'Not assigned'}</Text>
-                {swimmingClass.instructor?.status === 'pending' && (
-                  <Badge variant="light" color="yellow" size="sm">
-                    Pending
+  return (
+    <Container size="lg" py="xl">
+      <Stack gap="lg">
+        <Anchor component={Link} route="swimming_classes.index" size="sm">
+          ← Classes
+        </Anchor>
+
+        {/* Class hero */}
+        <Card padding={0}>
+          <Group justify="space-between" align="flex-start" p="lg" wrap="wrap">
+            <Group gap="md" align="flex-start" wrap="nowrap">
+              <Box
+                bg="aqua.0"
+                c="aqua.8"
+                w={54}
+                h={54}
+                style={{
+                  borderRadius: 12,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Text fw={800} fz="md" lh={1}>
+                  {swimmingClass.weekdayName.slice(0, 3)}
+                </Text>
+                <Text fz={10} fw={700} tt="uppercase" lh={1} mt={3}>
+                  {swimmingClass.startTime.formatted}
+                </Text>
+              </Box>
+              <div>
+                <Group gap="xs">
+                  <Title order={1} fz="h2">
+                    {swimmingClass.name}
+                  </Title>
+                  <Badge variant="light" color="gray" size="sm">
+                    {swimmingClass.code}
                   </Badge>
+                  {swimmingClass.isCancelled && (
+                    <Badge variant="light" color="red" size="sm">
+                      Cancelled
+                    </Badge>
+                  )}
+                </Group>
+                <Text size="sm" c="dimmed" mt={4}>
+                  Program:{' '}
+                  {swimmingClass.level ? (
+                    <>
+                      <Anchor
+                        component={Link}
+                        href={urlFor('programs.show', { id: swimmingClass.level.programId })}
+                        size="sm"
+                        fw={600}
+                      >
+                        {swimmingClass.level.programName}
+                      </Anchor>{' '}
+                      —{' '}
+                      <Anchor
+                        component={Link}
+                        href={urlFor('levels.show', { id: swimmingClass.level.id })}
+                        size="sm"
+                        fw={600}
+                      >
+                        {swimmingClass.level.name}
+                      </Anchor>
+                    </>
+                  ) : (
+                    'Not set'
+                  )}{' '}
+                  · Weekly class
+                </Text>
+              </div>
+            </Group>
+            <Guard for="class.manage">
+              <Group gap="sm">
+                <Button
+                  component={Link}
+                  href={urlFor('swimming_classes.edit', { id: swimmingClass.id })}
+                  variant="default"
+                >
+                  Edit class
+                </Button>
+                {!swimmingClass.isCancelled && (
+                  <Form route="swimming_classes.update" routeParams={{ id: swimmingClass.id }}>
+                    {({ processing }) => (
+                      <>
+                        <input type="hidden" name="intent" value="cancel" />
+                        <Button type="submit" color="red" variant="light" loading={processing}>
+                          Cancel class
+                        </Button>
+                      </>
+                    )}
+                  </Form>
                 )}
               </Group>
-            </Stack>
-          </Card>
-
-          <Card>
-            <Stack gap="xs">
-              <Text fw={700}>Curriculum</Text>
-              <Text size="sm" c="dimmed">
-                Stage: {swimmingClass.stage?.name ?? 'Not set'}
-              </Text>
-              {swimmingClass.skills.length === 0 ? (
-                <Text size="sm" c="dimmed">
-                  No skills selected.
-                </Text>
-              ) : (
-                swimmingClass.skills.map((skill) => (
-                  <div key={skill.id}>
-                    <Text fw={500} size="sm">
-                      {skill.name}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      {skill.passCriteria}
-                    </Text>
-                  </div>
-                ))
-              )}
-            </Stack>
-          </Card>
-        </SimpleGrid>
-
-        <Stack gap="sm">
-          <Group gap="xs">
-            <Text fw={700}>Lessons</Text>
-            <Badge variant="light" color="gray" size="sm">
-              {swimmingClass.lessons.length}
-            </Badge>
+            </Guard>
           </Group>
+          <Divider />
+          <MetaStrip
+            items={[
+              {
+                label: 'Day & time',
+                value: `${swimmingClass.weekdayName} · ${swimmingClass.startTime.formatted}`,
+              },
+              { label: 'Duration', value: `${swimmingClass.durationMinutes} min` },
+              {
+                label: 'Instructor',
+                value: swimmingClass.instructor ? (
+                  <Group gap="xs">
+                    {swimmingClass.instructor.label}
+                    {swimmingClass.instructor.status === 'pending' && (
+                      <Badge variant="light" color="yellow" size="sm">
+                        Pending
+                      </Badge>
+                    )}
+                  </Group>
+                ) : (
+                  'Not assigned'
+                ),
+              },
+              { label: 'Location', value: swimmingClass.location ?? 'Not set' },
+              {
+                label: 'Term',
+                value: swimmingClass.term
+                  ? `${swimmingClass.term.swimYearName} · ${swimmingClass.term.name}`
+                  : 'Not set',
+              },
+              {
+                label: 'Term dates',
+                value: swimmingClass.term
+                  ? `${swimmingClass.term.startsOn.formatted} – ${swimmingClass.term.endsOn.formatted}`
+                  : '—',
+              },
+              { label: 'Stage', value: swimmingClass.stage?.name ?? 'Not set' },
+              {
+                label: 'Capacity',
+                value:
+                  typeof swimmingClass.level?.capacity === 'number'
+                    ? `${swimmingClass.level.capacity} learners`
+                    : '—',
+              },
+              { label: 'Skills', value: swimmingClass.skills.length },
+              { label: 'Lessons planned', value: plannedCount },
+            ]}
+          />
+        </Card>
 
-          {swimmingClass.lessons.length === 0 ? (
-            <Card>
-              <Text size="sm" c="dimmed">
-                No lessons planned yet.
-              </Text>
-            </Card>
-          ) : (
-            swimmingClass.lessons.map((lesson) => (
-              <Card key={lesson.id} padding="md">
-                <Stack gap="sm">
-                  <Group justify="space-between" align="flex-start" wrap="nowrap">
-                    <Stack gap="xs">
-                      <Text fw={600} size="sm">
-                        {lesson.date.formatted}
+        {/* Lessons */}
+        <Group justify="space-between" align="center">
+          <Title order={2} fz="lg">
+            Lessons
+          </Title>
+          <Text size="sm" c="dimmed">
+            {swimmingClass.lessons.length}{' '}
+            {swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · {plannedCount} planned
+          </Text>
+        </Group>
+
+        {swimmingClass.lessons.length === 0 && (
+          <Card>
+            <Text size="sm" c="dimmed">
+              No lessons planned yet.
+            </Text>
+          </Card>
+        )}
+
+        {swimmingClass.lessons.map((lesson, index) => {
+          const focus = skillFocus(lesson, swimmingClass.skills)
+          const isPlanned = lesson.activities.length > 0
+
+          return (
+            <Card key={lesson.id} padding={0}>
+              <Group gap="md" p="md" px="lg" wrap="nowrap" align="center">
+                <ThemeIcon variant="light" radius="md" size={30}>
+                  <Text size="xs" fw={800}>
+                    {index + 1}
+                  </Text>
+                </ThemeIcon>
+                <div>
+                  <Text fw={700} size="sm">
+                    {lesson.date.formatted}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {swimmingClass.startTime.formatted} · {swimmingClass.durationMinutes} min
+                  </Text>
+                </div>
+                <Group gap="xs" ml="auto" wrap="nowrap">
+                  {isPlanned ? (
+                    <Badge variant="light" color="green" size="sm">
+                      Planned
+                    </Badge>
+                  ) : (
+                    <Badge variant="light" color="yellow" size="sm">
+                      Draft
+                    </Badge>
+                  )}
+                  <Guard for="class.manage">
+                    <Tooltip label="Edit lesson">
+                      <ActionIcon
+                        variant="subtle"
+                        size="sm"
+                        aria-label={`Edit lesson ${lesson.date.formatted}`}
+                        onClick={() =>
+                          setEditingLessonId((current) =>
+                            current === lesson.id ? null : lesson.id
+                          )
+                        }
+                      >
+                        <IconPencil size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Remove lesson">
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        size="sm"
+                        aria-label={`Remove lesson ${lesson.date.formatted}`}
+                        onClick={() =>
+                          router.delete(urlFor('class_lessons.destroy', { id: lesson.id }))
+                        }
+                      >
+                        <IconTrash size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Guard>
+                </Group>
+              </Group>
+              <Divider />
+              <Stack gap="sm" p="lg" pt="md">
+                {isPlanned ? (
+                  <>
+                    {focus.length > 0 && (
+                      <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em">
+                        Skill focus ·{' '}
+                        <Text span size="xs" fw={700} c="aqua.8" tt="uppercase" lts="0.05em">
+                          {focus.join(', ')}
+                        </Text>
                       </Text>
-                      {lesson.activities.length === 0 ? (
-                        <Text size="xs" c="dimmed">
-                          No activities planned.
-                        </Text>
-                      ) : (
-                        <Group gap="xs">
-                          {lesson.activities.map((activity) => (
-                            <Pill key={activity.id} bg="green.0" c="green.9">
-                              {activity.name}
-                            </Pill>
+                    )}
+                    <Stack gap="md">
+                      {lessonSkillGroups(lesson, swimmingClass.skills).map((group) => (
+                        <Stack key={group.name} gap="xs">
+                          <Text size="sm" fw={700} c="aqua.8">
+                            {group.name}
+                          </Text>
+                          {group.activities.map((activity, activityIndex) => (
+                            <Group
+                              key={activity.id}
+                              gap="sm"
+                              align="flex-start"
+                              wrap="nowrap"
+                              p="sm"
+                              style={{
+                                border: '1px solid var(--mantine-color-gray-3)',
+                                borderRadius: 10,
+                              }}
+                            >
+                              <Text
+                                size="sm"
+                                c="dimmed"
+                                w={18}
+                                ta="right"
+                                style={{ flexShrink: 0 }}
+                              >
+                                {activityIndex + 1}
+                              </Text>
+                              <div>
+                                <Text size="sm" fw={700}>
+                                  {activity.name}
+                                </Text>
+                                {activity.description && (
+                                  <Text size="xs" c="dimmed" mt={2}>
+                                    {activity.description}
+                                  </Text>
+                                )}
+                              </div>
+                            </Group>
                           ))}
-                        </Group>
-                      )}
-                      {lesson.notes && (
-                        <Text size="xs" c="dimmed" fs="italic">
-                          {lesson.notes}
-                        </Text>
-                      )}
+                        </Stack>
+                      ))}
                     </Stack>
+                  </>
+                ) : (
+                  <Group
+                    justify="space-between"
+                    p="md"
+                    style={{
+                      border: '1px dashed var(--mantine-color-gray-4)',
+                      borderRadius: 10,
+                    }}
+                  >
+                    <div>
+                      <Text size="sm" fw={700} c="dimmed">
+                        No activities planned yet
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Add activities from the {swimmingClass.level?.name ?? 'level'} curriculum to
+                        build this lesson.
+                      </Text>
+                    </div>
                     <Guard for="class.manage">
-                      <Group gap="xs" wrap="nowrap">
-                        <Tooltip label="Edit lesson">
-                          <ActionIcon
-                            variant="subtle"
-                            size="sm"
-                            aria-label={`Edit lesson ${lesson.date.formatted}`}
-                            onClick={() =>
-                              setEditingLessonId((current) =>
-                                current === lesson.id ? null : lesson.id
-                              )
-                            }
-                          >
-                            <IconPencil size={14} />
-                          </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label="Remove lesson">
-                          <ActionIcon
-                            variant="subtle"
-                            color="red"
-                            size="sm"
-                            aria-label={`Remove lesson ${lesson.date.formatted}`}
-                            onClick={() =>
-                              router.delete(urlFor('class_lessons.destroy', { id: lesson.id }))
-                            }
-                          >
-                            <IconTrash size={14} />
-                          </ActionIcon>
-                        </Tooltip>
-                      </Group>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="light"
+                        onClick={() => setEditingLessonId(lesson.id)}
+                      >
+                        + Plan activities
+                      </Button>
                     </Guard>
                   </Group>
-                  {editingLessonId === lesson.id && (
-                    <EditLessonForm
-                      lesson={lesson}
-                      skills={swimmingClass.skills}
-                      onCancel={() => setEditingLessonId(null)}
-                    />
-                  )}
-                </Stack>
-              </Card>
-            ))
-          )}
+                )}
+                {lesson.notes && (
+                  <Text size="xs" c="dimmed" fs="italic">
+                    {lesson.notes}
+                  </Text>
+                )}
+                {editingLessonId === lesson.id && (
+                  <EditLessonForm
+                    lesson={lesson}
+                    skills={swimmingClass.skills}
+                    onCancel={() => setEditingLessonId(null)}
+                  />
+                )}
+              </Stack>
+            </Card>
+          )
+        })}
 
-          {!swimmingClass.isCancelled && (
-            <Guard for="class.manage">
-              <PlanLessonForm
-                classId={swimmingClass.id}
-                weekday={swimmingClass.weekday}
-                weekdayName={swimmingClass.weekdayName}
-                skills={swimmingClass.skills}
-                existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
-              />
-            </Guard>
-          )}
-        </Stack>
+        {!swimmingClass.isCancelled && (
+          <Guard for="class.manage">
+            <PlanLessonForm
+              classId={swimmingClass.id}
+              weekday={swimmingClass.weekday}
+              weekdayName={swimmingClass.weekdayName}
+              skills={swimmingClass.skills}
+              existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
+            />
+          </Guard>
+        )}
       </Stack>
     </Container>
   )
