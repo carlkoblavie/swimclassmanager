@@ -258,12 +258,48 @@ export default class ProgramAuthoringService {
           ageGroup: input.ageGroup,
           description: input.description,
           defaultFee: toMinorUnits(input.defaultFee),
-          capacity: input.capacity,
           code: reserveLevelCode(program.code, codes),
         })
         await reconcileStages(level, input.stages ?? [], trx, codes)
       }
       return program
+    })
+  }
+
+  /**
+   * Permanently delete a program with everything beneath it: levels, stages,
+   * skills, activities, school settings, and every class and lesson scheduled
+   * against them. Callers must confirm this destructive action first.
+   */
+  async destroy(program: Program): Promise<void> {
+    await db.transaction(async (trx) => {
+      const levels = await Level.query({ client: trx }).where('programId', program.id)
+      const levelIds = levels.map((level) => level.id)
+
+      if (levelIds.length > 0) {
+        // Classes cascade their lessons, lesson activities, and class skills.
+        await SwimmingClass.query({ client: trx }).whereIn('levelId', levelIds).delete()
+
+        const stages = await LevelStage.query({ client: trx }).whereIn('levelId', levelIds)
+        const stageIds = stages.map((stage) => stage.id)
+        if (stageIds.length > 0) {
+          const skills = await LevelStageSkill.query({ client: trx }).whereIn(
+            'levelStageId',
+            stageIds
+          )
+          await deleteSkills(
+            skills.map((skill) => skill.id),
+            trx
+          )
+          await LevelStage.query({ client: trx }).whereIn('id', stageIds).delete()
+        }
+
+        // School fee/availability settings cascade with their levels.
+        await Level.query({ client: trx }).whereIn('id', levelIds).delete()
+      }
+
+      program.useTransaction(trx)
+      await program.delete()
     })
   }
 
@@ -290,7 +326,6 @@ export default class ProgramAuthoringService {
           ageGroup: input.ageGroup,
           description: input.description,
           defaultFee: toMinorUnits(input.defaultFee),
-          capacity: input.capacity,
         }
         const target = input.id ? existingById.get(input.id) : undefined
         let level: Level
