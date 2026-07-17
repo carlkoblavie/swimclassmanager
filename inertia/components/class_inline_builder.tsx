@@ -198,7 +198,7 @@ export default function ClassInlineBuilder({
   return (
     <Collapse expanded={revealed} transitionDuration={250} onTransitionEnd={scrollToForm}>
       <Card shadow="none">
-        <Form route="swimming_classes.store">
+        <Form route="swimming_classes.store" onSuccess={onClose}>
           {({ errors, processing }) => (
             <Stack gap="sm">
               <Group justify="space-between" align="center" {...scrollAnchorProps}>

@@ -75,6 +75,8 @@ test.group('Swimming classes store', (group) => {
 
     await page.assertPath(route('programs.index'))
     await page.assertVisible('text=Class created.')
+    // The builder closes once the classes are created.
+    await page.assertNotExists(page.getByLabel('Base class name'))
     await db.assertHas('swimming_classes', {
       name: 'Morning starfish — Monday',
       code: 'ST01CL01',
