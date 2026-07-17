@@ -22,10 +22,18 @@ const dayObject = {
 
 export const storeSwimmingClassesValidator = vine.create({
   levelId: vine.number().withoutDecimals().positive().exists({ table: 'levels', column: 'id' }),
+  termId: vine.number().withoutDecimals().positive().exists({ table: 'terms', column: 'id' }),
   days: vine.array(vine.object(dayObject)).notEmpty(),
 })
 
 export const updateSwimmingClassValidator = vine.create({
+  // Optional so classes created before swim years existed can be tied later.
+  termId: vine
+    .number()
+    .withoutDecimals()
+    .positive()
+    .exists({ table: 'terms', column: 'id' })
+    .optional(),
   weekday: vine.number().withoutDecimals().in([1, 2, 3, 4, 5, 6, 7]),
   startTime: timeRule(),
   durationMinutes: vine.number().withoutDecimals().positive(),

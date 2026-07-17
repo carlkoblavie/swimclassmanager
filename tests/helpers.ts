@@ -1,9 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
 import { RoleName } from '#values/role'
 import { rolePermissions } from '#start/permissions'
 import type School from '#models/school'
 import Role from '#models/role'
 import Membership from '#models/membership'
+import SwimYear from '#models/swim_year'
 import type User from '#models/user'
 import LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
@@ -46,6 +48,27 @@ export async function joinSchool(
   await user.save()
 
   return membership
+}
+
+/**
+ * Seed a swim year with a single term wide enough to cover the dates the
+ * class builder proposes (one month back through eleven months ahead).
+ */
+export async function seedSwimYear(school: School) {
+  const startsOn = DateTime.now().minus({ months: 1 }).startOf('month')
+  const endsOn = DateTime.now().plus({ months: 11 }).endOf('month')
+  const name =
+    startsOn.year === endsOn.year ? String(startsOn.year) : `${startsOn.year}/${endsOn.year}`
+
+  const swimYear = await SwimYear.create({ schoolId: school.id, name, startsOn, endsOn })
+  const term = await swimYear.related('terms').create({
+    name: 'Term 1',
+    position: 1,
+    startsOn,
+    endsOn,
+  })
+
+  return { swimYear, term }
 }
 
 /**

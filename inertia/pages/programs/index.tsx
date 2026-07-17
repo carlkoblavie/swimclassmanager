@@ -9,9 +9,10 @@ import StatCard from '~/components/stat_card'
 
 type PageProps = InertiaProps<{
   programs: Data.Program[]
+  termOptions: Data.SwimYear[]
 }>
 
-export default function ProgramsIndex({ programs }: PageProps) {
+export default function ProgramsIndex({ programs, termOptions }: PageProps) {
   const levels = programs.flatMap((program) => program.levels ?? [])
   const availableLevels = levels.filter((level) => level.available)
 
@@ -22,7 +23,7 @@ export default function ProgramsIndex({ programs }: PageProps) {
           <div>
             <Title order={1}>Swim Programs</Title>
             <Text c="dimmed" size="sm">
-              The shared curriculum catalog: programs, levels, and your school's fees and
+              The shared curriculum catalog: programs, levels, and your school&apos;s fees and
               availability.
             </Text>
           </div>
@@ -54,7 +55,7 @@ export default function ProgramsIndex({ programs }: PageProps) {
         {programs.length === 0 ? (
           <Text c="dimmed">No programs yet.</Text>
         ) : (
-          <ProgramTable programs={programs} />
+          <ProgramTable programs={programs} termOptions={termOptions} />
         )}
       </Stack>
     </Container>

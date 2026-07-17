@@ -7,15 +7,16 @@ import ClassAuthoringException from '#exceptions/class_authoring_exception'
 import InvitationMail from '#mails/invitation'
 import Invitation from '#models/invitation'
 import Level from '#models/level'
-import LevelStage from '#models/level_stage'
+import type LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import Membership from '#models/membership'
 import Role from '#models/role'
-import School from '#models/school'
+import type School from '#models/school'
 import SwimmingClass from '#models/swimming_class'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
+import Term from '#models/term'
 import { RoleName } from '#values/role'
 import { classCode, codeSegment, nextTierNumber } from '#values/account_code'
 import {
@@ -50,6 +51,7 @@ export default class ClassSeriesAuthoringService {
   async createMany(school: School, data: StoreSwimmingClassesInput): Promise<SwimmingClass[]> {
     return db.transaction(async (trx) => {
       const level = await this.loadAvailableLevel(school, data.levelId, trx)
+      const term = await this.loadTerm(school, data.termId, trx)
 
       this.assertUniqueWithinPayload(data.days)
       for (const day of data.days) {
@@ -65,6 +67,7 @@ export default class ClassSeriesAuthoringService {
         if (day.lessonDate.weekday !== day.weekday) {
           throw new ClassAuthoringException('The first lesson must fall on the class day.')
         }
+        this.assertDateWithinTerm(day.lessonDate, term)
         const selection = this.resolveClassCurriculum(level, day)
         const code = classCode(selection.stage.code, nextTierNumber(existingCodes, 'class'))
         existingCodes.push(code)
@@ -75,6 +78,7 @@ export default class ClassSeriesAuthoringService {
           schoolId: school.id,
           levelId: level.id,
           levelStageId: selection.stage.id,
+          termId: term.id,
           name: day.name,
           code,
           weekday: day.weekday,
@@ -111,6 +115,12 @@ export default class ClassSeriesAuthoringService {
       const selection = this.resolveClassCurriculum(level, data)
       const instructor = await this.resolveInstructor(school, data, trx)
 
+      let termId = swimmingClass.termId
+      if (data.termId !== undefined && data.termId !== termId) {
+        const term = await this.loadTerm(school, data.termId, trx)
+        termId = term.id
+      }
+
       await this.assertLessonActivitiesCovered(swimmingClass, selection, trx)
 
       // Codes are strictly system-generated: the class keeps its own CL
@@ -125,6 +135,7 @@ export default class ClassSeriesAuthoringService {
       swimmingClass.useTransaction(trx)
       swimmingClass.merge({
         levelStageId: selection.stage.id,
+        termId,
         name: data.name,
         code,
         weekday: data.weekday,
@@ -163,7 +174,10 @@ export default class ClassSeriesAuthoringService {
    * weekday after the last planned lesson; the payload carries only that
    * week's activities, drawn from the class's skills.
    */
-  async planLesson(swimmingClass: SwimmingClass, data: StoreClassLessonInput): Promise<ClassLesson> {
+  async planLesson(
+    swimmingClass: SwimmingClass,
+    data: StoreClassLessonInput
+  ): Promise<ClassLesson> {
     return db.transaction(async (trx) => {
       const activityIds = await this.resolveLessonActivities(
         swimmingClass.id,
@@ -176,6 +190,11 @@ export default class ClassSeriesAuthoringService {
         .orderBy('date', 'desc')
         .first()
       const date = this.nextLessonDate(swimmingClass.weekday, latest?.date ?? null)
+
+      if (swimmingClass.termId) {
+        const term = await Term.findOrFail(swimmingClass.termId, { client: trx })
+        this.assertDateWithinTerm(date, term)
+      }
 
       swimmingClass.useTransaction(trx)
       const lesson = await swimmingClass
@@ -260,6 +279,31 @@ export default class ClassSeriesAuthoringService {
     swimmingClass.cancel()
     await swimmingClass.save()
     return swimmingClass
+  }
+
+  protected async loadTerm(
+    school: School,
+    termId: number,
+    trx: TransactionClientContract
+  ): Promise<Term> {
+    const term = await Term.query({ client: trx })
+      .where('id', termId)
+      .whereHas('swimYear', (yearQuery) => yearQuery.where('schoolId', school.id))
+      .first()
+
+    if (!term) {
+      throw new ClassAuthoringException('Choose a term from one of this school’s swim years.')
+    }
+
+    return term
+  }
+
+  protected assertDateWithinTerm(date: DateTime, term: Term): void {
+    if (date < term.startsOn.startOf('day') || date > term.endsOn.startOf('day')) {
+      throw new ClassAuthoringException(
+        `Lesson dates must fall within ${term.name} (${term.startsOn.toFormat('d LLL yyyy')} – ${term.endsOn.toFormat('d LLL yyyy')}).`
+      )
+    }
   }
 
   protected async loadAvailableLevel(

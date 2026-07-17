@@ -6,6 +6,7 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { LevelFactory } from '#database/factories/level_factory'
 import SchoolLevelSetting from '#models/school_level_setting'
+import SwimYear from '#models/swim_year'
 import LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import LevelStageSkill from '#models/level_stage_skill'
@@ -44,6 +45,19 @@ async function setupContext() {
   await joinSchool(manager, school, RoleName.ADMINISTRATOR)
   const curriculum = await seedCurriculum()
 
+  const swimYear = await SwimYear.create({
+    schoolId: school.id,
+    name: '2026',
+    startsOn: DateTime.fromISO('2026-01-01'),
+    endsOn: DateTime.fromISO('2026-12-31'),
+  })
+  const term = await swimYear.related('terms').create({
+    name: 'Term 1',
+    position: 1,
+    startsOn: DateTime.fromISO('2026-01-01'),
+    endsOn: DateTime.fromISO('2026-12-31'),
+  })
+
   const day = (
     overrides: Partial<StoreSwimmingClassesInput['days'][number]> = {}
   ): StoreSwimmingClassesInput['days'][number] => ({
@@ -57,7 +71,7 @@ async function setupContext() {
     ...overrides,
   })
 
-  return { manager, school, ...curriculum, day }
+  return { manager, school, ...curriculum, term, day }
 }
 
 test.group('Class series authoring service', (group) => {
@@ -68,10 +82,11 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('creates one class per day with its curriculum', async ({ assert }) => {
-    const { school, level, stage, skill, day } = await setupContext()
+    const { school, level, stage, skill, term, day } = await setupContext()
 
     const classes = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
+      termId: term.id,
       days: [
         day(),
         day({
@@ -94,7 +109,7 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('draft program levels cannot be used for class creation', async ({ assert }) => {
-    const { school, day } = await setupContext()
+    const { school, term, day } = await setupContext()
     const draftProgram = await ProgramFactory.apply('draft').create()
     const draftLevel = await LevelFactory.merge({ programId: draftProgram.id }).create()
     const draftStage = await LevelStage.create({
@@ -110,6 +125,7 @@ test.group('Class series authoring service', (group) => {
       () =>
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: draftLevel.id,
+          termId: term.id,
           days: [day({ levelStageId: draftStage.id })],
         }),
       'This program is not yet active.'
@@ -117,18 +133,23 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('unavailable levels cannot be used for class creation', async ({ assert }) => {
-    const { school, level, day } = await setupContext()
+    const { school, level, term, day } = await setupContext()
     await SchoolLevelSetting.create({ schoolId: school.id, levelId: level.id, available: false })
 
     await expectAuthoringError(
       assert,
-      () => new ClassSeriesAuthoringService().createMany(school, { levelId: level.id, days: [day()] }),
+      () =>
+        new ClassSeriesAuthoringService().createMany(school, {
+          levelId: level.id,
+          termId: term.id,
+          days: [day()],
+        }),
       'This program level is not available for this school.'
     )
   })
 
   test('the stage must belong to the selected level', async ({ assert }) => {
-    const { school, level, day } = await setupContext()
+    const { school, level, term, day } = await setupContext()
     const otherCurriculum = await seedCurriculum({
       program: 'Other Program',
       level: 'Other Level',
@@ -139,6 +160,7 @@ test.group('Class series authoring service', (group) => {
       () =>
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: level.id,
+          termId: term.id,
           days: [day({ levelStageId: otherCurriculum.stage.id })],
         }),
       'Choose a stage from this level.'
@@ -146,7 +168,7 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('skills must belong to the selected stage', async ({ assert }) => {
-    const { school, level, stage, day } = await setupContext()
+    const { school, level, stage, term, day } = await setupContext()
     const otherStage = await LevelStage.create({
       code: 'L90ST906',
       levelId: level.id,
@@ -166,6 +188,7 @@ test.group('Class series authoring service', (group) => {
       () =>
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: level.id,
+          termId: term.id,
           days: [day({ levelStageId: stage.id, skillIds: [foreignSkill.id] })],
         }),
       'A selected skill does not belong to this stage.'
@@ -173,7 +196,7 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('lesson activities must belong to the class skills', async ({ assert }) => {
-    const { school, level, stage, day } = await setupContext()
+    const { school, level, stage, term, day } = await setupContext()
     const otherSkill = await LevelStageSkill.create({
       levelStageId: stage.id,
       name: 'Unselected Skill',
@@ -188,6 +211,7 @@ test.group('Class series authoring service', (group) => {
     })
     const [created] = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
+      termId: term.id,
       days: [day()],
     })
 
@@ -202,13 +226,14 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('duplicate names within a payload are rejected', async ({ assert }) => {
-    const { school, level, day } = await setupContext()
+    const { school, level, term, day } = await setupContext()
 
     await expectAuthoringError(
       assert,
       () =>
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: level.id,
+          termId: term.id,
           days: [day({ name: 'Same Name' }), day({ weekday: 2, name: 'same name' })],
         }),
       'A class with this name already exists.'
@@ -216,13 +241,14 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('the first lesson must fall on the class day', async ({ assert }) => {
-    const { school, level, day } = await setupContext()
+    const { school, level, term, day } = await setupContext()
 
     await expectAuthoringError(
       assert,
       () =>
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: level.id,
+          termId: term.id,
           // 2026-07-14 is a Tuesday; the class runs on Mondays.
           days: [day({ lessonDate: DateTime.fromISO('2026-07-14') })],
         }),
@@ -231,7 +257,7 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('planned lessons append on the class weekday', async ({ assert }) => {
-    const { school, level, day } = await setupContext()
+    const { school, level, term, day } = await setupContext()
     // Anchor the first lesson on the next Monday from now so appends are
     // deterministic regardless of when the test runs.
     let firstDate = DateTime.now().startOf('day').plus({ days: 1 })
@@ -240,6 +266,7 @@ test.group('Class series authoring service', (group) => {
     }
     const [created] = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
+      termId: term.id,
       days: [day({ lessonDate: firstDate })],
     })
 
@@ -249,14 +276,16 @@ test.group('Class series authoring service', (group) => {
   })
 
   test('class codes stay continuous across separate creations', async ({ assert }) => {
-    const { school, level, day } = await setupContext()
+    const { school, level, term, day } = await setupContext()
     await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
+      termId: term.id,
       days: [day()],
     })
 
     const [second] = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
+      termId: term.id,
       days: [
         day({
           weekday: 4,
@@ -267,5 +296,60 @@ test.group('Class series authoring service', (group) => {
     })
 
     assert.equal(second.code, 'ST01CL02')
+  })
+
+  test('lesson dates must fall within the class term', async ({ assert }) => {
+    const { school, level, day } = await setupContext()
+    const otherYear = await SwimYear.create({
+      schoolId: school.id,
+      name: '2027',
+      startsOn: DateTime.fromISO('2027-01-01'),
+      endsOn: DateTime.fromISO('2027-12-31'),
+    })
+    const otherTerm = await otherYear.related('terms').create({
+      name: 'Term 1',
+      position: 1,
+      startsOn: DateTime.fromISO('2027-01-04'),
+      endsOn: DateTime.fromISO('2027-04-01'),
+    })
+
+    await expectAuthoringError(
+      assert,
+      () =>
+        new ClassSeriesAuthoringService().createMany(school, {
+          levelId: level.id,
+          termId: otherTerm.id,
+          days: [day()],
+        }),
+      'Lesson dates must fall within Term 1 (4 Jan 2027 – 1 Apr 2027).'
+    )
+  })
+
+  test('the term must belong to the school', async ({ assert }) => {
+    const { manager, school, level, day } = await setupContext()
+    const otherSchool = await SchoolFactory.merge({ createdByUserId: manager.id }).create()
+    const foreignYear = await SwimYear.create({
+      schoolId: otherSchool.id,
+      name: '2026',
+      startsOn: DateTime.fromISO('2026-01-01'),
+      endsOn: DateTime.fromISO('2026-12-31'),
+    })
+    const foreignTerm = await foreignYear.related('terms').create({
+      name: 'Term 1',
+      position: 1,
+      startsOn: DateTime.fromISO('2026-01-01'),
+      endsOn: DateTime.fromISO('2026-12-31'),
+    })
+
+    await expectAuthoringError(
+      assert,
+      () =>
+        new ClassSeriesAuthoringService().createMany(school, {
+          levelId: level.id,
+          termId: foreignTerm.id,
+          days: [day()],
+        }),
+      'Choose a term from one of this school’s swim years.'
+    )
   })
 })

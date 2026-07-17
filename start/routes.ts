@@ -12,7 +12,17 @@ import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
 
 router
-  .on('/')
+  .get('/', ({ auth, inertia, response }) => {
+    if (auth.user) {
+      return response.redirect().toRoute('home')
+    }
+
+    return inertia.render('landing', {})
+  })
+  .as('landing')
+
+router
+  .on('/dashboard')
   .renderInertia('home', {})
   .use(middleware.auth())
   .use(middleware.completeProfile())
@@ -23,6 +33,8 @@ router
   .group(() => {
     router.get('login', [controllers.SignInLinks, 'create'])
     router.post('login', [controllers.SignInLinks, 'store'])
+    router.get('signup', [controllers.AccountRegistrations, 'create'])
+    router.post('signup', [controllers.AccountRegistrations, 'store'])
     router.get('auth/verify', [controllers.Sessions, 'store']).as('auth.verify')
   })
   .use(middleware.guest())
@@ -85,8 +97,10 @@ router
   .group(() => {
     router
       .resource('programs', controllers.Programs)
-      .except(['show'])
+      .where('id', router.matchers.number())
       .use(['create', 'store', 'edit', 'update', 'destroy'], middleware.authorize('program.manage'))
+
+    router.get('levels/:id', [controllers.Levels, 'show']).where('id', router.matchers.number())
 
     router
       .patch('levels/:id/settings', [controllers.LevelSettings, 'update'])
@@ -95,6 +109,20 @@ router
   .use(middleware.auth())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
+
+// School settings — swim years and terms, managed by Admin/Head Coach.
+router
+  .group(() => {
+    router
+      .resource('swim-years', controllers.SwimYears)
+      .only(['index', 'store', 'update', 'destroy'])
+      .where('id', router.matchers.number())
+  })
+  .prefix('settings')
+  .use(middleware.auth())
+  .use(middleware.completeProfile())
+  .use(middleware.activeSchool())
+  .use(middleware.authorize('settings.manage'))
 
 // Swimming classes — day-based classes created inline from the programs list.
 router

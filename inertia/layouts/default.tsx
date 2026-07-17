@@ -24,6 +24,7 @@ import {
   IconLayoutDashboard,
   IconRipple,
   IconSchool,
+  IconSettings,
   IconStack2,
   IconSwimming,
   IconUserPlus,
@@ -196,6 +197,14 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                   label="Invite member"
                   icon={<IconUserPlus size={18} stroke={1.6} />}
                   active={url.startsWith('/invitations')}
+                />
+              </Guard>
+              <Guard for="settings.manage">
+                <SidebarLink
+                  route="swim_years.index"
+                  label="Settings"
+                  icon={<IconSettings size={18} stroke={1.6} />}
+                  active={url.startsWith('/settings')}
                 />
               </Guard>
             </Stack>

@@ -5,7 +5,7 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import Level from '#models/level'
 import LevelStage from '#models/level_stage'
-import { seedRoles, joinSchool } from '#tests/helpers'
+import { seedRoles, joinSchool, seedSwimYear } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import SchoolLevelSetting from '#models/school_level_setting'
 
@@ -113,6 +113,7 @@ test.group('Programs index', (group) => {
       position: 1,
       description: null,
     })
+    await seedSwimYear(school)
     await browserContext.loginAs(manager)
 
     const page = await visit(route('programs.index'))
@@ -134,7 +135,7 @@ test.group('Programs index', (group) => {
       await joinSchool(user, school, roleName)
       const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
       const level = await Level.create({
-      code: 'P90L906',
+        code: 'P90L906',
         programId: program.id,
         name: 'Beginners',
         ageGroup: '4-7',

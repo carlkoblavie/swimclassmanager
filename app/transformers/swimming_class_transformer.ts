@@ -8,7 +8,9 @@ import type Level from '#models/level'
 import type LevelStage from '#models/level_stage'
 import type Membership from '#models/membership'
 import type Program from '#models/program'
+import type SwimYear from '#models/swim_year'
 import type SwimmingClass from '#models/swimming_class'
+import type Term from '#models/term'
 import type User from '#models/user'
 
 export const WEEKDAY_NAMES: Record<number, string> = {
@@ -35,6 +37,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       pendingInstructorInvitation?: Invitation
       classSkills?: ClassSkill[]
       lessons?: ClassLesson[]
+      term?: Term
     }
     const level = preloaded.level
     const levelPreloaded = level?.$preloaded as { program?: Program } | undefined
@@ -80,12 +83,33 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       level: level
         ? {
             id: level.id,
+            programId: level.programId,
             name: level.name,
             capacity: level.capacity,
             programName: program?.name ?? '',
           }
         : undefined,
       stage: stage ? { id: stage.id, code: stage.code, name: stage.name } : undefined,
+      term: (() => {
+        const term = preloaded.term
+        if (!term) {
+          return undefined
+        }
+        const termPreloaded = term.$preloaded as { swimYear?: SwimYear } | undefined
+        return {
+          id: term.id,
+          name: term.name,
+          swimYearName: termPreloaded?.swimYear?.name ?? '',
+          startsOn: {
+            raw: term.startsOn.toISODate() ?? '',
+            formatted: term.startsOn.toFormat('d LLL yyyy'),
+          },
+          endsOn: {
+            raw: term.endsOn.toISODate() ?? '',
+            formatted: term.endsOn.toFormat('d LLL yyyy'),
+          },
+        }
+      })(),
       instructor: hasInstructor
         ? {
             status: pendingInvitation ? ('pending' as const) : ('active' as const),
@@ -125,7 +149,14 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             if (!activity) {
               return []
             }
-            return [{ id: activity.id, name: activity.name, skillId: activity.levelStageSkillId }]
+            return [
+              {
+                id: activity.id,
+                name: activity.name,
+                description: activity.description,
+                skillId: activity.levelStageSkillId,
+              },
+            ]
           }),
         }
       }),

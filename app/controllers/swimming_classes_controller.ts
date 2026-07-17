@@ -1,12 +1,15 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
 import Level from '#models/level'
 import Membership from '#models/membership'
 import School from '#models/school'
+import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
 import LevelTransformer from '#transformers/level_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
+import SwimYearTransformer from '#transformers/swim_year_transformer'
 import SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import {
   storeSwimmingClassesValidator,
@@ -23,6 +26,7 @@ export default class SwimmingClassesController {
     const classes = await SwimmingClass.query()
       .where('schoolId', schoolId)
       .preload('level', (levelQuery) => levelQuery.preload('program'))
+      .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
       .preload('instructorMembership', (membershipQuery) =>
         membershipQuery.preload('user').preload('roles')
@@ -68,6 +72,7 @@ export default class SwimmingClassesController {
       .where('id', params.id)
       .where('schoolId', schoolId)
       .preload('level', (levelQuery) => levelQuery.preload('program'))
+      .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
       .preload('instructorMembership', (membershipQuery) =>
         membershipQuery.preload('user').preload('roles')
@@ -99,6 +104,7 @@ export default class SwimmingClassesController {
       .where('id', params.id)
       .where('schoolId', schoolId)
       .preload('level', (levelQuery) => levelQuery.preload('program'))
+      .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
       .preload('instructorMembership', (membershipQuery) =>
         membershipQuery.preload('user').preload('roles')
@@ -128,10 +134,24 @@ export default class SwimmingClassesController {
       .preload('roles')
       .orderBy('id')
 
+    // Ongoing and upcoming swim years for the term picker; the class's own
+    // (possibly archived) year is included so its term stays selectable.
+    const termYears = await SwimYear.query()
+      .where('schoolId', schoolId)
+      .where((query) => {
+        query.where('endsOn', '>=', DateTime.now().toISODate()!)
+        if (swimmingClass.termId) {
+          query.orWhereHas('terms', (termsQuery) => termsQuery.where('id', swimmingClass.termId!))
+        }
+      })
+      .preload('terms', (termsQuery) => termsQuery.orderBy('position'))
+      .orderBy('startsOn')
+
     return inertia.render('classes/edit', {
       swimmingClass: SwimmingClassTransformer.transform(swimmingClass),
       level: LevelTransformer.transform(level, schoolId),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
+      termOptions: SwimYearTransformer.transform(termYears),
     })
   }
 

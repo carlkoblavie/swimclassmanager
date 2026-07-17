@@ -9,8 +9,12 @@ import Membership from '#models/membership'
 import Invitation from '#models/invitation'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
+import Term from '#models/term'
 
 export default class SwimmingClass extends SwimmingClassSchema {
+  @belongsTo(() => Term)
+  declare term: BelongsTo<typeof Term>
+
   @belongsTo(() => School)
   declare school: BelongsTo<typeof School>
 

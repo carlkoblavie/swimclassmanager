@@ -18,6 +18,9 @@ export const permissions = definePermissions({
   school: {
     create: 'Create schools in an organisation',
   },
+  settings: {
+    manage: 'Manage school settings, swim years, and terms',
+  },
 })
 
 export type PermissionKey = ReturnType<typeof permissions.keys>[number]
@@ -34,6 +37,7 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
     permissions.getKey('class.view'),
     permissions.getKey('class.manage'),
     permissions.getKey('school.create'),
+    permissions.getKey('settings.manage'),
   ],
   [RoleName.HEAD_COACH]: [
     permissions.getKey('invitation.create'),
@@ -42,6 +46,7 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
     permissions.getKey('class.view'),
     permissions.getKey('class.manage'),
     permissions.getKey('school.create'),
+    permissions.getKey('settings.manage'),
   ],
   [RoleName.TEACHER]: [permissions.getKey('class.view')],
   [RoleName.DECK_SUPERVISOR]: [permissions.getKey('class.view')],

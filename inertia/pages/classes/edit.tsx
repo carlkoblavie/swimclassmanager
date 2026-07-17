@@ -31,11 +31,29 @@ type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
   level: Data.Level
   instructorOptions: Data.Membership[]
+  termOptions: Data.SwimYear[]
 }>
 
-export default function ClassEdit({ swimmingClass, level, instructorOptions }: PageProps) {
+export default function ClassEdit({
+  swimmingClass,
+  level,
+  instructorOptions,
+  termOptions,
+}: PageProps) {
   const stages = level.stages ?? []
   const [levelStageId, setLevelStageId] = useState(String(swimmingClass.levelStageId))
+
+  const [termId, setTermId] = useState(swimmingClass.term ? String(swimmingClass.term.id) : '')
+  const termChoices = [
+    // Untied legacy classes may stay untied; once tied, a term is required.
+    ...(swimmingClass.term ? [] : [{ value: '', label: 'No term' }]),
+    ...termOptions.flatMap((swimYear) =>
+      swimYear.terms.map((term) => ({
+        value: String(term.id),
+        label: `${swimYear.name} · ${term.name} (${term.startsOn.formatted} – ${term.endsOn.formatted})`,
+      }))
+    ),
+  ]
   const [skillIds, setSkillIds] = useState<string[]>(
     swimmingClass.skills.map((skill) => String(skill.id))
   )
@@ -115,6 +133,14 @@ export default function ClassEdit({ swimmingClass, level, instructorOptions }: P
                   name="location"
                   defaultValue={swimmingClass.location ?? ''}
                   error={errors.location}
+                />
+                {termId !== '' && <input type="hidden" name="termId" value={termId} />}
+                <NativeSelect
+                  label="Term"
+                  value={termId}
+                  onChange={(event) => setTermId(event.currentTarget.value)}
+                  error={errors.termId}
+                  data={termChoices}
                 />
               </Stack>
             </Card>

@@ -2,15 +2,16 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
-import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { seedRoles, joinSchool, seedCurriculum, seedSwimYear } from '#tests/helpers'
 import { RoleName } from '#values/role'
+import type School from '#models/school'
 import type User from '#models/user'
 
-async function manager(): Promise<User> {
+async function manager(): Promise<{ user: User; school: School }> {
   const user = await UserFactory.apply('completed').create()
   const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
   await joinSchool(user, school, RoleName.ADMINISTRATOR)
-  return user
+  return { user, school }
 }
 
 test.group('Swimming classes store', (group) => {
@@ -26,8 +27,10 @@ test.group('Swimming classes store', (group) => {
     browserContext,
     db,
   }) => {
-    await browserContext.loginAs(await manager())
+    const { user, school } = await manager()
+    await browserContext.loginAs(user)
     await seedCurriculum()
+    await seedSwimYear(school)
 
     const page = await visit(route('programs.index'))
     await page.getByRole('button', { name: 'Create class' }).click()
@@ -60,8 +63,10 @@ test.group('Swimming classes store', (group) => {
   })
 
   test('a single day creates a single class', async ({ visit, route, browserContext, db }) => {
-    await browserContext.loginAs(await manager())
+    const { user, school } = await manager()
+    await browserContext.loginAs(user)
     await seedCurriculum()
+    await seedSwimYear(school)
 
     const page = await visit(route('programs.index'))
     await page.getByRole('button', { name: 'Create class' }).click()
@@ -84,8 +89,10 @@ test.group('Swimming classes store', (group) => {
     browserContext,
     db,
   }) => {
-    await browserContext.loginAs(await manager())
+    const { user, school } = await manager()
+    await browserContext.loginAs(user)
     await seedCurriculum()
+    await seedSwimYear(school)
 
     const page = await visit(route('programs.index'))
     await page.getByRole('button', { name: 'Create class' }).click()
