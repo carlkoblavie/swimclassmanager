@@ -37,6 +37,15 @@ function uniqueNumbers(values: number[]): number[] {
 
 type DayInput = StoreSwimmingClassesInput['days'][number]
 
+type InstructorSelection = Pick<
+  UpdateSwimmingClassInput,
+  | 'instructorMode'
+  | 'instructorMembershipId'
+  | 'inviteTeacherEmail'
+  | 'inviteTeacherName'
+  | 'inviteTeacherPhone'
+>
+
 type CurriculumSelection = {
   stage: LevelStage
   skillIds: number[]
@@ -52,6 +61,7 @@ export default class ClassSeriesAuthoringService {
     return db.transaction(async (trx) => {
       const level = await this.loadAvailableLevel(school, data.levelId, trx)
       const term = await this.loadTerm(school, data.termId, trx)
+      const instructor = await this.resolveInstructor(school, data, trx)
 
       this.assertUniqueWithinPayload(data.days)
       for (const day of data.days) {
@@ -85,6 +95,8 @@ export default class ClassSeriesAuthoringService {
           startTime: day.startTime,
           durationMinutes: day.durationMinutes,
           location: null,
+          instructorMembershipId: instructor.membershipId ?? null,
+          pendingInstructorInvitationId: instructor.invitation?.id ?? null,
         })
         await swimmingClass.save()
         await swimmingClass
@@ -92,6 +104,19 @@ export default class ClassSeriesAuthoringService {
           .createMany(selection.skillIds.map((levelStageSkillId) => ({ levelStageSkillId })))
         await swimmingClass.related('lessons').create({ date: day.lessonDate })
         classes.push(swimmingClass)
+      }
+
+      if (instructor.invitation) {
+        trx.after('commit', async () => {
+          await mail.sendLater(
+            new InvitationMail(
+              instructor.invitation!.email,
+              instructor.invitation!.token,
+              school.name,
+              RoleName.TEACHER
+            )
+          )
+        })
       }
 
       return classes
@@ -404,7 +429,7 @@ export default class ClassSeriesAuthoringService {
 
   protected async resolveInstructor(
     school: School,
-    data: UpdateSwimmingClassInput,
+    data: InstructorSelection,
     trx: TransactionClientContract
   ): Promise<{ membershipId?: number; invitation?: Invitation }> {
     const mode = data.instructorMode ?? 'none'

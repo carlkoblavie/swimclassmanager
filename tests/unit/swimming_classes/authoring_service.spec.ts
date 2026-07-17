@@ -352,4 +352,47 @@ test.group('Class series authoring service', (group) => {
       'Choose a term from one of this school’s swim years.'
     )
   })
+
+  test('an existing instructor can be assigned at creation', async ({ assert }) => {
+    const { school, level, term, day } = await setupContext()
+    const teacher = await UserFactory.apply('completed').create()
+    const membership = await joinSchool(teacher, school, RoleName.TEACHER)
+
+    const classes = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      termId: term.id,
+      instructorMode: 'existing',
+      instructorMembershipId: membership.id,
+      days: [
+        day(),
+        day({
+          weekday: 3,
+          name: 'Evening squad — Wednesday',
+          lessonDate: DateTime.fromISO('2026-07-15'),
+        }),
+      ],
+    })
+
+    assert.equal(classes[0].instructorMembershipId, membership.id)
+    assert.equal(classes[1].instructorMembershipId, membership.id)
+  })
+
+  test('a non-instructor membership is rejected at creation', async ({ assert }) => {
+    const { school, level, term, day } = await setupContext()
+    const parent = await UserFactory.apply('completed').create()
+    const membership = await joinSchool(parent, school, RoleName.PARENT)
+
+    await expectAuthoringError(
+      assert,
+      () =>
+        new ClassSeriesAuthoringService().createMany(school, {
+          levelId: level.id,
+          termId: term.id,
+          instructorMode: 'existing',
+          instructorMembershipId: membership.id,
+          days: [day()],
+        }),
+      'Choose a Teacher or Head Coach from this school.'
+    )
+  })
 })

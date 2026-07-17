@@ -8,10 +8,12 @@ import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import { permissions } from '#start/permissions'
 import ProgramAuthoringService from '#services/program_authoring_service'
+import MembershipTransformer from '#transformers/membership_transformer'
 import ProgramTransformer from '#transformers/program_transformer'
 import SwimYearTransformer from '#transformers/swim_year_transformer'
 import SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import { storeProgramValidator, updateProgramValidator } from '#validators/program'
+import { RoleName } from '#values/role'
 
 export default class ProgramsController {
   async index({ auth, inertia }: HttpContext) {
@@ -50,9 +52,20 @@ export default class ProgramsController {
       .preload('terms', (termsQuery) => termsQuery.orderBy('position'))
       .orderBy('startsOn')
 
+    // Teachers and head coaches feed the builder's instructor picker.
+    const instructorMemberships = await Membership.query()
+      .where('schoolId', schoolId)
+      .whereHas('roles', (rolesQuery) => {
+        rolesQuery.whereIn('name', [RoleName.TEACHER, RoleName.HEAD_COACH])
+      })
+      .preload('user')
+      .preload('roles')
+      .orderBy('id')
+
     return inertia.render('programs/index', {
       programs: ProgramTransformer.transform(programs, schoolId),
       termOptions: SwimYearTransformer.transform(termYears),
+      instructorOptions: MembershipTransformer.transform(instructorMemberships),
     })
   }
 
