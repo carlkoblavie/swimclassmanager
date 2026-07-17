@@ -1,5 +1,4 @@
 import { Fragment, useState } from 'react'
-import { useDisclosure } from '@mantine/hooks'
 import {
   ActionIcon,
   Badge,
@@ -22,7 +21,7 @@ import {
   IconStack2,
   IconTrash,
 } from '@tabler/icons-react'
-import LevelModal, { type LevelDraft } from '~/components/level_modal'
+import LevelForm, { type LevelDraft } from '~/components/level_form'
 import StageBuilder, {
   type StageActivityDraft,
   type StageDraft,
@@ -65,24 +64,18 @@ function SectionHeading({
 
 export default function ProgramFormBody({ errors, initial }: Props) {
   const [levels, setLevels] = useState<LevelDraft[]>(initial?.levels ?? [])
-  const [opened, { open, close }] = useDisclosure(false)
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  // 'new' shows the inline add form; a number edits that level in place.
+  const [levelFormTarget, setLevelFormTarget] = useState<'new' | number | null>(null)
 
-  const openAdd = () => {
-    setEditingIndex(null)
-    open()
-  }
-  const openEdit = (index: number) => {
-    setEditingIndex(index)
-    open()
-  }
   const remove = (index: number) => setLevels((current) => current.filter((_, i) => i !== index))
-  const save = (draft: LevelDraft) =>
+  const save = (draft: LevelDraft) => {
     setLevels((current) =>
-      editingIndex === null
+      levelFormTarget === 'new' || levelFormTarget === null
         ? [...current, draft]
-        : current.map((level, i) => (i === editingIndex ? draft : level))
+        : current.map((level, i) => (i === levelFormTarget ? draft : level))
     )
+    setLevelFormTarget(null)
+  }
 
   const [stageTarget, setStageTarget] = useState<StageTarget | null>(null)
   const saveStage = (draft: StageDraft) => {
@@ -197,10 +190,14 @@ export default function ProgramFormBody({ errors, initial }: Props) {
             title="Curriculum hierarchy"
             subtitle="Define the progression path: the levels swimmers move through."
           />
-          <Button variant="light" size="sm" onClick={openAdd}>
+          <Button variant="light" size="sm" onClick={() => setLevelFormTarget('new')}>
             Add level
           </Button>
         </Group>
+
+        {levelFormTarget === 'new' && (
+          <LevelForm onCancel={() => setLevelFormTarget(null)} onSave={save} />
+        )}
 
         {levels.length === 0 ? (
           <Card>
@@ -228,7 +225,7 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                       )}
                     </Group>
                     <Text size="sm" mt={4}>
-                      {level.ageGroup} · Capacity {level.capacity} · GHS {level.defaultFee} —{' '}
+                      {level.ageGroup} · GHS {level.defaultFee} —{' '}
                       <Text span size="sm" c="dimmed">
                         {level.description}
                       </Text>
@@ -239,7 +236,7 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                       <ActionIcon
                         variant="default"
                         aria-label="Edit"
-                        onClick={() => openEdit(index)}
+                        onClick={() => setLevelFormTarget(index)}
                       >
                         <IconPencil size={16} />
                       </ActionIcon>
@@ -294,6 +291,15 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                   />
                 )}
 
+                {levelFormTarget === index && (
+                  <LevelForm
+                    key={index}
+                    initial={level}
+                    onCancel={() => setLevelFormTarget(null)}
+                    onSave={save}
+                  />
+                )}
+
                 {stageTarget?.levelIndex === index && (
                   <StageBuilder
                     key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
@@ -327,7 +333,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
             <input type="hidden" name={`levels[${index}][ageGroup]`} value={level.ageGroup} />
             <input type="hidden" name={`levels[${index}][description]`} value={level.description} />
             <input type="hidden" name={`levels[${index}][defaultFee]`} value={level.defaultFee} />
-            <input type="hidden" name={`levels[${index}][capacity]`} value={level.capacity} />
             {level.stages.map((stage, stageIndex) => {
               const prefix = `levels[${index}][stages][${stageIndex}]`
               return (
@@ -338,7 +343,11 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                   <input type="hidden" name={`${prefix}[name]`} value={stage.name} />
                   <input type="hidden" name={`${prefix}[position]`} value={stage.position} />
                   {stage.description.trim() !== '' && (
-                    <input type="hidden" name={`${prefix}[description]`} value={stage.description} />
+                    <input
+                      type="hidden"
+                      name={`${prefix}[description]`}
+                      value={stage.description}
+                    />
                   )}
                   {stage.skills.map((skill, skillIndex) => {
                     const skillPrefix = `${prefix}[skills][${skillIndex}]`
@@ -399,13 +408,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
           </Fragment>
         ))}
       </Stack>
-
-      <LevelModal
-        opened={opened}
-        onClose={close}
-        onSave={save}
-        initial={editingIndex !== null ? levels[editingIndex] : undefined}
-      />
     </>
   )
 }

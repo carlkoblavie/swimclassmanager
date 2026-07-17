@@ -37,7 +37,6 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Add level' }).click()
     await page.getByLabel('Level name').fill('Beginners')
     await page.getByLabel('Age group').fill('4-7')
-    await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
     await page.getByRole('button', { name: 'Save level' }).click()
@@ -67,7 +66,7 @@ test.group('Programs store', (group) => {
     await page.assertVisible('text=Water Discovery')
 
     await db.assertHas('programs', { name: 'Learn to Swim', activated_at: null })
-    await db.assertHas('levels', { name: 'Beginners', default_fee: 5000, capacity: 10 })
+    await db.assertHas('levels', { name: 'Beginners', default_fee: 5000 })
     await db.assertHas('levels', { name: 'Beginners', code: 'P01L01' })
     await db.assertHas('level_stages', { name: 'Water Discovery', position: 1, code: 'L01ST01' })
     await db.assertHas('level_stage_skills', {
@@ -89,7 +88,6 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Add level' }).click()
     await page.getByLabel('Level name').fill('Beginners')
     await page.getByLabel('Age group').fill('4-7')
-    await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
     await page.getByRole('button', { name: 'Save level' }).click()
@@ -124,7 +122,6 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Add level' }).click()
     await page.getByLabel('Level name').fill('Beginners')
     await page.getByLabel('Age group').fill('4-7')
-    await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
     await page.getByRole('button', { name: 'Save level' }).click()
@@ -160,7 +157,6 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Add level' }).click()
     await page.getByLabel('Level name').fill('Beginners')
     await page.getByLabel('Age group').fill('4-7')
-    await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
     await page.getByRole('button', { name: 'Save level' }).click()
@@ -190,7 +186,6 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Add level' }).click()
     await page.getByLabel('Level name').fill('Beginners')
     await page.getByLabel('Age group').fill('4-7')
-    await page.getByLabel('Capacity').fill('10')
     await page.getByLabel('Fee (GHS)').fill('50')
     await page.getByLabel('Level description').fill('Intro level.')
     await page.getByRole('button', { name: 'Save level' }).click()
@@ -215,9 +210,8 @@ test.group('Programs store', (group) => {
 
   test('rejects an invalid submission ({case})')
     .with([
-      { case: 'missing program name', fillName: false, fee: '50', capacity: '10' },
-      { case: 'negative fee', fillName: true, fee: '-5', capacity: '10' },
-      { case: 'non-whole capacity', fillName: true, fee: '50', capacity: '1.5' },
+      { case: 'missing program name', fillName: false, fee: '50' },
+      { case: 'negative fee', fillName: true, fee: '-5' },
     ])
     .run(async ({ visit, route, browserContext, db }, row) => {
       await browserContext.loginAs(await manager())
@@ -230,7 +224,6 @@ test.group('Programs store', (group) => {
       await page.getByRole('button', { name: 'Add level' }).click()
       await page.getByLabel('Level name').fill('Beginners')
       await page.getByLabel('Age group').fill('4-7')
-      await page.getByLabel('Capacity').fill(row.capacity)
       await page.getByLabel('Fee (GHS)').fill(row.fee)
       await page.getByLabel('Level description').fill('Intro level.')
       await page.getByRole('button', { name: 'Save level' }).click()

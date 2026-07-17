@@ -175,7 +175,7 @@ export class LevelSchema extends BaseModel {
   @column()
   declare ageGroup: string
   @column()
-  declare capacity: number
+  declare capacity: number | null
   @column()
   declare code: string
   @column.dateTime({ autoCreate: true })
@@ -336,8 +336,27 @@ export class SignupSchema extends BaseModel {
   declare whatsapp: string | null
 }
 
+export class SwimYearSchema extends BaseModel {
+  static $columns = ['createdAt', 'endsOn', 'id', 'name', 'schoolId', 'startsOn', 'updatedAt'] as const
+  $columns = SwimYearSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.date()
+  declare endsOn: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column()
+  declare schoolId: number
+  @column.date()
+  declare startsOn: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class SwimmingClassSchema extends BaseModel {
-  static $columns = ['cancelledAt', 'code', 'createdAt', 'durationMinutes', 'id', 'instructorMembershipId', 'levelId', 'levelStageId', 'location', 'name', 'pendingInstructorInvitationId', 'schoolId', 'startTime', 'updatedAt', 'weekday'] as const
+  static $columns = ['cancelledAt', 'code', 'createdAt', 'durationMinutes', 'id', 'instructorMembershipId', 'levelId', 'levelStageId', 'location', 'name', 'pendingInstructorInvitationId', 'schoolId', 'startTime', 'termId', 'updatedAt', 'weekday'] as const
   $columns = SwimmingClassSchema.$columns
   @column.dateTime()
   declare cancelledAt: DateTime | null
@@ -365,10 +384,33 @@ export class SwimmingClassSchema extends BaseModel {
   declare schoolId: number
   @column()
   declare startTime: string
+  @column()
+  declare termId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
   @column()
   declare weekday: number
+}
+
+export class TermSchema extends BaseModel {
+  static $columns = ['createdAt', 'endsOn', 'id', 'name', 'position', 'startsOn', 'swimYearId', 'updatedAt'] as const
+  $columns = TermSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.date()
+  declare endsOn: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare name: string
+  @column()
+  declare position: number
+  @column.date()
+  declare startsOn: DateTime
+  @column()
+  declare swimYearId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class UserSchema extends BaseModel {

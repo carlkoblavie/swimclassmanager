@@ -160,7 +160,6 @@ test.group('Programs update', (group) => {
     await page.getByRole('button', { name: 'Add level' }).click()
     await page.getByLabel('Level name').fill('Intermediate')
     await page.getByLabel('Age group').fill('8-12')
-    await page.getByLabel('Capacity').fill('8')
     await page.getByLabel('Fee (GHS)').fill('70')
     await page.getByLabel('Level description').fill('Next level.')
     await page.getByRole('button', { name: 'Save level' }).click()

@@ -3,7 +3,7 @@ import { Form } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ProgramFormBody from '~/components/program_form_body'
-import type { LevelDraft } from '~/components/level_modal'
+import type { LevelDraft } from '~/components/level_form'
 
 type PageProps = InertiaProps<{
   program: Data.Program.Variants['forEdit']
@@ -21,7 +21,6 @@ export default function EditProgram({ program }: PageProps) {
         ageGroup: level.ageGroup,
         description: level.description,
         defaultFee: String(level.defaultFee),
-        capacity: String(level.capacity),
         stages: level.stages.map((stage) => ({
           id: stage.id,
           code: stage.code,
