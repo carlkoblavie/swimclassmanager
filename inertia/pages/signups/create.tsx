@@ -1,20 +1,31 @@
-import { Fragment, useState } from 'react'
+import { Fragment, ReactElement, useState } from 'react'
 import { Form } from '@adonisjs/inertia/react'
 import { useDisclosure } from '@mantine/hooks'
 import {
   Anchor,
+  Badge,
   Button,
   Card,
-  Container,
   Divider,
   Group,
+  SimpleGrid,
   Stack,
   Text,
   Textarea,
   TextInput,
   Title,
 } from '@mantine/core'
+import {
+  IconArrowRight,
+  IconMail,
+  IconMessageCircle,
+  IconPhone,
+  IconPlus,
+  IconUser,
+} from '@tabler/icons-react'
+import { type Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
+import AuthLayout from '~/layouts/auth'
 import LearnerModal, { type LearnerDraft } from '~/components/learner_modal'
 
 type PageProps = InertiaProps<{
@@ -24,12 +35,7 @@ type PageProps = InertiaProps<{
   genders: string[]
 }>
 
-export default function RegisterLearner({
-  school,
-  organisationSlug,
-  schoolSlug,
-  genders,
-}: PageProps) {
+function RegisterLearner({ school, organisationSlug, schoolSlug, genders }: PageProps) {
   const [learners, setLearners] = useState<LearnerDraft[]>([])
   const [opened, { open, close }] = useDisclosure(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -51,61 +57,99 @@ export default function RegisterLearner({
     )
 
   return (
-    <Container size="sm" py="xl">
-      <Stack gap="lg">
-        <div>
-          <Title order={1}>Sign up with {school.name}</Title>
-          <Text c="dimmed">Register a learner for lessons — no account needed.</Text>
-        </div>
+    <>
+      <Stack gap={28}>
+        <Stack gap={8}>
+          <Badge variant="light" color="aqua" w="fit-content">
+            {school.name}
+          </Badge>
+          <Title order={1} className="auth-page-title">
+            Create your sign-up
+          </Title>
+          <Text c="dimmed" fz="md">
+            Register a learner for lessons. No account is needed to send your details to the
+            school.
+          </Text>
+        </Stack>
 
         <Form route="signups.store" routeParams={{ organisationSlug, schoolSlug }}>
           {({ errors, processing }) => (
             <Stack gap="lg">
               <Stack gap="md">
-                <Title order={3}>Your details</Title>
-                <TextInput label="Your name" name="contactName" error={errors.contactName} />
+                <Title order={2} className="auth-section-title">
+                  Your details
+                </Title>
+                <TextInput
+                  label="Your name"
+                  name="contactName"
+                  placeholder="Jane Doe"
+                  leftSection={<IconUser size={18} stroke={1.7} />}
+                  error={errors.contactName}
+                />
                 <TextInput
                   label="Email"
                   type="email"
                   name="contactEmail"
+                  placeholder="name@example.com"
+                  leftSection={<IconMail size={18} stroke={1.7} />}
                   error={errors.contactEmail}
                 />
-                <TextInput
-                  label="Phone"
-                  type="tel"
-                  name="contactPhone"
-                  error={errors.contactPhone}
-                />
-                <TextInput
-                  label="WhatsApp number"
-                  description="Optional"
-                  name="whatsapp"
-                  error={errors.whatsapp}
-                />
+                <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                  <TextInput
+                    label="Phone"
+                    type="tel"
+                    name="contactPhone"
+                    placeholder="+233 20 000 0000"
+                    leftSection={<IconPhone size={18} stroke={1.7} />}
+                    error={errors.contactPhone}
+                  />
+                  <TextInput
+                    label="WhatsApp number"
+                    description="Optional"
+                    name="whatsapp"
+                    placeholder="+233 20 000 0000"
+                    leftSection={<IconMessageCircle size={18} stroke={1.7} />}
+                    error={errors.whatsapp}
+                  />
+                </SimpleGrid>
               </Stack>
 
               <Divider />
 
               <Stack gap="sm">
-                <Group justify="space-between">
-                  <Title order={3}>Learners</Title>
-                  <Button variant="light" size="sm" onClick={openAdd}>
+                <Group justify="space-between" align="center">
+                  <Title order={2} className="auth-section-title">
+                    Learners
+                  </Title>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={openAdd}
+                    leftSection={<IconPlus size={16} stroke={1.8} />}
+                  >
                     Add learner
                   </Button>
                 </Group>
 
                 {learners.length === 0 ? (
-                  <Text c="dimmed" size="sm">
-                    No learners added yet. Add at least one.
-                  </Text>
+                  <Card padding="md" radius="md" withBorder className="auth-empty-card">
+                    <Text c="dimmed" size="sm">
+                      Add at least one learner to continue.
+                    </Text>
+                  </Card>
                 ) : (
                   learners.map((learner, index) => (
-                    <Card key={index} withBorder padding="sm" radius="md">
-                      <Group justify="space-between">
-                        <Text fw={500}>
-                          {learner.firstName} {learner.lastName}
-                        </Text>
-                        <Group gap="md">
+                    <Card key={index} padding="sm" radius="md" withBorder>
+                      <Group justify="space-between" wrap="nowrap">
+                        <Stack gap={0}>
+                          <Text fw={600}>
+                            {learner.firstName} {learner.lastName}
+                          </Text>
+                          <Text c="dimmed" size="xs">
+                            {learner.dateOfBirth}
+                          </Text>
+                        </Stack>
+                        <Group gap="md" wrap="nowrap">
                           <Anchor
                             component="button"
                             type="button"
@@ -183,18 +227,23 @@ export default function RegisterLearner({
                 ))}
               </Stack>
 
-              <Divider />
-
               <Textarea
                 label="Message"
                 description="Optional"
                 name="message"
+                placeholder="Share goals, scheduling notes, or anything the school should know."
                 error={errors.message}
                 autosize
                 minRows={3}
               />
 
-              <Button type="submit" size="md" loading={processing} disabled={learners.length === 0}>
+              <Button
+                type="submit"
+                size="md"
+                loading={processing}
+                disabled={learners.length === 0}
+                rightSection={<IconArrowRight size={18} stroke={1.8} />}
+              >
                 Submit sign-up
               </Button>
             </Stack>
@@ -209,6 +258,12 @@ export default function RegisterLearner({
         initial={editingIndex !== null ? learners[editingIndex] : undefined}
         genders={genders}
       />
-    </Container>
+    </>
   )
 }
+
+;(RegisterLearner as { layout?: (page: ReactElement<Data.SharedProps>) => ReactElement }).layout = (
+  page
+) => <AuthLayout>{page}</AuthLayout>
+
+export default RegisterLearner

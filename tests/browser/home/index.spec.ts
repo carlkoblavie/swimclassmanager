@@ -6,6 +6,16 @@ import { SchoolFactory } from '#database/factories/school_factory'
 test.group('Home completion gate', (group) => {
   group.each.setup(() => testUtils.db().truncate())
 
+  test('a guest sees the public landing page at the root URL', async ({ visit, route }) => {
+    const page = await visit(route('landing'))
+
+    await page.assertPath(route('landing'))
+    await page.assertVisible(
+      page.getByRole('heading', { name: 'Bring order to the chaos of managing swim class.' })
+    )
+    await page.assertVisible(page.getByRole('link', { name: 'Get Started' }))
+  })
+
   test('an authenticated user without a completed profile is redirected to complete-profile', async ({
     visit,
     route,
