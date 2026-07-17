@@ -2,10 +2,15 @@
 import type { routes } from './index.ts'
 
 export interface ApiDefinition {
+  landing: typeof routes['landing']
   home: typeof routes['home']
   signInLinks: {
     create: typeof routes['sign_in_links.create']
     store: typeof routes['sign_in_links.store']
+  }
+  accountRegistrations: {
+    create: typeof routes['account_registrations.create']
+    store: typeof routes['account_registrations.store']
   }
   auth: {
     verify: typeof routes['auth.verify']
@@ -40,12 +45,22 @@ export interface ApiDefinition {
     index: typeof routes['programs.index']
     create: typeof routes['programs.create']
     store: typeof routes['programs.store']
+    show: typeof routes['programs.show']
     edit: typeof routes['programs.edit']
     update: typeof routes['programs.update']
     destroy: typeof routes['programs.destroy']
   }
+  levels: {
+    show: typeof routes['levels.show']
+  }
   levelSettings: {
     update: typeof routes['level_settings.update']
+  }
+  swimYears: {
+    index: typeof routes['swim_years.index']
+    store: typeof routes['swim_years.store']
+    update: typeof routes['swim_years.update']
+    destroy: typeof routes['swim_years.destroy']
   }
   swimmingClasses: {
     index: typeof routes['swimming_classes.index']

@@ -14,6 +14,7 @@ import type OrganisationTransformer from '#transformers/organisation_transformer
 import type ProgramTransformer from '#transformers/program_transformer'
 import type SchoolTransformer from '#transformers/school_transformer'
 import type SignupTransformer from '#transformers/signup_transformer'
+import type SwimYearTransformer from '#transformers/swim_year_transformer'
 import type SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import type UserTransformer from '#transformers/user_transformer'
 import type InertiaMiddleware from '#middleware/inertia_middleware'
@@ -50,6 +51,10 @@ export namespace Data {
   export type Signup = InferData<SignupTransformer>
   export namespace Signup {
     export type Variants = InferVariants<SignupTransformer>
+  }
+  export type SwimYear = InferData<SwimYearTransformer>
+  export namespace SwimYear {
+    export type Variants = InferVariants<SwimYearTransformer>
   }
   export type SwimmingClass = InferData<SwimmingClassTransformer>
   export namespace SwimmingClass {

@@ -4,16 +4,19 @@
  */
 
 export const controllers = {
+  AccountRegistrations: () => import('#controllers/account_registrations_controller'),
   Accounts: () => import('#controllers/accounts_controller'),
   ActiveSchools: () => import('#controllers/active_schools_controller'),
   ClassLessons: () => import('#controllers/class_lessons_controller'),
   Invitations: () => import('#controllers/invitations_controller'),
   LevelSettings: () => import('#controllers/level_settings_controller'),
+  Levels: () => import('#controllers/levels_controller'),
   Memberships: () => import('#controllers/memberships_controller'),
   Programs: () => import('#controllers/programs_controller'),
   Schools: () => import('#controllers/schools_controller'),
   Sessions: () => import('#controllers/sessions_controller'),
   SignInLinks: () => import('#controllers/sign_in_links_controller'),
   Signups: () => import('#controllers/signups_controller'),
+  SwimYears: () => import('#controllers/swim_years_controller'),
   SwimmingClasses: () => import('#controllers/swimming_classes_controller'),
 }

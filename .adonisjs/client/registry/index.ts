@@ -6,10 +6,16 @@ import type { ApiDefinition } from './tree.d.ts'
 const placeholder: any = {}
 
 const routes = {
-  'home': {
+  'landing': {
     methods: ["GET","HEAD"],
     pattern: '/',
     tokens: [{"old":"/","type":0,"val":"/","end":""}],
+    types: placeholder as Registry['landing']['types'],
+  },
+  'home': {
+    methods: ["GET","HEAD"],
+    pattern: '/dashboard',
+    tokens: [{"old":"/dashboard","type":0,"val":"dashboard","end":""}],
     types: placeholder as Registry['home']['types'],
   },
   'sign_in_links.create': {
@@ -23,6 +29,18 @@ const routes = {
     pattern: '/login',
     tokens: [{"old":"/login","type":0,"val":"login","end":""}],
     types: placeholder as Registry['sign_in_links.store']['types'],
+  },
+  'account_registrations.create': {
+    methods: ["GET","HEAD"],
+    pattern: '/signup',
+    tokens: [{"old":"/signup","type":0,"val":"signup","end":""}],
+    types: placeholder as Registry['account_registrations.create']['types'],
+  },
+  'account_registrations.store': {
+    methods: ["POST"],
+    pattern: '/signup',
+    tokens: [{"old":"/signup","type":0,"val":"signup","end":""}],
+    types: placeholder as Registry['account_registrations.store']['types'],
   },
   'auth.verify': {
     methods: ["GET","HEAD"],
@@ -120,6 +138,12 @@ const routes = {
     tokens: [{"old":"/programs","type":0,"val":"programs","end":""}],
     types: placeholder as Registry['programs.store']['types'],
   },
+  'programs.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/programs/:id',
+    tokens: [{"old":"/programs/:id","type":0,"val":"programs","end":""},{"old":"/programs/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['programs.show']['types'],
+  },
   'programs.edit': {
     methods: ["GET","HEAD"],
     pattern: '/programs/:id/edit',
@@ -138,11 +162,41 @@ const routes = {
     tokens: [{"old":"/programs/:id","type":0,"val":"programs","end":""},{"old":"/programs/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['programs.destroy']['types'],
   },
+  'levels.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/levels/:id',
+    tokens: [{"old":"/levels/:id","type":0,"val":"levels","end":""},{"old":"/levels/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['levels.show']['types'],
+  },
   'level_settings.update': {
     methods: ["PATCH"],
     pattern: '/levels/:id/settings',
     tokens: [{"old":"/levels/:id/settings","type":0,"val":"levels","end":""},{"old":"/levels/:id/settings","type":1,"val":"id","end":""},{"old":"/levels/:id/settings","type":0,"val":"settings","end":""}],
     types: placeholder as Registry['level_settings.update']['types'],
+  },
+  'swim_years.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/settings/swim-years',
+    tokens: [{"old":"/settings/swim-years","type":0,"val":"settings","end":""},{"old":"/settings/swim-years","type":0,"val":"swim-years","end":""}],
+    types: placeholder as Registry['swim_years.index']['types'],
+  },
+  'swim_years.store': {
+    methods: ["POST"],
+    pattern: '/settings/swim-years',
+    tokens: [{"old":"/settings/swim-years","type":0,"val":"settings","end":""},{"old":"/settings/swim-years","type":0,"val":"swim-years","end":""}],
+    types: placeholder as Registry['swim_years.store']['types'],
+  },
+  'swim_years.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/settings/swim-years/:id',
+    tokens: [{"old":"/settings/swim-years/:id","type":0,"val":"settings","end":""},{"old":"/settings/swim-years/:id","type":0,"val":"swim-years","end":""},{"old":"/settings/swim-years/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swim_years.update']['types'],
+  },
+  'swim_years.destroy': {
+    methods: ["DELETE"],
+    pattern: '/settings/swim-years/:id',
+    tokens: [{"old":"/settings/swim-years/:id","type":0,"val":"settings","end":""},{"old":"/settings/swim-years/:id","type":0,"val":"swim-years","end":""},{"old":"/settings/swim-years/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['swim_years.destroy']['types'],
   },
   'swimming_classes.index': {
     methods: ["GET","HEAD"],
