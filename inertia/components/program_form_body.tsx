@@ -376,6 +376,7 @@ export default function ProgramFormBody({ errors, initial }: Props) {
               name={`levels[${index}][classesCount]`}
               value={level.classesCount}
             />
+            <input type="hidden" name={`levels[${index}][audience]`} value={level.audience} />
             {level.stages.map((stage, stageIndex) => {
               const prefix = `levels[${index}][stages][${stageIndex}]`
               return (

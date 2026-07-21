@@ -28,15 +28,24 @@ export type LevelDraft = {
   description: string
   defaultFee: string // cedis, as entered
   classesCount: string // sessions to complete the level; stages inherit it
+  audience: string // 'child' | 'adult' — selects the public signup form
   stages: StageDraft[]
 }
 
-type LevelField = 'name' | 'ageGroup' | 'description' | 'defaultFee' | 'classesCount'
+type LevelField = 'name' | 'ageGroup' | 'description' | 'defaultFee' | 'classesCount' | 'audience'
 
 const REQUIRED: LevelField[] = ['name', 'ageGroup', 'description', 'defaultFee', 'classesCount']
 
 function emptyDraft(): LevelDraft {
-  return { name: '', ageGroup: '', description: '', defaultFee: '', classesCount: '', stages: [] }
+  return {
+    name: '',
+    ageGroup: '',
+    description: '',
+    defaultFee: '',
+    classesCount: '',
+    audience: 'child',
+    stages: [],
+  }
 }
 
 export default function LevelForm({
@@ -144,6 +153,18 @@ export default function LevelForm({
             value={draft.defaultFee}
             onChange={set('defaultFee')}
             error={errors.defaultFee}
+          />
+          <NativeSelect
+            label="Audience"
+            flex={1}
+            value={draft.audience}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, audience: event.currentTarget.value }))
+            }
+            data={[
+              { value: 'child', label: 'Children' },
+              { value: 'adult', label: 'Adults' },
+            ]}
           />
         </Group>
         <Textarea
