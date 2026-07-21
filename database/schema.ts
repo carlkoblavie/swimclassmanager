@@ -191,10 +191,12 @@ export class LevelStageSchema extends BaseModel {
 }
 
 export class LevelSchema extends BaseModel {
-  static $columns = ['ageGroup', 'capacity', 'classesCount', 'code', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'updatedAt'] as const
+  static $columns = ['ageGroup', 'audience', 'capacity', 'classesCount', 'code', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'publicId', 'updatedAt'] as const
   $columns = LevelSchema.$columns
   @column()
   declare ageGroup: string
+  @column()
+  declare audience: string
   @column()
   declare capacity: number | null
   @column()
@@ -213,6 +215,8 @@ export class LevelSchema extends BaseModel {
   declare name: string
   @column()
   declare programId: number
+  @column()
+  declare publicId: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -265,7 +269,7 @@ export class OrganisationSchema extends BaseModel {
 }
 
 export class ProgramSchema extends BaseModel {
-  static $columns = ['activatedAt', 'code', 'createdAt', 'description', 'id', 'name', 'updatedAt'] as const
+  static $columns = ['activatedAt', 'code', 'createdAt', 'description', 'id', 'name', 'publicId', 'updatedAt'] as const
   $columns = ProgramSchema.$columns
   @column.dateTime()
   declare activatedAt: DateTime | null
@@ -279,6 +283,8 @@ export class ProgramSchema extends BaseModel {
   declare id: number
   @column()
   declare name: string
+  @column()
+  declare publicId: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -299,7 +305,7 @@ export class RoleSchema extends BaseModel {
 }
 
 export class SchoolLevelSettingSchema extends BaseModel {
-  static $columns = ['available', 'createdAt', 'fee', 'id', 'levelId', 'schoolId', 'updatedAt'] as const
+  static $columns = ['available', 'createdAt', 'fee', 'id', 'levelId', 'publicId', 'schoolId', 'updatedAt'] as const
   $columns = SchoolLevelSettingSchema.$columns
   @column()
   declare available: boolean
@@ -311,6 +317,8 @@ export class SchoolLevelSettingSchema extends BaseModel {
   declare id: number
   @column()
   declare levelId: number
+  @column()
+  declare publicId: string | null
   @column()
   declare schoolId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })

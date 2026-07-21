@@ -1,10 +1,18 @@
-import { hasMany, scope } from '@adonisjs/lucid/orm'
+import { beforeCreate, hasMany, scope } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
+import { randomUUID } from 'node:crypto'
 import { ProgramSchema } from '#database/schema'
 import Level from '#models/level'
 
 export default class Program extends ProgramSchema {
+  @beforeCreate()
+  static assignPublicId(program: Program) {
+    if (!program.publicId) {
+      program.publicId = randomUUID()
+    }
+  }
+
   @hasMany(() => Level)
   declare levels: HasMany<typeof Level>
 
