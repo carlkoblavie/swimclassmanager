@@ -30,6 +30,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
     return {
       ...this.pick(this.resource, [
         'id',
+        'publicId',
         'programId',
         'code',
         'name',
@@ -37,6 +38,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
         'description',
         'capacity',
         'classesCount',
+        'audience',
       ]),
       defaultFee: {
         raw: this.resource.defaultFee,
