@@ -174,6 +174,9 @@ function LevelCard({
           <Badge variant="light" size="sm">
             {level.ageGroup}
           </Badge>
+          <Badge variant="light" color="gray" size="sm">
+            {level.audience === 'adult' ? 'Adults' : 'Children'}
+          </Badge>
           {level.available ? (
             <Badge variant="light" color="green" size="sm">
               Available

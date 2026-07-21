@@ -104,6 +104,7 @@ export default function LevelsShow({ level, classes }: PageProps) {
           <MetaStrip
             items={[
               { label: 'Age range', value: level.ageGroup },
+              { label: 'Audience', value: level.audience === 'adult' ? 'Adults' : 'Children' },
               {
                 label: 'Capacity',
                 value: typeof level.capacity === 'number' ? `${level.capacity} learners` : '—',
