@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
+import Invitation from '#models/invitation'
 import Membership from '#models/membership'
 import Organisation from '#models/organisation'
 import Program from '#models/program'
@@ -8,6 +9,7 @@ import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import { permissions } from '#start/permissions'
 import ProgramAuthoringService from '#services/program_authoring_service'
+import InvitationTransformer from '#transformers/invitation_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
 import ProgramTransformer from '#transformers/program_transformer'
 import SwimYearTransformer from '#transformers/swim_year_transformer'
@@ -62,10 +64,18 @@ export default class ProgramsController {
       .preload('roles')
       .orderBy('id')
 
+    // Teachers who were invited but have not accepted yet are assignable too.
+    const pendingInvitations = await Invitation.query()
+      .where('schoolId', schoolId)
+      .whereHas('role', (roleQuery) => roleQuery.where('name', RoleName.TEACHER))
+      .whereNull('acceptedAt')
+      .orderBy('id')
+
     return inertia.render('programs/index', {
       programs: ProgramTransformer.transform(programs, schoolId),
       termOptions: SwimYearTransformer.transform(termYears),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
+      pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),
     })
   }
 
@@ -110,10 +120,11 @@ export default class ProgramsController {
           .preload('level', (levelQuery) => levelQuery.preload('program'))
           .preload('term', (termQuery) => termQuery.preload('swimYear'))
           .preload('levelStage')
-          .preload('instructorMembership', (membershipQuery) =>
-            membershipQuery.preload('user').preload('roles')
+          .preload('classInstructors', (instructorsQuery) =>
+            instructorsQuery
+              .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
+              .preload('invitation')
           )
-          .preload('pendingInstructorInvitation')
           .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
           .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
           .orderBy('weekday')

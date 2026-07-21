@@ -21,11 +21,23 @@ const dayObject = {
 }
 
 const instructorFields = {
-  instructorMode: vine.enum(['none', 'existing', 'invite']).optional(),
-  instructorMembershipId: vine.number().withoutDecimals().positive().optional(),
+  // Accepted members and still-pending teacher invitations, in any mix.
+  instructorMembershipIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+  instructorInvitationIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+  // Optionally invite one new teacher and attach them alongside the above.
   inviteTeacherEmail: vine.string().trim().normalizeEmail().email().maxLength(254).optional(),
-  inviteTeacherName: vine.string().trim().minLength(1).maxLength(255).optional(),
+  inviteTeacherFirstName: vine.string().trim().minLength(1).maxLength(120).optional(),
+  inviteTeacherLastName: vine.string().trim().minLength(1).maxLength(120).optional(),
   inviteTeacherPhone: vine.string().trim().minLength(1).maxLength(50).optional(),
+  inviteTeacherCertifications: vine
+    .array(vine.string().trim().minLength(1).maxLength(120))
+    .optional(),
 }
 
 export const storeSwimmingClassesValidator = vine.create({

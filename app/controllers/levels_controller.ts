@@ -42,10 +42,11 @@ export default class LevelsController {
           .preload('level', (levelQuery) => levelQuery.preload('program'))
           .preload('term', (termQuery) => termQuery.preload('swimYear'))
           .preload('levelStage')
-          .preload('instructorMembership', (membershipQuery) =>
-            membershipQuery.preload('user').preload('roles')
+          .preload('classInstructors', (instructorsQuery) =>
+            instructorsQuery
+              .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
+              .preload('invitation')
           )
-          .preload('pendingInstructorInvitation')
           .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
           .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
           .orderBy('weekday')

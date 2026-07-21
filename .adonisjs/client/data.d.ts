@@ -7,6 +7,7 @@
 import type { InferData, InferVariants } from '@adonisjs/core/types/transformers'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
 import type AccountTransformer from '#transformers/account_transformer'
+import type InvitationTransformer from '#transformers/invitation_transformer'
 import type LearnerTransformer from '#transformers/learner_transformer'
 import type LevelTransformer from '#transformers/level_transformer'
 import type MembershipTransformer from '#transformers/membership_transformer'
@@ -23,6 +24,10 @@ export namespace Data {
   export type Account = InferData<AccountTransformer>
   export namespace Account {
     export type Variants = InferVariants<AccountTransformer>
+  }
+  export type Invitation = InferData<InvitationTransformer>
+  export namespace Invitation {
+    export type Variants = InferVariants<InvitationTransformer>
   }
   export type Learner = InferData<LearnerTransformer>
   export namespace Learner {

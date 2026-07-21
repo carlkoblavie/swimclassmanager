@@ -11,9 +11,15 @@ type PageProps = InertiaProps<{
   programs: Data.Program[]
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
+  pendingInstructorOptions: Data.Invitation[]
 }>
 
-export default function ProgramsIndex({ programs, termOptions, instructorOptions }: PageProps) {
+export default function ProgramsIndex({
+  programs,
+  termOptions,
+  instructorOptions,
+  pendingInstructorOptions,
+}: PageProps) {
   const levels = programs.flatMap((program) => program.levels ?? [])
   const availableLevels = levels.filter((level) => level.available)
 
@@ -60,6 +66,7 @@ export default function ProgramsIndex({ programs, termOptions, instructorOptions
             programs={programs}
             termOptions={termOptions}
             instructorOptions={instructorOptions}
+            pendingInstructorOptions={pendingInstructorOptions}
           />
         )}
       </Stack>

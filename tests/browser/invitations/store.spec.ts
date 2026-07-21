@@ -28,6 +28,9 @@ test.group('Invitations store', (group) => {
       using fake = mail.fake()
 
       const page = await visit(route('invitations.create'))
+      await page.getByLabel('First name').fill('Invited')
+      await page.getByLabel('Last name').fill('Member')
+      await page.getByLabel('Phone number').fill('0555000222')
       await page.getByLabel('Email').fill('invitee@example.com')
       await page.getByLabel('Role').selectOption('Teacher')
       await page.getByRole('button', { name: 'Send invitation' }).click()
@@ -38,6 +41,9 @@ test.group('Invitations store', (group) => {
       await db.assertHas('invitations', {
         school_id: school.id,
         email: 'invitee@example.com',
+        invitee_first_name: 'Invited',
+        invitee_last_name: 'Member',
+        invitee_phone: '0555000222',
         accepted_at: null,
       })
     })
@@ -72,6 +78,9 @@ test.group('Invitations store', (group) => {
     using fake = mail.fake()
 
     const page = await visit(route('invitations.create'))
+    await page.getByLabel('First name').fill('Invited')
+    await page.getByLabel('Last name').fill('Member')
+    await page.getByLabel('Phone number').fill('0555000222')
     await page.getByLabel('Email').fill('not-an-email')
     await page.getByLabel('Role').selectOption('Teacher')
     await page.getByRole('button', { name: 'Send invitation' }).click()
@@ -97,6 +106,9 @@ test.group('Invitations store', (group) => {
     using fake = mail.fake()
 
     const page = await visit(route('invitations.create'))
+    await page.getByLabel('First name').fill('Invited')
+    await page.getByLabel('Last name').fill('Member')
+    await page.getByLabel('Phone number').fill('0555000222')
     await page.getByLabel('Email').fill('member@example.com')
     await page.getByLabel('Role').selectOption('Teacher')
     await page.getByRole('button', { name: 'Send invitation' }).click()
@@ -127,6 +139,9 @@ test.group('Invitations store', (group) => {
     using fake = mail.fake()
 
     const page = await visit(route('invitations.create'))
+    await page.getByLabel('First name').fill('Invited')
+    await page.getByLabel('Last name').fill('Member')
+    await page.getByLabel('Phone number').fill('0555000222')
     await page.getByLabel('Email').fill('invitee@example.com')
     await page.getByLabel('Role').selectOption('Parent')
     await page.getByRole('button', { name: 'Send invitation' }).click()

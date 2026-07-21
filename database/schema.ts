@@ -7,6 +7,23 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class ClassInstructorSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'invitationId', 'membershipId', 'swimmingClassId', 'updatedAt'] as const
+  $columns = ClassInstructorSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare invitationId: number | null
+  @column()
+  declare membershipId: number | null
+  @column()
+  declare swimmingClassId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class ClassLessonSchema extends BaseModel {
   static $columns = ['createdAt', 'date', 'id', 'notes', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassLessonSchema.$columns
@@ -40,10 +57,12 @@ export class ClassSkillSchema extends BaseModel {
 }
 
 export class InvitationSchema extends BaseModel {
-  static $columns = ['acceptedAt', 'createdAt', 'email', 'expiresAt', 'id', 'inviteeName', 'inviteePhone', 'roleId', 'schoolId', 'token', 'updatedAt'] as const
+  static $columns = ['acceptedAt', 'certifications', 'createdAt', 'email', 'expiresAt', 'id', 'inviteeFirstName', 'inviteeLastName', 'inviteePhone', 'roleId', 'schoolId', 'token', 'updatedAt'] as const
   $columns = InvitationSchema.$columns
   @column.dateTime()
   declare acceptedAt: DateTime | null
+  @column()
+  declare certifications: string[] | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -53,7 +72,9 @@ export class InvitationSchema extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare inviteeName: string | null
+  declare inviteeFirstName: string | null
+  @column()
+  declare inviteeLastName: string | null
   @column()
   declare inviteePhone: string | null
   @column()
@@ -170,12 +191,14 @@ export class LevelStageSchema extends BaseModel {
 }
 
 export class LevelSchema extends BaseModel {
-  static $columns = ['ageGroup', 'capacity', 'code', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'updatedAt'] as const
+  static $columns = ['ageGroup', 'capacity', 'classesCount', 'code', 'createdAt', 'defaultFee', 'description', 'id', 'name', 'programId', 'updatedAt'] as const
   $columns = LevelSchema.$columns
   @column()
   declare ageGroup: string
   @column()
   declare capacity: number | null
+  @column()
+  declare classesCount: number | null
   @column()
   declare code: string
   @column.dateTime({ autoCreate: true })
@@ -206,8 +229,10 @@ export class MembershipRoleSchema extends BaseModel {
 }
 
 export class MembershipSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'schoolId', 'updatedAt', 'userId'] as const
+  static $columns = ['certifications', 'createdAt', 'id', 'schoolId', 'updatedAt', 'userId'] as const
   $columns = MembershipSchema.$columns
+  @column()
+  declare certifications: string[] | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
@@ -356,7 +381,7 @@ export class SwimYearSchema extends BaseModel {
 }
 
 export class SwimmingClassSchema extends BaseModel {
-  static $columns = ['cancelledAt', 'code', 'createdAt', 'durationMinutes', 'id', 'instructorMembershipId', 'levelId', 'levelStageId', 'location', 'name', 'pendingInstructorInvitationId', 'schoolId', 'startTime', 'termId', 'updatedAt', 'weekday'] as const
+  static $columns = ['cancelledAt', 'code', 'createdAt', 'durationMinutes', 'id', 'levelId', 'levelStageId', 'location', 'name', 'schoolId', 'startTime', 'termId', 'updatedAt', 'weekday'] as const
   $columns = SwimmingClassSchema.$columns
   @column.dateTime()
   declare cancelledAt: DateTime | null
@@ -369,8 +394,6 @@ export class SwimmingClassSchema extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare instructorMembershipId: number | null
-  @column()
   declare levelId: number
   @column()
   declare levelStageId: number
@@ -378,8 +401,6 @@ export class SwimmingClassSchema extends BaseModel {
   declare location: string | null
   @column()
   declare name: string
-  @column()
-  declare pendingInstructorInvitationId: number | null
   @column()
   declare schoolId: number
   @column()

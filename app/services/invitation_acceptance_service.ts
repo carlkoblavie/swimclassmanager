@@ -22,13 +22,32 @@ export default class InvitationAcceptanceService {
       )
       await membership.related('roles').sync([invitation.roleId], false)
 
+      // Certifications recorded on the invitation move to the membership.
+      if (invitation.certifications?.length) {
+        const merged = [
+          ...new Set([...(membership.certifications ?? []), ...invitation.certifications]),
+        ]
+        membership.certifications = merged
+        await membership.save()
+      }
+
+      // Convert this invitation's class-instructor rows to the membership;
+      // drop rows where the member already instructs the class.
       await trx
-        .from('swimming_classes')
-        .where('pending_instructor_invitation_id', invitation.id)
-        .update({
-          instructor_membership_id: membership.id,
-          pending_instructor_invitation_id: null,
-        })
+        .from('class_instructors')
+        .where('invitation_id', invitation.id)
+        .whereIn(
+          'swimming_class_id',
+          trx
+            .from('class_instructors')
+            .where('membership_id', membership.id)
+            .select('swimming_class_id')
+        )
+        .delete()
+      await trx
+        .from('class_instructors')
+        .where('invitation_id', invitation.id)
+        .update({ membership_id: membership.id, invitation_id: null })
 
       const school = await School.findOrFail(invitation.schoolId, { client: trx })
 

@@ -55,12 +55,7 @@ test.group('Swimming classes update', (group) => {
     })
   })
 
-  test('a manager assigns an existing instructor', async ({
-    visit,
-    route,
-    browserContext,
-    db,
-  }) => {
+  test('a manager assigns an existing instructor', async ({ visit, route, browserContext, db }) => {
     const user = await UserFactory.apply('completed').create()
     const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
     await joinSchool(user, school, RoleName.ADMINISTRATOR)
@@ -79,15 +74,16 @@ test.group('Swimming classes update', (group) => {
     }).create()
 
     const page = await visit(route('swimming_classes.edit', { id: swimmingClass.id }))
-    await page.getByLabel('Instructor').selectOption('existing')
-    await page.getByLabel('Existing instructor').selectOption(String(teacherMembership.id))
+    await page.getByRole('combobox', { name: 'Instructors' }).click()
+    await page.getByRole('option', { name: /Coach Sarah/ }).click()
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Save changes' }).click()
 
     await page.assertPath(route('swimming_classes.show', { id: swimmingClass.id }))
     await page.assertVisible('text=Coach Sarah')
-    await db.assertHas('swimming_classes', {
-      id: swimmingClass.id,
-      instructor_membership_id: teacherMembership.id,
+    await db.assertHas('class_instructors', {
+      swimming_class_id: swimmingClass.id,
+      membership_id: teacherMembership.id,
     })
   })
 
@@ -110,10 +106,15 @@ test.group('Swimming classes update', (group) => {
     using fake = mail.fake()
 
     const page = await visit(route('swimming_classes.edit', { id: swimmingClass.id }))
-    await page.getByLabel('Instructor').selectOption('invite')
-    await page.getByLabel('Teacher name').fill('Pending Coach')
-    await page.getByLabel('Teacher phone').fill('0555000111')
-    await page.getByLabel('Teacher email').fill('pending@example.com')
+    await page.getByRole('button', { name: 'Invite a new teacher' }).click()
+    await page.getByLabel('First name').fill('Pending')
+    await page.getByLabel('Last name').fill('Coach')
+    await page.getByLabel('Phone number').fill('0555000111')
+    await page.getByLabel('Email', { exact: true }).fill('pending@example.com')
+    await page.getByRole('combobox', { name: 'Certifications' }).fill('Lifeguard Level 1')
+    await page.keyboard.press('Enter')
+    await page.getByRole('combobox', { name: 'Certifications' }).fill('First Aid')
+    await page.keyboard.press('Enter')
     await page.getByRole('button', { name: 'Save changes' }).click()
 
     await page.assertPath(route('swimming_classes.show', { id: swimmingClass.id }))
@@ -122,10 +123,11 @@ test.group('Swimming classes update', (group) => {
     await db.assertHas('invitations', {
       school_id: school.id,
       email: 'pending@example.com',
-      invitee_name: 'Pending Coach',
+      invitee_first_name: 'Pending',
+      invitee_last_name: 'Coach',
+      certifications: JSON.stringify(['Lifeguard Level 1', 'First Aid']),
     })
-    fake.mails.assertQueued(InvitationMail, ({ message }) =>
-      message.hasTo('pending@example.com')
-    )
+    await db.assertHas('class_instructors', { swimming_class_id: swimmingClass.id })
+    fake.mails.assertQueued(InvitationMail, ({ message }) => message.hasTo('pending@example.com'))
   })
 })

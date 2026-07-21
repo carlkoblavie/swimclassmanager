@@ -1,5 +1,6 @@
 import { BaseTransformer } from '@adonisjs/core/transformers'
 import { DateTime } from 'luxon'
+import type ClassInstructor from '#models/class_instructor'
 import type ClassLesson from '#models/class_lesson'
 import type ClassSkill from '#models/class_skill'
 import type Invitation from '#models/invitation'
@@ -33,8 +34,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
     const preloaded = this.resource.$preloaded as {
       level?: Level
       levelStage?: LevelStage
-      instructorMembership?: Membership
-      pendingInstructorInvitation?: Invitation
+      classInstructors?: ClassInstructor[]
       classSkills?: ClassSkill[]
       lessons?: ClassLesson[]
       term?: Term
@@ -43,22 +43,37 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
     const levelPreloaded = level?.$preloaded as { program?: Program } | undefined
     const program = levelPreloaded?.program
     const stage = preloaded.levelStage
-    const instructorMembership = preloaded.instructorMembership
-    const membershipPreloaded = instructorMembership?.$preloaded as { user?: User } | undefined
-    const instructorUser = membershipPreloaded?.user ?? instructorMembership?.user
-    const pendingInvitation = preloaded.pendingInstructorInvitation
+    const classInstructors = preloaded.classInstructors ?? []
     const classSkills = preloaded.classSkills ?? []
     const lessons = (preloaded.lessons ?? []).toSorted(
       (a, b) => a.date.toMillis() - b.date.toMillis()
     )
 
-    const activeInstructorLabel =
-      instructorUser?.fullName?.trim() || instructorUser?.email || 'Assigned instructor'
-    const pendingInstructorLabel =
-      pendingInvitation?.inviteeName?.trim() || pendingInvitation?.email || 'Pending instructor'
-    const hasInstructor =
-      this.resource.instructorMembershipId !== null ||
-      this.resource.pendingInstructorInvitationId !== null
+    const instructors = classInstructors.map((classInstructor) => {
+      const instructorPreloaded = classInstructor.$preloaded as {
+        membership?: Membership
+        invitation?: Invitation
+      }
+      const membership = instructorPreloaded.membership
+      const invitation = instructorPreloaded.invitation
+      const membershipPreloaded = membership?.$preloaded as { user?: User } | undefined
+      const user = membershipPreloaded?.user ?? membership?.user
+
+      if (membership) {
+        return {
+          type: 'membership' as const,
+          id: membership.id,
+          status: 'active' as const,
+          label: user?.fullName?.trim() || user?.email || 'Assigned instructor',
+        }
+      }
+      return {
+        type: 'invitation' as const,
+        id: invitation?.id ?? classInstructor.invitationId ?? 0,
+        status: 'pending' as const,
+        label: invitation?.inviteeFullName || invitation?.email || 'Pending instructor',
+      }
+    })
 
     return {
       ...this.pick(this.resource, [
@@ -71,8 +86,6 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         'location',
         'weekday',
         'durationMinutes',
-        'instructorMembershipId',
-        'pendingInstructorInvitationId',
       ]),
       weekdayName: WEEKDAY_NAMES[this.resource.weekday] ?? String(this.resource.weekday),
       startTime: {
@@ -89,6 +102,8 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             programName: program?.name ?? '',
           }
         : undefined,
+      // The level's curriculum length caps how many lessons a class may plan.
+      lessonAllowance: level?.classesCount ?? null,
       stage: stage ? { id: stage.id, code: stage.code, name: stage.name } : undefined,
       term: (() => {
         const term = preloaded.term
@@ -110,12 +125,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
           },
         }
       })(),
-      instructor: hasInstructor
-        ? {
-            status: pendingInvitation ? ('pending' as const) : ('active' as const),
-            label: pendingInvitation ? pendingInstructorLabel : activeInstructorLabel,
-          }
-        : undefined,
+      instructors,
       skills: classSkills.flatMap((classSkill) => {
         const skill = classSkill.levelStageSkill
         if (!skill) {

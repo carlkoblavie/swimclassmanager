@@ -1,12 +1,12 @@
 import { compose } from '@adonisjs/core/helpers'
-import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
+import { belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { withRoles } from '@adonisplus/permissions'
 import { MembershipSchema } from '#database/schema'
 import School from '#models/school'
 import User from '#models/user'
 import Role from '#models/role'
-import SwimmingClass from '#models/swimming_class'
+import ClassInstructor from '#models/class_instructor'
 
 export default class Membership extends compose(
   MembershipSchema,
@@ -16,12 +16,18 @@ export default class Membership extends compose(
     pivotForeignKey: 'membership_id',
   })
 ) {
+  @column({
+    prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: unknown) => (typeof value === 'string' ? JSON.parse(value) : (value ?? null)),
+  })
+  declare certifications: string[] | null
+
   @belongsTo(() => School)
   declare school: BelongsTo<typeof School>
 
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 
-  @hasMany(() => SwimmingClass, { foreignKey: 'instructorMembershipId' })
-  declare instructedClasses: HasMany<typeof SwimmingClass>
+  @hasMany(() => ClassInstructor)
+  declare classInstructors: HasMany<typeof ClassInstructor>
 }

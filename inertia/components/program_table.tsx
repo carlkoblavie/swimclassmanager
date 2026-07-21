@@ -36,10 +36,12 @@ type Stage = Data.Level['stages'][number]
 
 function StageAccordion({
   stage,
+  classesCount,
   open,
   onToggle,
 }: {
   stage: Stage
+  classesCount: number | null
   open: boolean
   onToggle: () => void
 }) {
@@ -63,6 +65,11 @@ function StageAccordion({
           <Badge variant="light" color="gray" size="sm" ml="auto" style={{ flexShrink: 0 }}>
             {stage.skills.length} {stage.skills.length === 1 ? 'skill' : 'skills'}
           </Badge>
+          {typeof classesCount === 'number' && (
+            <Badge variant="light" size="sm" style={{ flexShrink: 0 }}>
+              {classesCount} classes
+            </Badge>
+          )}
           <IconChevronDown
             size={14}
             style={{
@@ -205,6 +212,12 @@ function LevelCard({
           </Text>
         )}
         {level.fee.formatted}
+        {typeof level.classesCount === 'number' && (
+          <Text span size="sm" fw={600} c="dimmed">
+            {' '}
+            · {level.classesCount} classes
+          </Text>
+        )}
       </Text>
 
       {level.stages.length > 0 && (
@@ -216,6 +229,7 @@ function LevelCard({
             <StageAccordion
               key={stage.id}
               stage={stage}
+              classesCount={level.classesCount}
               open={openStageId === stage.id}
               onToggle={() => setOpenStageId((current) => (current === stage.id ? null : stage.id))}
             />
@@ -230,12 +244,14 @@ function ProgramRows({
   program,
   termOptions,
   instructorOptions,
+  pendingInstructorOptions,
   expanded,
   onToggle,
 }: {
   program: Data.Program
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
+  pendingInstructorOptions: Data.Invitation[]
   expanded: boolean
   onToggle: () => void
 }) {
@@ -423,6 +439,7 @@ function ProgramRows({
                     level={level}
                     termOptions={termOptions}
                     instructorOptions={instructorOptions}
+                    pendingInstructorOptions={pendingInstructorOptions}
                     onClose={() => setBuilderLevelId(null)}
                   />
                 </Box>
@@ -439,10 +456,12 @@ export default function ProgramTable({
   programs,
   termOptions,
   instructorOptions,
+  pendingInstructorOptions,
 }: {
   programs: Data.Program[]
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
+  pendingInstructorOptions: Data.Invitation[]
 }) {
   // Exclusive accordion: at most one program panel open, first one initially.
   const [openProgramId, setOpenProgramId] = useState<number | null>(programs[0]?.id ?? null)
@@ -463,6 +482,7 @@ export default function ProgramTable({
           program={program}
           termOptions={termOptions}
           instructorOptions={instructorOptions}
+          pendingInstructorOptions={pendingInstructorOptions}
           expanded={openProgramId === program.id}
           onToggle={() =>
             setOpenProgramId((current) => (current === program.id ? null : program.id))

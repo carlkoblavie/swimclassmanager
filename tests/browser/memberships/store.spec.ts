@@ -10,6 +10,7 @@ import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import Role from '#models/role'
 import User from '#models/user'
+import ClassInstructor from '#models/class_instructor'
 import Membership from '#models/membership'
 
 test.group('Memberships store', (group) => {
@@ -165,18 +166,18 @@ test.group('Memberships store', (group) => {
       schoolId: school.id,
       roleId: teacherRole.id,
       email: invitee.email,
-      inviteeName: 'Pending Coach',
+      inviteeFirstName: 'Pending',
+      inviteeLastName: 'Coach',
     }).create()
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
     const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
     const swimmingClass = await SwimmingClassFactory.merge({
       schoolId: school.id,
       levelId: level.id,
-      pendingInstructorInvitationId: invitation.id,
-      instructorMembershipId: null,
       code: 'PENDING-INSTRUCTOR',
       name: 'Pending Instructor Class',
     }).create()
+    await ClassInstructor.create({ swimmingClassId: swimmingClass.id, invitationId: invitation.id })
 
     const page = await visit(route('memberships.store', { token: invitation.token }))
 
@@ -190,10 +191,10 @@ test.group('Memberships store', (group) => {
     assert.isTrue(membership.roles.some((role) => role.name === RoleName.TEACHER))
     await invitation.refresh()
     assert.isNotNull(invitation.acceptedAt)
-    await db.assertHas('swimming_classes', {
-      id: swimmingClass.id,
-      instructor_membership_id: membership.id,
-      pending_instructor_invitation_id: null,
+    await db.assertHas('class_instructors', {
+      swimming_class_id: swimmingClass.id,
+      membership_id: membership.id,
+      invitation_id: null,
     })
   })
 })

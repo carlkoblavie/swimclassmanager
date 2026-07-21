@@ -5,6 +5,7 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { InvitationFactory } from '#database/factories/invitation_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import { DateTime } from 'luxon'
+import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
@@ -80,13 +81,11 @@ test.group('Swimming classes show', (group) => {
     const invitation = await InvitationFactory.merge({
       schoolId: school.id,
       roleId: teacherRole.id,
-      inviteeName: 'Pending Coach',
+      inviteeFirstName: 'Pending',
+      inviteeLastName: 'Coach',
     }).create()
-    const swimmingClass = await SwimmingClassFactory.merge({
-      schoolId: school.id,
-      pendingInstructorInvitationId: invitation.id,
-      instructorMembershipId: null,
-    }).create()
+    const swimmingClass = await SwimmingClassFactory.merge({ schoolId: school.id }).create()
+    await ClassInstructor.create({ swimmingClassId: swimmingClass.id, invitationId: invitation.id })
     await browserContext.loginAs(user)
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))

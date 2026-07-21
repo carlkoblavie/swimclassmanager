@@ -37,6 +37,12 @@ const dbConfig = defineConfig({
          */
         paths: ['database/migrations'],
       },
+
+      schemaGeneration: {
+        enabled: true,
+        outputPath: 'database/schema.ts',
+        rulesPaths: ['./database/schema_rules.ts'],
+      },
     },
 
     /**

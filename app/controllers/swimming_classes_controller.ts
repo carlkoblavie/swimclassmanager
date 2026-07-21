@@ -1,12 +1,14 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
+import Invitation from '#models/invitation'
 import Level from '#models/level'
 import Membership from '#models/membership'
 import School from '#models/school'
 import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
+import InvitationTransformer from '#transformers/invitation_transformer'
 import LevelTransformer from '#transformers/level_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
 import SwimYearTransformer from '#transformers/swim_year_transformer'
@@ -28,10 +30,11 @@ export default class SwimmingClassesController {
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
-      .preload('instructorMembership', (membershipQuery) =>
-        membershipQuery.preload('user').preload('roles')
+      .preload('classInstructors', (instructorsQuery) =>
+        instructorsQuery
+          .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
+          .preload('invitation')
       )
-      .preload('pendingInstructorInvitation')
       .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
       .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
       .orderBy('weekday')
@@ -74,10 +77,11 @@ export default class SwimmingClassesController {
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
-      .preload('instructorMembership', (membershipQuery) =>
-        membershipQuery.preload('user').preload('roles')
+      .preload('classInstructors', (instructorsQuery) =>
+        instructorsQuery
+          .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
+          .preload('invitation')
       )
-      .preload('pendingInstructorInvitation')
       .preload('classSkills', (skillsQuery) =>
         skillsQuery.preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
       )
@@ -106,10 +110,11 @@ export default class SwimmingClassesController {
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
-      .preload('instructorMembership', (membershipQuery) =>
-        membershipQuery.preload('user').preload('roles')
+      .preload('classInstructors', (instructorsQuery) =>
+        instructorsQuery
+          .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
+          .preload('invitation')
       )
-      .preload('pendingInstructorInvitation')
       .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
       .firstOrFail()
 
@@ -134,6 +139,13 @@ export default class SwimmingClassesController {
       .preload('roles')
       .orderBy('id')
 
+    // Teachers who were invited but have not accepted yet are assignable too.
+    const pendingInvitations = await Invitation.query()
+      .where('schoolId', schoolId)
+      .whereHas('role', (roleQuery) => roleQuery.where('name', RoleName.TEACHER))
+      .whereNull('acceptedAt')
+      .orderBy('id')
+
     // Ongoing and upcoming swim years for the term picker; the class's own
     // (possibly archived) year is included so its term stays selectable.
     const termYears = await SwimYear.query()
@@ -151,6 +163,7 @@ export default class SwimmingClassesController {
       swimmingClass: SwimmingClassTransformer.transform(swimmingClass),
       level: LevelTransformer.transform(level, schoolId),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
+      pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),
       termOptions: SwimYearTransformer.transform(termYears),
     })
   }
@@ -181,7 +194,7 @@ export default class SwimmingClassesController {
 
     session.flash(
       'success',
-      payload.instructorMode === 'invite' ? 'Class updated. Teacher invited.' : 'Class updated.'
+      payload.inviteTeacherEmail ? 'Class updated. Teacher invited.' : 'Class updated.'
     )
     return response.redirect().toRoute('swimming_classes.show', { id: swimmingClass.id })
   }

@@ -25,6 +25,9 @@ async function notAlreadyMember(value: unknown, _options: undefined, field: Fiel
 const notAlreadyMemberRule = vine.createRule(notAlreadyMember)
 
 export const storeInvitationValidator = vine.withMetaData<{ schoolId: number }>().create({
+  firstName: vine.string().trim().minLength(1).maxLength(120),
+  lastName: vine.string().trim().minLength(1).maxLength(120),
+  phone: vine.string().trim().minLength(1).maxLength(50),
   email: vine.string().trim().normalizeEmail().email().maxLength(254).use(notAlreadyMemberRule()),
   role: vine.enum([
     RoleName.HEAD_COACH,

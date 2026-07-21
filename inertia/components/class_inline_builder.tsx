@@ -19,7 +19,7 @@ import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import { Guard } from '~/utils/permissions'
-import InstructorPicker, { type InstructorMode } from '~/components/instructor_picker'
+import InstructorPicker from '~/components/instructor_picker'
 import { nextWeekdayDate } from '~/components/plan_lesson_form'
 
 const WEEKDAYS = [
@@ -57,15 +57,16 @@ export default function ClassInlineBuilder({
   level,
   termOptions,
   instructorOptions,
+  pendingInstructorOptions,
   onClose,
 }: {
   level: Data.Level
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
+  pendingInstructorOptions: Data.Invitation[]
   onClose: () => void
 }) {
   const stages = level.stages ?? []
-  const [instructorMode, setInstructorMode] = useState<InstructorMode>('none')
 
   // Flatten swim years into selectable terms; new classes must pick one.
   const terms = termOptions.flatMap((swimYear) =>
@@ -247,9 +248,8 @@ export default function ClassInlineBuilder({
 
               {/* One instructor selection applies to every class created below. */}
               <InstructorPicker
-                mode={instructorMode}
-                onModeChange={setInstructorMode}
                 instructorOptions={instructorOptions}
+                pendingInstructorOptions={pendingInstructorOptions}
                 errors={errors}
               />
 

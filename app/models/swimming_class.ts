@@ -5,8 +5,7 @@ import { SwimmingClassSchema } from '#database/schema'
 import School from '#models/school'
 import Level from '#models/level'
 import LevelStage from '#models/level_stage'
-import Membership from '#models/membership'
-import Invitation from '#models/invitation'
+import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import Term from '#models/term'
@@ -24,11 +23,8 @@ export default class SwimmingClass extends SwimmingClassSchema {
   @belongsTo(() => LevelStage)
   declare levelStage: BelongsTo<typeof LevelStage>
 
-  @belongsTo(() => Membership, { foreignKey: 'instructorMembershipId' })
-  declare instructorMembership: BelongsTo<typeof Membership>
-
-  @belongsTo(() => Invitation, { foreignKey: 'pendingInstructorInvitationId' })
-  declare pendingInstructorInvitation: BelongsTo<typeof Invitation>
+  @hasMany(() => ClassInstructor)
+  declare classInstructors: HasMany<typeof ClassInstructor>
 
   @hasMany(() => ClassSkill)
   declare classSkills: HasMany<typeof ClassSkill>
@@ -38,10 +34,6 @@ export default class SwimmingClass extends SwimmingClassSchema {
 
   get isCancelled(): boolean {
     return this.cancelledAt !== null
-  }
-
-  get hasPendingInstructor(): boolean {
-    return this.pendingInstructorInvitationId !== null && this.instructorMembershipId === null
   }
 
   cancel() {

@@ -37,16 +37,23 @@ export default function ClassCard({
               ? ` · ${swimmingClass.lessons.length} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} planned`
               : ' · no lessons yet'}
           </Text>
-          {swimmingClass.instructor && (
-            <Group gap="xs">
+          {swimmingClass.instructors.length > 0 && (
+            <Group gap={6} wrap="wrap">
               <Text size="sm" c="dimmed">
-                Instructor: {swimmingClass.instructor.label}
+                {swimmingClass.instructors.length === 1 ? 'Instructor:' : 'Instructors:'}
               </Text>
-              {swimmingClass.instructor.status === 'pending' && (
-                <Badge variant="light" color="yellow" size="sm">
-                  Pending
-                </Badge>
-              )}
+              {swimmingClass.instructors.map((instructor) => (
+                <Group key={`${instructor.type}-${instructor.id}`} gap={4} wrap="nowrap">
+                  <Text size="sm" c="dimmed">
+                    {instructor.label}
+                  </Text>
+                  {instructor.status === 'pending' && (
+                    <Badge variant="light" color="yellow" size="sm">
+                      Pending
+                    </Badge>
+                  )}
+                </Group>
+              ))}
             </Group>
           )}
         </Stack>

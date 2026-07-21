@@ -169,19 +169,24 @@ export default function ClassShow({ swimmingClass }: PageProps) {
               },
               { label: 'Duration', value: `${swimmingClass.durationMinutes} min` },
               {
-                label: 'Instructor',
-                value: swimmingClass.instructor ? (
-                  <Group gap="xs">
-                    {swimmingClass.instructor.label}
-                    {swimmingClass.instructor.status === 'pending' && (
-                      <Badge variant="light" color="yellow" size="sm">
-                        Pending
-                      </Badge>
-                    )}
-                  </Group>
-                ) : (
-                  'Not assigned'
-                ),
+                label: swimmingClass.instructors.length === 1 ? 'Instructor' : 'Instructors',
+                value:
+                  swimmingClass.instructors.length === 0 ? (
+                    'Not assigned'
+                  ) : (
+                    <Group gap="xs" wrap="wrap">
+                      {swimmingClass.instructors.map((instructor) => (
+                        <Group key={`${instructor.type}-${instructor.id}`} gap={4} wrap="nowrap">
+                          {instructor.label}
+                          {instructor.status === 'pending' && (
+                            <Badge variant="light" color="yellow" size="sm">
+                              Pending
+                            </Badge>
+                          )}
+                        </Group>
+                      ))}
+                    </Group>
+                  ),
               },
               { label: 'Location', value: swimmingClass.location ?? 'Not set' },
               {
@@ -205,7 +210,12 @@ export default function ClassShow({ swimmingClass }: PageProps) {
                     : '—',
               },
               { label: 'Skills', value: swimmingClass.skills.length },
-              { label: 'Lessons planned', value: plannedCount },
+              {
+                label: 'Lessons planned',
+                value: swimmingClass.lessonAllowance
+                  ? `${swimmingClass.lessons.length} of ${swimmingClass.lessonAllowance}`
+                  : plannedCount,
+              },
             ]}
           />
         </Card>
@@ -394,13 +404,22 @@ export default function ClassShow({ swimmingClass }: PageProps) {
 
         {!swimmingClass.isCancelled && (
           <Guard for="class.manage">
-            <PlanLessonForm
-              classId={swimmingClass.id}
-              weekday={swimmingClass.weekday}
-              weekdayName={swimmingClass.weekdayName}
-              skills={swimmingClass.skills}
-              existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
-            />
+            {swimmingClass.lessonAllowance &&
+            swimmingClass.lessons.length >= swimmingClass.lessonAllowance ? (
+              <Card>
+                <Text size="sm" c="dimmed">
+                  All {swimmingClass.lessonAllowance} lessons this level allows are planned.
+                </Text>
+              </Card>
+            ) : (
+              <PlanLessonForm
+                classId={swimmingClass.id}
+                weekday={swimmingClass.weekday}
+                weekdayName={swimmingClass.weekdayName}
+                skills={swimmingClass.skills}
+                existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
+              />
+            )}
           </Guard>
         )}
       </Stack>

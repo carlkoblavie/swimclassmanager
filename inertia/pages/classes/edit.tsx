@@ -15,7 +15,7 @@ import { Form, Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
-import InstructorPicker, { type InstructorMode } from '~/components/instructor_picker'
+import InstructorPicker, { invitationKey, membershipKey } from '~/components/instructor_picker'
 
 const WEEKDAYS = [
   { value: '1', label: 'Monday' },
@@ -31,6 +31,7 @@ type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
   level: Data.Level
   instructorOptions: Data.Membership[]
+  pendingInstructorOptions: Data.Invitation[]
   termOptions: Data.SwimYear[]
 }>
 
@@ -38,6 +39,7 @@ export default function ClassEdit({
   swimmingClass,
   level,
   instructorOptions,
+  pendingInstructorOptions,
   termOptions,
 }: PageProps) {
   const stages = level.stages ?? []
@@ -60,12 +62,8 @@ export default function ClassEdit({
   const stage = stages.find((candidate) => String(candidate.id) === levelStageId)
   const stageSkills = stage?.skills ?? []
 
-  const [instructorMode, setInstructorMode] = useState<InstructorMode>(
-    swimmingClass.pendingInstructorInvitationId
-      ? 'invite'
-      : swimmingClass.instructorMembershipId
-        ? 'existing'
-        : 'none'
+  const initialInstructors = swimmingClass.instructors.map((instructor) =>
+    instructor.type === 'membership' ? membershipKey(instructor.id) : invitationKey(instructor.id)
   )
 
   return (
@@ -181,11 +179,10 @@ export default function ClassEdit({
 
             <Card>
               <InstructorPicker
-                mode={instructorMode}
-                onModeChange={setInstructorMode}
                 instructorOptions={instructorOptions}
+                pendingInstructorOptions={pendingInstructorOptions}
+                initialSelection={initialInstructors}
                 errors={errors}
-                initialMembershipId={swimmingClass.instructorMembershipId ?? undefined}
               />
             </Card>
           </Stack>

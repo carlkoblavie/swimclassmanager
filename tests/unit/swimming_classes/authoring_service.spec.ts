@@ -5,6 +5,9 @@ import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { LevelFactory } from '#database/factories/level_factory'
+import ClassInstructor from '#models/class_instructor'
+import Invitation from '#models/invitation'
+import Role from '#models/role'
 import SchoolLevelSetting from '#models/school_level_setting'
 import SwimYear from '#models/swim_year'
 import LevelStage from '#models/level_stage'
@@ -353,16 +356,28 @@ test.group('Class series authoring service', (group) => {
     )
   })
 
-  test('an existing instructor can be assigned at creation', async ({ assert }) => {
+  test('multiple instructors, including a pending invitee, can be assigned at creation', async ({
+    assert,
+  }) => {
     const { school, level, term, day } = await setupContext()
     const teacher = await UserFactory.apply('completed').create()
     const membership = await joinSchool(teacher, school, RoleName.TEACHER)
+    const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER)
+    const invitation = await Invitation.create({
+      schoolId: school.id,
+      roleId: teacherRole.id,
+      email: 'pending@example.com',
+      inviteeFirstName: 'Pending',
+      inviteeLastName: 'Coach',
+      token: 'token-pending-coach',
+      expiresAt: DateTime.now().plus({ days: 7 }),
+    })
 
     const classes = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
       termId: term.id,
-      instructorMode: 'existing',
-      instructorMembershipId: membership.id,
+      instructorMembershipIds: [membership.id],
+      instructorInvitationIds: [invitation.id],
       days: [
         day(),
         day({
@@ -373,8 +388,16 @@ test.group('Class series authoring service', (group) => {
       ],
     })
 
-    assert.equal(classes[0].instructorMembershipId, membership.id)
-    assert.equal(classes[1].instructorMembershipId, membership.id)
+    for (const created of classes) {
+      const rows = await ClassInstructor.query().where('swimmingClassId', created.id)
+      assert.deepEqual(
+        rows.map((row) => [row.membershipId, row.invitationId]).toSorted(),
+        [
+          [membership.id, null],
+          [null, invitation.id],
+        ].toSorted()
+      )
+    }
   })
 
   test('a non-instructor membership is rejected at creation', async ({ assert }) => {
@@ -388,11 +411,54 @@ test.group('Class series authoring service', (group) => {
         new ClassSeriesAuthoringService().createMany(school, {
           levelId: level.id,
           termId: term.id,
-          instructorMode: 'existing',
-          instructorMembershipId: membership.id,
+          instructorMembershipIds: [membership.id],
           days: [day()],
         }),
-      'Choose a Teacher or Head Coach from this school.'
+      'Choose Teachers or Head Coaches from this school.'
+    )
+  })
+
+  test('an accepted invitation cannot be assigned as pending', async ({ assert }) => {
+    const { school, level, term, day } = await setupContext()
+    const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER)
+    const invitation = await Invitation.create({
+      schoolId: school.id,
+      roleId: teacherRole.id,
+      email: 'accepted@example.com',
+      token: 'token-accepted',
+      expiresAt: DateTime.now().plus({ days: 7 }),
+      acceptedAt: DateTime.now(),
+    })
+
+    await expectAuthoringError(
+      assert,
+      () =>
+        new ClassSeriesAuthoringService().createMany(school, {
+          levelId: level.id,
+          termId: term.id,
+          instructorInvitationIds: [invitation.id],
+          days: [day()],
+        }),
+      'Choose pending Teacher invitations from this school.'
+    )
+  })
+
+  test("lesson planning stops at the level's classes count", async ({ assert }) => {
+    const { school, level, term, day } = await setupContext()
+    level.merge({ classesCount: 1 })
+    await level.save()
+
+    // The first lesson is created with the class, filling the allowance.
+    const [created] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      termId: term.id,
+      days: [day()],
+    })
+
+    await expectAuthoringError(
+      assert,
+      () => new ClassSeriesAuthoringService().planLesson(created, {}),
+      'This class already has all 1 lesson its level allows.'
     )
   })
 })

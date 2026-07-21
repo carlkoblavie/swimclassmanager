@@ -33,6 +33,9 @@ export default class InvitationsController {
       { schoolId, email: payload.email },
       {
         roleId: role.id,
+        inviteeFirstName: payload.firstName,
+        inviteeLastName: payload.lastName,
+        inviteePhone: payload.phone,
         token: string.random(48),
         expiresAt: DateTime.now().plus({ days: 7 }),
         acceptedAt: null,
