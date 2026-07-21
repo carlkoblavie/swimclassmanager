@@ -94,6 +94,7 @@ export async function seedCurriculum(
     code: 'P01L01',
     capacity: 10,
     classesCount: 10,
+    audience: 'child',
   }).create()
   const stage = await LevelStage.create({
     levelId: level.id,

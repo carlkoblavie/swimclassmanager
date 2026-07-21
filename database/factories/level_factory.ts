@@ -22,6 +22,7 @@ export const LevelFactory = factory
       defaultFee: 5000,
       capacity: 10,
       classesCount: 10,
+      audience: 'child',
     }
   })
   .build()

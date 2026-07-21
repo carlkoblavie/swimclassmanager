@@ -1,6 +1,7 @@
 import vine from '@vinejs/vine'
 import type { FieldContext } from '@vinejs/vine/types'
 import db from '@adonisjs/lucid/services/db'
+import { LevelAudience } from '#values/level_audience'
 
 // uniqueProgramName — rejects a name that already exists platform-wide
 // (case-insensitive), excluding the program being edited when `programId` meta
@@ -58,6 +59,7 @@ const levelObject = {
   description: vine.string().trim().minLength(1).maxLength(2000),
   defaultFee: vine.number().min(0).decimal([0, 2]), // cedis; converted to minor units in the service
   classesCount: vine.number().withoutDecimals().positive(),
+  audience: vine.enum([LevelAudience.CHILD, LevelAudience.ADULT]),
   stages: vine.array(vine.object(stageObject)).distinct('position').optional(),
 }
 

@@ -259,6 +259,7 @@ export default class ProgramAuthoringService {
           description: input.description,
           defaultFee: toMinorUnits(input.defaultFee),
           classesCount: input.classesCount,
+          audience: input.audience,
           code: reserveLevelCode(program.code, codes),
         })
         await reconcileStages(level, input.stages ?? [], trx, codes)
@@ -328,6 +329,7 @@ export default class ProgramAuthoringService {
           description: input.description,
           defaultFee: toMinorUnits(input.defaultFee),
           classesCount: input.classesCount,
+          audience: input.audience,
         }
         const target = input.id ? existingById.get(input.id) : undefined
         let level: Level
