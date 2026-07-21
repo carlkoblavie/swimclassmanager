@@ -109,6 +109,10 @@ export default function LevelsShow({ level, classes }: PageProps) {
                 value: typeof level.capacity === 'number' ? `${level.capacity} learners` : '—',
               },
               { label: 'Your fee', value: level.fee.formatted },
+              {
+                label: 'Classes to complete',
+                value: typeof level.classesCount === 'number' ? level.classesCount : '—',
+              },
               { label: 'Stages', value: level.stages.length },
               { label: 'Skills', value: skillCount },
               { label: 'Activities', value: activityCount },

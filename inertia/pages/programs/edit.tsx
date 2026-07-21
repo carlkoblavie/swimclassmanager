@@ -21,6 +21,7 @@ export default function EditProgram({ program }: PageProps) {
         ageGroup: level.ageGroup,
         description: level.description,
         defaultFee: String(level.defaultFee),
+        classesCount: level.classesCount === null ? '' : String(level.classesCount),
         stages: level.stages.map((stage) => ({
           id: stage.id,
           code: stage.code,

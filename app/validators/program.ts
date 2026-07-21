@@ -57,6 +57,7 @@ const levelObject = {
   ageGroup: vine.string().trim().minLength(1).maxLength(80),
   description: vine.string().trim().minLength(1).maxLength(2000),
   defaultFee: vine.number().min(0).decimal([0, 2]), // cedis; converted to minor units in the service
+  classesCount: vine.number().withoutDecimals().positive(),
   stages: vine.array(vine.object(stageObject)).distinct('position').optional(),
 }
 

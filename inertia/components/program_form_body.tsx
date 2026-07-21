@@ -123,6 +123,17 @@ export default function ProgramFormBody({ errors, initial }: Props) {
       skills: [...stage.skills, skill],
     }))
 
+  const updateSkill = (
+    levelIndex: number,
+    stageIndex: number,
+    skillIndex: number,
+    skill: StageSkillDraft
+  ) =>
+    updateStage(levelIndex, stageIndex, (stage) => ({
+      ...stage,
+      skills: stage.skills.map((existing, s) => (s === skillIndex ? skill : existing)),
+    }))
+
   const removeSkill = (levelIndex: number, stageIndex: number, skillIndex: number) =>
     updateStage(levelIndex, stageIndex, (stage) => ({
       ...stage,
@@ -139,6 +150,27 @@ export default function ProgramFormBody({ errors, initial }: Props) {
       ...stage,
       skills: stage.skills.map((skill, s) =>
         s === skillIndex ? { ...skill, activities: [...skill.activities, activity] } : skill
+      ),
+    }))
+
+  const updateActivity = (
+    levelIndex: number,
+    stageIndex: number,
+    skillIndex: number,
+    activityIndex: number,
+    activity: StageActivityDraft
+  ) =>
+    updateStage(levelIndex, stageIndex, (stage) => ({
+      ...stage,
+      skills: stage.skills.map((skill, s) =>
+        s === skillIndex
+          ? {
+              ...skill,
+              activities: skill.activities.map((existing, a) =>
+                a === activityIndex ? activity : existing
+              ),
+            }
+          : skill
       ),
     }))
 
@@ -225,7 +257,7 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                       )}
                     </Group>
                     <Text size="sm" mt={4}>
-                      {level.ageGroup} · GHS {level.defaultFee} —{' '}
+                      {level.ageGroup} · GHS {level.defaultFee} · {level.classesCount} classes —{' '}
                       <Text span size="sm" c="dimmed">
                         {level.description}
                       </Text>
@@ -279,11 +311,17 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                     onEditStage={(stageIndex) => setStageTarget({ levelIndex: index, stageIndex })}
                     onRemoveStage={(stageIndex) => removeStage(index, stageIndex)}
                     onAddSkill={(stageIndex, skill) => addSkill(index, stageIndex, skill)}
+                    onUpdateSkill={(stageIndex, skillIndex, skill) =>
+                      updateSkill(index, stageIndex, skillIndex, skill)
+                    }
                     onRemoveSkill={(stageIndex, skillIndex) =>
                       removeSkill(index, stageIndex, skillIndex)
                     }
                     onAddActivity={(stageIndex, skillIndex, activity) =>
                       addActivity(index, stageIndex, skillIndex, activity)
+                    }
+                    onUpdateActivity={(stageIndex, skillIndex, activityIndex, activity) =>
+                      updateActivity(index, stageIndex, skillIndex, activityIndex, activity)
                     }
                     onRemoveActivity={(stageIndex, skillIndex, activityIndex) =>
                       removeActivity(index, stageIndex, skillIndex, activityIndex)
@@ -333,6 +371,11 @@ export default function ProgramFormBody({ errors, initial }: Props) {
             <input type="hidden" name={`levels[${index}][ageGroup]`} value={level.ageGroup} />
             <input type="hidden" name={`levels[${index}][description]`} value={level.description} />
             <input type="hidden" name={`levels[${index}][defaultFee]`} value={level.defaultFee} />
+            <input
+              type="hidden"
+              name={`levels[${index}][classesCount]`}
+              value={level.classesCount}
+            />
             {level.stages.map((stage, stageIndex) => {
               const prefix = `levels[${index}][stages][${stageIndex}]`
               return (

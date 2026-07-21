@@ -1,20 +1,21 @@
 import { useState } from 'react'
 import {
   ActionIcon,
+  Badge,
   Box,
   Button,
   Card,
   Group,
-  Pill,
   Popover,
   Stack,
+  Table,
   Text,
   Textarea,
   TextInput,
   ThemeIcon,
   Tooltip,
 } from '@mantine/core'
-import { IconPencil, IconPlus, IconTarget, IconTrash } from '@tabler/icons-react'
+import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
 import type { StageActivityDraft, StageDraft, StageSkillDraft } from '~/components/stage_builder'
 
 const upperLabel = { tt: 'uppercase', fz: 'xs', c: 'dimmed', fw: 600 } as const
@@ -23,19 +24,36 @@ function countLabel(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`
 }
 
-// Popover form for adding a skill to a stage.
-function AddSkillPopover({
+// Popover form for adding or editing a skill on a stage. When `initial` is
+// provided the fields pre-fill and its id/activities are preserved on submit.
+function SkillPopover({
   existingNames,
-  onAdd,
+  initial,
+  submitLabel = 'Add',
+  onSubmit,
   trigger,
 }: {
   existingNames: string[]
-  onAdd: (skill: StageSkillDraft) => void
+  initial?: StageSkillDraft
+  submitLabel?: string
+  onSubmit: (skill: StageSkillDraft) => void
   trigger: (open: () => void) => React.ReactNode
 }) {
   const [opened, setOpened] = useState(false)
-  const [entry, setEntry] = useState({ name: '', passCriteria: '', description: '' })
+  const blank = () => ({
+    name: initial?.name ?? '',
+    passCriteria: initial?.passCriteria ?? '',
+    description: initial?.description ?? '',
+  })
+  const [entry, setEntry] = useState(blank)
   const [errors, setErrors] = useState<{ name?: string; passCriteria?: string }>({})
+
+  // Reset to the current initial each time the popover opens.
+  const toggle = () => {
+    setEntry(blank())
+    setErrors({})
+    setOpened((value) => !value)
+  }
 
   const submit = () => {
     const next: typeof errors = {}
@@ -50,15 +68,14 @@ function AddSkillPopover({
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
-    onAdd({ ...entry, activities: [] })
-    setEntry({ name: '', passCriteria: '', description: '' })
+    onSubmit({ activities: [], ...initial, ...entry })
     setErrors({})
     setOpened(false)
   }
 
   return (
     <Popover opened={opened} onChange={setOpened} position="bottom-start" withArrow trapFocus>
-      <Popover.Target>{trigger(() => setOpened((value) => !value))}</Popover.Target>
+      <Popover.Target>{trigger(toggle)}</Popover.Target>
       <Popover.Dropdown w={360}>
         <Stack gap="xs">
           <TextInput
@@ -90,7 +107,7 @@ function AddSkillPopover({
           />
           <Group justify="flex-end">
             <Button type="button" size="xs" onClick={submit}>
-              Add
+              {submitLabel}
             </Button>
           </Group>
         </Stack>
@@ -99,15 +116,33 @@ function AddSkillPopover({
   )
 }
 
-// Popover form for attaching an activity to a skill.
-function AddActivityPopover({ onAdd }: { onAdd: (activity: StageActivityDraft) => void }) {
+// Popover form for adding or editing an activity on a skill. Defaults to the
+// dashed "+" trigger; pass `trigger` (e.g. a pencil) to edit an existing one.
+function ActivityPopover({
+  initial,
+  submitLabel = 'Add',
+  onSubmit,
+  trigger,
+}: {
+  initial?: StageActivityDraft
+  submitLabel?: string
+  onSubmit: (activity: StageActivityDraft) => void
+  trigger?: (open: () => void) => React.ReactNode
+}) {
   const [opened, setOpened] = useState(false)
-  const [entry, setEntry] = useState({
-    name: '',
-    description: '',
-    applicationNotes: '',
+  const blank = () => ({
+    name: initial?.name ?? '',
+    description: initial?.description ?? '',
+    applicationNotes: initial?.applicationNotes ?? '',
   })
+  const [entry, setEntry] = useState(blank)
   const [errors, setErrors] = useState<{ name?: string }>({})
+
+  const toggle = () => {
+    setEntry(blank())
+    setErrors({})
+    setOpened((value) => !value)
+  }
 
   const submit = () => {
     const next: typeof errors = {}
@@ -115,28 +150,31 @@ function AddActivityPopover({ onAdd }: { onAdd: (activity: StageActivityDraft) =
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
-    onAdd(entry)
-    setEntry({ name: '', description: '', applicationNotes: '' })
+    onSubmit({ ...initial, ...entry })
     setErrors({})
     setOpened(false)
   }
 
+  const target = trigger ? (
+    trigger(toggle)
+  ) : (
+    <Tooltip label="Add activity">
+      <ActionIcon
+        variant="default"
+        radius="xl"
+        size="md"
+        style={{ borderStyle: 'dashed' }}
+        aria-label="Add activity"
+        onClick={toggle}
+      >
+        <IconPlus size={14} />
+      </ActionIcon>
+    </Tooltip>
+  )
+
   return (
     <Popover opened={opened} onChange={setOpened} position="bottom-start" withArrow trapFocus>
-      <Popover.Target>
-        <Tooltip label="Add activity">
-          <ActionIcon
-            variant="default"
-            radius="xl"
-            size="md"
-            style={{ borderStyle: 'dashed' }}
-            aria-label="Add activity"
-            onClick={() => setOpened((value) => !value)}
-          >
-            <IconPlus size={14} />
-          </ActionIcon>
-        </Tooltip>
-      </Popover.Target>
+      <Popover.Target>{target}</Popover.Target>
       <Popover.Dropdown w={360}>
         <Stack gap="xs">
           <TextInput
@@ -169,7 +207,7 @@ function AddActivityPopover({ onAdd }: { onAdd: (activity: StageActivityDraft) =
           />
           <Group justify="flex-end">
             <Button type="button" size="xs" onClick={submit}>
-              Add
+              {submitLabel}
             </Button>
           </Group>
         </Stack>
@@ -180,59 +218,137 @@ function AddActivityPopover({ onAdd }: { onAdd: (activity: StageActivityDraft) =
 
 function SkillBranch({
   skill,
+  otherSkillNames,
+  onUpdate,
   onRemove,
   onAddActivity,
+  onUpdateActivity,
   onRemoveActivity,
 }: {
   skill: StageSkillDraft
+  otherSkillNames: string[]
+  onUpdate: (skill: StageSkillDraft) => void
   onRemove: () => void
   onAddActivity: (activity: StageActivityDraft) => void
+  onUpdateActivity: (index: number, activity: StageActivityDraft) => void
   onRemoveActivity: (index: number) => void
 }) {
   return (
-    <Box
-      pl="sm"
-      style={{ borderLeft: '2px solid var(--mantine-color-aqua-3)' }}
-    >
-      <Stack gap={6}>
-        <Group gap="xs" wrap="nowrap">
-          <IconTarget size={16} stroke={1.8} color="var(--mantine-color-aqua-8)" />
-          <Text fw={600} size="sm" c="aqua.8">
-            {skill.name}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {countLabel(skill.activities.length, 'activity', 'activities')}
-          </Text>
-          <Tooltip label="Remove skill">
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              size="sm"
-              aria-label={`Remove skill ${skill.name}`}
-              onClick={onRemove}
-            >
-              <IconTrash size={14} />
-            </ActionIcon>
-          </Tooltip>
+    <Card withBorder shadow="none" padding={0} radius="md">
+      <Box
+        p="sm"
+        px="md"
+        bg="gray.0"
+        style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}
+      >
+        <Group justify="space-between" wrap="nowrap" align="flex-start">
+          <Group gap="sm" wrap="wrap">
+            <Text fw={800} size="sm">
+              {skill.name}
+            </Text>
+            <Badge variant="light" size="sm">
+              Pass: {skill.passCriteria}
+            </Badge>
+          </Group>
+          <Group gap="xs" wrap="nowrap">
+            <ActivityPopover onSubmit={onAddActivity} />
+            <SkillPopover
+              existingNames={otherSkillNames}
+              initial={skill}
+              submitLabel="Save"
+              onSubmit={onUpdate}
+              trigger={(open) => (
+                <Tooltip label="Edit skill">
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    aria-label={`Edit skill ${skill.name}`}
+                    onClick={open}
+                  >
+                    <IconPencil size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+            />
+            <Tooltip label="Remove skill">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                size="sm"
+                aria-label={`Remove skill ${skill.name}`}
+                onClick={onRemove}
+              >
+                <IconTrash size={14} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </Group>
-        <Group gap="xs">
-          {skill.activities.map((activity, index) => (
-            <Pill
-              key={index}
-              size="md"
-              bg="green.0"
-              c="green.9"
-              withRemoveButton
-              onRemove={() => onRemoveActivity(index)}
-              removeButtonProps={{ 'aria-label': `Remove activity ${activity.name}` }}
-            >
-              {activity.name}
-            </Pill>
-          ))}
-          <AddActivityPopover onAdd={onAddActivity} />
-        </Group>
-      </Stack>
-    </Box>
+        {skill.description && (
+          <Text size="xs" c="dimmed" mt={4}>
+            {skill.description}
+          </Text>
+        )}
+      </Box>
+      {skill.activities.length === 0 ? (
+        <Text size="sm" c="dimmed" p="sm" px="md">
+          No activities yet — add one from the header.
+        </Text>
+      ) : (
+        <Table verticalSpacing="xs" horizontalSpacing="md" fz="sm">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Activity</Table.Th>
+              <Table.Th>Description</Table.Th>
+              <Table.Th>Application notes</Table.Th>
+              <Table.Th w={76} />
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {skill.activities.map((activity, index) => (
+              <Table.Tr key={index}>
+                <Table.Td fw={700} style={{ whiteSpace: 'nowrap' }}>
+                  {activity.name}
+                </Table.Td>
+                <Table.Td c="dimmed">{activity.description || '—'}</Table.Td>
+                <Table.Td c="dimmed">{activity.applicationNotes || '—'}</Table.Td>
+                <Table.Td>
+                  <Group gap={4} wrap="nowrap" justify="flex-end">
+                    <ActivityPopover
+                      initial={activity}
+                      submitLabel="Save"
+                      onSubmit={(updated) => onUpdateActivity(index, updated)}
+                      trigger={(open) => (
+                        <Tooltip label="Edit activity">
+                          <ActionIcon
+                            variant="subtle"
+                            size="sm"
+                            aria-label={`Edit activity ${activity.name}`}
+                            onClick={open}
+                          >
+                            <IconPencil size={14} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                    />
+                    <Tooltip label="Remove activity">
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        size="sm"
+                        aria-label={`Remove activity ${activity.name}`}
+                        onClick={() => onRemoveActivity(index)}
+                      >
+                        <IconTrash size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      )}
+    </Card>
   )
 }
 
@@ -241,16 +357,25 @@ export default function StageTree({
   onEditStage,
   onRemoveStage,
   onAddSkill,
+  onUpdateSkill,
   onRemoveSkill,
   onAddActivity,
+  onUpdateActivity,
   onRemoveActivity,
 }: {
   stages: StageDraft[]
   onEditStage: (stageIndex: number) => void
   onRemoveStage: (stageIndex: number) => void
   onAddSkill: (stageIndex: number, skill: StageSkillDraft) => void
+  onUpdateSkill: (stageIndex: number, skillIndex: number, skill: StageSkillDraft) => void
   onRemoveSkill: (stageIndex: number, skillIndex: number) => void
   onAddActivity: (stageIndex: number, skillIndex: number, activity: StageActivityDraft) => void
+  onUpdateActivity: (
+    stageIndex: number,
+    skillIndex: number,
+    activityIndex: number,
+    activity: StageActivityDraft
+  ) => void
   onRemoveActivity: (stageIndex: number, skillIndex: number, activityIndex: number) => void
 }) {
   const ordered = stages
@@ -310,9 +435,9 @@ export default function StageTree({
                 <Card bg="gray.0" padding="sm" shadow="none">
                   <Group justify="space-between" align="center">
                     <Text size="sm">Add a skill, then attach activities to it.</Text>
-                    <AddSkillPopover
+                    <SkillPopover
                       existingNames={stage.skills.map((skill) => skill.name)}
-                      onAdd={(skill) => onAddSkill(stageIndex, skill)}
+                      onSubmit={(skill) => onAddSkill(stageIndex, skill)}
                       trigger={(open) => (
                         <Button type="button" variant="default" size="xs" onClick={open}>
                           Add skill
@@ -328,9 +453,16 @@ export default function StageTree({
                       <SkillBranch
                         key={skillIndex}
                         skill={skill}
+                        otherSkillNames={stage.skills
+                          .filter((_, i) => i !== skillIndex)
+                          .map((s) => s.name)}
+                        onUpdate={(updated) => onUpdateSkill(stageIndex, skillIndex, updated)}
                         onRemove={() => onRemoveSkill(stageIndex, skillIndex)}
                         onAddActivity={(activity) =>
                           onAddActivity(stageIndex, skillIndex, activity)
+                        }
+                        onUpdateActivity={(activityIndex, activity) =>
+                          onUpdateActivity(stageIndex, skillIndex, activityIndex, activity)
                         }
                         onRemoveActivity={(activityIndex) =>
                           onRemoveActivity(stageIndex, skillIndex, activityIndex)
@@ -339,9 +471,9 @@ export default function StageTree({
                     ))}
                   </Stack>
                   <div>
-                    <AddSkillPopover
+                    <SkillPopover
                       existingNames={stage.skills.map((skill) => skill.name)}
-                      onAdd={(skill) => onAddSkill(stageIndex, skill)}
+                      onSubmit={(skill) => onAddSkill(stageIndex, skill)}
                       trigger={(open) => (
                         <Button
                           type="button"

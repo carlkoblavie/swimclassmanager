@@ -93,6 +93,7 @@ export async function seedCurriculum(
     name: names.level ?? 'Aquatic therapy',
     code: 'P01L01',
     capacity: 10,
+    classesCount: 10,
   }).create()
   const stage = await LevelStage.create({
     levelId: level.id,

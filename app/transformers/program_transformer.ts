@@ -34,6 +34,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
         ageGroup: level.ageGroup,
         description: level.description,
         defaultFee: level.defaultFee / 100,
+        classesCount: level.classesCount,
         stages: (level.stages ?? []).map((stage) => ({
           id: stage.id,
           code: stage.code,

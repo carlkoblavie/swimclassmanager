@@ -36,6 +36,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
         'ageGroup',
         'description',
         'capacity',
+        'classesCount',
       ]),
       defaultFee: {
         raw: this.resource.defaultFee,

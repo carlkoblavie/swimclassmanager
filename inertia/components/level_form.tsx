@@ -1,6 +1,24 @@
-import { type ChangeEvent, useState } from 'react'
-import { Button, Card, Group, Stack, Textarea, TextInput, Title } from '@mantine/core'
+import { type ChangeEvent, useEffect, useRef, useState } from 'react'
+import { Button, Card, Group, NativeSelect, Stack, Textarea, TextInput, Title } from '@mantine/core'
 import type { StageDraft } from '~/components/stage_builder'
+
+// Age range selects: bounded ranges read "2–6 yrs", open-ended ones "2yrs+".
+const AGE_OPTIONS = Array.from({ length: 18 }, (_, index) => String(index + 1))
+const NO_MAX = 'plus'
+
+function parseAgeGroup(value: string): { from: string; to: string } {
+  const numbers = value.match(/\d+/g) ?? []
+  const from = numbers[0] ?? ''
+  const to = value.includes('+') ? NO_MAX : (numbers[1] ?? '')
+  return { from, to }
+}
+
+function formatAgeGroup(from: string, to: string): string {
+  if (!from || !to) {
+    return ''
+  }
+  return to === NO_MAX ? `${from}yrs+` : `${from}–${to} yrs`
+}
 
 export type LevelDraft = {
   id?: number
@@ -9,15 +27,16 @@ export type LevelDraft = {
   ageGroup: string
   description: string
   defaultFee: string // cedis, as entered
+  classesCount: string // sessions to complete the level; stages inherit it
   stages: StageDraft[]
 }
 
-type LevelField = 'name' | 'ageGroup' | 'description' | 'defaultFee'
+type LevelField = 'name' | 'ageGroup' | 'description' | 'defaultFee' | 'classesCount'
 
-const REQUIRED: LevelField[] = ['name', 'ageGroup', 'description', 'defaultFee']
+const REQUIRED: LevelField[] = ['name', 'ageGroup', 'description', 'defaultFee', 'classesCount']
 
 function emptyDraft(): LevelDraft {
-  return { name: '', ageGroup: '', description: '', defaultFee: '', stages: [] }
+  return { name: '', ageGroup: '', description: '', defaultFee: '', classesCount: '', stages: [] }
 }
 
 export default function LevelForm({
@@ -31,6 +50,25 @@ export default function LevelForm({
 }) {
   const [draft, setDraft] = useState<LevelDraft>(initial ?? emptyDraft())
   const [errors, setErrors] = useState<Partial<Record<LevelField, string>>>({})
+
+  const initialAges = parseAgeGroup(initial?.ageGroup ?? '')
+  const [ageFrom, setAgeFrom] = useState(initialAges.from)
+  const [ageTo, setAgeTo] = useState(initialAges.to)
+
+  const changeAges = (from: string, to: string) => {
+    // Reset an upper bound that no longer fits the new lower bound.
+    const nextTo = to !== NO_MAX && to !== '' && Number(to) <= Number(from) ? '' : to
+    setAgeFrom(from)
+    setAgeTo(nextTo)
+    setDraft((current) => ({ ...current, ageGroup: formatAgeGroup(from, nextTo) }))
+  }
+
+  // Bring the form into view when it opens, clearing the fixed app header.
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
 
   const set =
     (field: LevelField) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -51,24 +89,53 @@ export default function LevelForm({
   }
 
   return (
-    <Card bg="gray.0" shadow="none">
+    <Card ref={rootRef} bg="gray.0" shadow="none" style={{ scrollMarginTop: 76 }}>
       <Stack gap="md">
         <Title order={3} fz="lg">
           {initial ? 'Edit level' : 'Add level'}
         </Title>
-        <TextInput
-          label="Level name"
-          value={draft.name}
-          onChange={set('name')}
-          error={errors.name}
-        />
         <Group gap="md" align="flex-start">
           <TextInput
-            label="Age group"
+            label="Level name"
+            flex={2}
+            value={draft.name}
+            onChange={set('name')}
+            error={errors.name}
+          />
+          <TextInput
+            label="Lessons required to complete this Level"
+            type="number"
             flex={1}
-            value={draft.ageGroup}
-            onChange={set('ageGroup')}
+            value={draft.classesCount}
+            onChange={set('classesCount')}
+            error={errors.classesCount}
+          />
+        </Group>
+        <Group gap="md" align="flex-start">
+          <NativeSelect
+            label="From age"
+            flex={1}
+            value={ageFrom}
+            onChange={(event) => changeAges(event.currentTarget.value, ageTo)}
             error={errors.ageGroup}
+            data={[
+              { value: '', label: 'Select age' },
+              ...AGE_OPTIONS.map((age) => ({ value: age, label: `${age} yrs` })),
+            ]}
+          />
+          <NativeSelect
+            label="To age"
+            flex={1}
+            value={ageTo}
+            onChange={(event) => changeAges(ageFrom, event.currentTarget.value)}
+            data={[
+              { value: '', label: 'Select max age' },
+              { value: NO_MAX, label: `No max (${ageFrom || '…'}yrs+)` },
+              ...AGE_OPTIONS.filter((age) => Number(age) > Number(ageFrom || 0)).map((age) => ({
+                value: age,
+                label: `${age} yrs`,
+              })),
+            ]}
           />
           <TextInput
             label="Fee (GHS)"

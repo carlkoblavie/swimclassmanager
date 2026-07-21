@@ -100,6 +100,7 @@ export default function ProgramsShow({ program, classes }: PageProps) {
                     <Text size="sm">
                       {typeof level.capacity === 'number' && `Capacity: ${level.capacity} · `}
                       {level.fee.formatted}
+                      {typeof level.classesCount === 'number' && ` · ${level.classesCount} classes`}
                     </Text>
                     {level.stages.length > 0 && (
                       <Text size="sm" c="dimmed">

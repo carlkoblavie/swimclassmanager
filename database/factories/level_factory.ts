@@ -21,6 +21,7 @@ export const LevelFactory = factory
       description: faker.lorem.sentence(),
       defaultFee: 5000,
       capacity: 10,
+      classesCount: 10,
     }
   })
   .build()
