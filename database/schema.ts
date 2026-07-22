@@ -56,6 +56,35 @@ export class ClassSkillSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class EnrollmentSchema extends BaseModel {
+  static $columns = ['createdAt', 'currency', 'id', 'learnerId', 'levelId', 'price', 'publicId', 'reservedUntil', 'schoolId', 'status', 'swimYearId', 'updatedAt'] as const
+  $columns = EnrollmentSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare learnerId: number
+  @column()
+  declare levelId: number
+  @column()
+  declare price: number
+  @column()
+  declare publicId: string
+  @column.dateTime()
+  declare reservedUntil: DateTime | null
+  @column()
+  declare schoolId: number
+  @column()
+  declare status: string
+  @column()
+  declare swimYearId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class InvitationSchema extends BaseModel {
   static $columns = ['acceptedAt', 'certifications', 'createdAt', 'email', 'expiresAt', 'id', 'inviteeFirstName', 'inviteeLastName', 'inviteePhone', 'roleId', 'schoolId', 'token', 'updatedAt'] as const
   $columns = InvitationSchema.$columns
@@ -421,6 +450,35 @@ export class SwimmingClassSchema extends BaseModel {
   declare weekday: number
 }
 
+export class TermPaymentSchema extends BaseModel {
+  static $columns = ['amount', 'createdAt', 'currency', 'enrollmentId', 'id', 'paidAt', 'provider', 'providerReference', 'publicId', 'status', 'termId', 'updatedAt'] as const
+  $columns = TermPaymentSchema.$columns
+  @column()
+  declare amount: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column()
+  declare enrollmentId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare paidAt: DateTime | null
+  @column()
+  declare provider: string | null
+  @column()
+  declare providerReference: string | null
+  @column()
+  declare publicId: string
+  @column()
+  declare status: string
+  @column()
+  declare termId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class TermSchema extends BaseModel {
   static $columns = ['createdAt', 'endsOn', 'id', 'name', 'position', 'startsOn', 'swimYearId', 'updatedAt'] as const
   $columns = TermSchema.$columns
@@ -443,7 +501,7 @@ export class TermSchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['activeOrganisationId', 'activeSchoolId', 'country', 'createdAt', 'email', 'fullName', 'id', 'phone', 'profileCompletedAt', 'updatedAt'] as const
+  static $columns = ['activeOrganisationId', 'activeSchoolId', 'country', 'createdAt', 'email', 'fullName', 'id', 'mustChangePassword', 'password', 'phone', 'profileCompletedAt', 'updatedAt'] as const
   $columns = UserSchema.$columns
   @column()
   declare activeOrganisationId: number | null
@@ -459,6 +517,10 @@ export class UserSchema extends BaseModel {
   declare fullName: string | null
   @column({ isPrimary: true })
   declare id: number
+  @column()
+  declare mustChangePassword: boolean
+  @column({ serializeAs: null })
+  declare password: string | null
   @column()
   declare phone: string | null
   @column.dateTime()
