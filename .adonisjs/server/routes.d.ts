@@ -7,12 +7,15 @@ export type ScannedRoutes = {
     'landing': { paramsTuple?: []; params?: {} }
     'home': { paramsTuple?: []; params?: {} }
     'sign_in_links.create': { paramsTuple?: []; params?: {} }
+    'sessions.store': { paramsTuple?: []; params?: {} }
     'sign_in_links.store': { paramsTuple?: []; params?: {} }
     'account_registrations.create': { paramsTuple?: []; params?: {} }
     'account_registrations.store': { paramsTuple?: []; params?: {} }
     'auth.verify': { paramsTuple?: []; params?: {} }
     'accounts.edit': { paramsTuple?: []; params?: {} }
     'accounts.update': { paramsTuple?: []; params?: {} }
+    'account_passwords.edit': { paramsTuple?: []; params?: {} }
+    'account_passwords.update': { paramsTuple?: []; params?: {} }
     'sessions.destroy': { paramsTuple?: []; params?: {} }
     'schools.create': { paramsTuple?: []; params?: {} }
     'schools.store': { paramsTuple?: []; params?: {} }
@@ -22,6 +25,8 @@ export type ScannedRoutes = {
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'signups.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_plans.index': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
@@ -52,10 +57,13 @@ export type ScannedRoutes = {
     'account_registrations.create': { paramsTuple?: []; params?: {} }
     'auth.verify': { paramsTuple?: []; params?: {} }
     'accounts.edit': { paramsTuple?: []; params?: {} }
+    'account_passwords.edit': { paramsTuple?: []; params?: {} }
     'schools.create': { paramsTuple?: []; params?: {} }
     'invitations.create': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_plans.index': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
@@ -74,10 +82,13 @@ export type ScannedRoutes = {
     'account_registrations.create': { paramsTuple?: []; params?: {} }
     'auth.verify': { paramsTuple?: []; params?: {} }
     'accounts.edit': { paramsTuple?: []; params?: {} }
+    'account_passwords.edit': { paramsTuple?: []; params?: {} }
     'schools.create': { paramsTuple?: []; params?: {} }
     'invitations.create': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_plans.index': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
@@ -90,6 +101,7 @@ export type ScannedRoutes = {
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   POST: {
+    'sessions.store': { paramsTuple?: []; params?: {} }
     'sign_in_links.store': { paramsTuple?: []; params?: {} }
     'account_registrations.store': { paramsTuple?: []; params?: {} }
     'sessions.destroy': { paramsTuple?: []; params?: {} }
@@ -103,6 +115,7 @@ export type ScannedRoutes = {
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }
+    'account_passwords.update': { paramsTuple?: []; params?: {} }
     'active_schools.update': { paramsTuple?: []; params?: {} }
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

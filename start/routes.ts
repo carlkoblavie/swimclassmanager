@@ -25,14 +25,16 @@ router
   .on('/dashboard')
   .renderInertia('home', {})
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
   .as('home')
 
 router
   .group(() => {
-    router.get('login', [controllers.SignInLinks, 'create'])
-    router.post('login', [controllers.SignInLinks, 'store'])
+    router.get('login', [controllers.Sessions, 'create']).as('sign_in_links.create')
+    router.post('login', [controllers.Sessions, 'store'])
+    router.post('login/magic-link', [controllers.SignInLinks, 'store'])
     router.get('signup', [controllers.AccountRegistrations, 'create'])
     router.post('signup', [controllers.AccountRegistrations, 'store'])
     router.get('auth/verify', [controllers.Sessions, 'store']).as('auth.verify')
@@ -43,6 +45,8 @@ router
   .group(() => {
     router.get('complete-profile', [controllers.Accounts, 'edit'])
     router.patch('complete-profile', [controllers.Accounts, 'update'])
+    router.get('account/password', [controllers.AccountPasswords, 'edit'])
+    router.patch('account/password', [controllers.AccountPasswords, 'update'])
     router.post('logout', [controllers.Sessions, 'destroy'])
   })
   .use(middleware.auth())
@@ -53,11 +57,13 @@ router
     router.post('schools', [controllers.Schools, 'store'])
   })
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
 
 router
   .patch('active-school', [controllers.ActiveSchools, 'update'])
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
 
@@ -67,6 +73,7 @@ router
     router.post('invitations', [controllers.Invitations, 'store'])
   })
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
   .use(middleware.authorize('invitation.create'))
@@ -83,10 +90,29 @@ router
   .where('organisationSlug', router.matchers.slug())
   .where('schoolSlug', router.matchers.slug())
 
+// Public customer purchase API (JSON) — a school's available levels (plans)
+// grouped by program, priced with the school's fee, plus the current swim year.
+router
+  .group(() => {
+    router.get('api/register/:organisationSlug/:schoolSlug/plans', [
+      controllers.CustomerPlans,
+      'index',
+    ])
+    router
+      .get('api/register/:organisationSlug/:schoolSlug/programs/:programId/levels', [
+        controllers.CustomerPlans,
+        'show',
+      ])
+      .where('programId', router.matchers.uuid())
+  })
+  .where('organisationSlug', router.matchers.slug())
+  .where('schoolSlug', router.matchers.slug())
+
 // Admin sign-ups list — active-school scoped, permission-gated.
 router
   .get('signups', [controllers.Signups, 'index'])
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
   .use(middleware.authorize('signup.view'))
@@ -107,6 +133,7 @@ router
       .use(middleware.authorize('program.manage'))
   })
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
 
@@ -120,6 +147,7 @@ router
   })
   .prefix('settings')
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
   .use(middleware.authorize('settings.manage'))
@@ -154,5 +182,6 @@ router
       .use(middleware.authorize('class.manage'))
   })
   .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
