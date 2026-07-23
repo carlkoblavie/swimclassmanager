@@ -10,7 +10,7 @@
 # Build and runtime share the SAME Node base image, so native modules are always
 # compiled against the exact Node that runs them (no NODE_MODULE_VERSION mismatch).
 
-ARG NODE_VERSION=24
+ARG NODE_VERSION=26
 
 # ---- base: Node + toolchain for native modules (better-sqlite3) ----------------
 FROM node:${NODE_VERSION}-bookworm-slim AS base
