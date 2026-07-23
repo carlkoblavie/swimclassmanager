@@ -158,9 +158,10 @@ export default function LevelForm({
             label="Audience"
             flex={1}
             value={draft.audience}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, audience: event.currentTarget.value }))
-            }
+            onChange={(event) => {
+              const value = event.currentTarget.value
+              setDraft((current) => ({ ...current, audience: value }))
+            }}
             data={[
               { value: 'child', label: 'Children' },
               { value: 'adult', label: 'Adults' },

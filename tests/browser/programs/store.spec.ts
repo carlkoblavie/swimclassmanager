@@ -88,6 +88,37 @@ test.group('Programs store', (group) => {
     })
   })
 
+  test('persists an adult audience selected in the level form', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    await browserContext.loginAs(await manager())
+
+    const page = await visit(route('programs.create'))
+    await page.getByLabel('Program name').fill('Adult Learn to Swim')
+    await page.getByLabel('Description', { exact: true }).fill('For grown-ups.')
+
+    await page.getByRole('button', { name: 'Add level' }).click()
+    await page.getByLabel('Level name').fill('Adult Beginners')
+    await page.getByLabel('From age').selectOption('18')
+    await page.getByLabel('To age').selectOption('plus')
+    await page.getByLabel('Fee (GHS)').fill('80')
+    await page.getByLabel('Lessons required to complete this Level').fill('8')
+    await page.getByLabel('Audience').selectOption('adult')
+    await page.getByLabel('Level description').fill('Intro level for adults.')
+    await page.getByRole('button', { name: 'Save level' }).click()
+
+    await page.getByRole('button', { name: 'Save as draft' }).click()
+
+    await page.assertPath(route('programs.index'))
+    await db.assertHas('levels', {
+      name: 'Adult Beginners',
+      audience: 'adult',
+    })
+  })
+
   test('rejects duplicate skill names within a stage', async ({ visit, route, browserContext }) => {
     await browserContext.loginAs(await manager())
 
