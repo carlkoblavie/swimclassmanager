@@ -27,6 +27,7 @@ export type ScannedRoutes = {
     'signups.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.index': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
+    'api.accounts.store': { paramsTuple?: []; params?: {} }
     'signups.index': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
@@ -108,6 +109,7 @@ export type ScannedRoutes = {
     'schools.store': { paramsTuple?: []; params?: {} }
     'invitations.store': { paramsTuple?: []; params?: {} }
     'signups.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'api.accounts.store': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
     'swim_years.store': { paramsTuple?: []; params?: {} }
     'swimming_classes.store': { paramsTuple?: []; params?: {} }

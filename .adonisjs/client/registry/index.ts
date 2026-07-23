@@ -144,6 +144,12 @@ const routes = {
     tokens: [{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"api","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"register","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":1,"val":"organisationSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":1,"val":"schoolSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"programs","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":1,"val":"programId","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"levels","end":""}],
     types: placeholder as Registry['customer_plans.show']['types'],
   },
+  'api.accounts.store': {
+    methods: ["POST"],
+    pattern: '/api/accounts',
+    tokens: [{"old":"/api/accounts","type":0,"val":"api","end":""},{"old":"/api/accounts","type":0,"val":"accounts","end":""}],
+    types: placeholder as Registry['api.accounts.store']['types'],
+  },
   'signups.index': {
     methods: ["GET","HEAD"],
     pattern: '/signups',

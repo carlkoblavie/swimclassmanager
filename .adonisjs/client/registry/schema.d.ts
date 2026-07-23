@@ -283,6 +283,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/customer_plans_controller').default['show']>>>
     }
   }
+  'api.accounts.store': {
+    methods: ["POST"]
+    pattern: '/api/accounts'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/account_registration').storeApiAccountValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/account_registration').storeApiAccountValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_registrations_controller').default['storeApi']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_registrations_controller').default['storeApi']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'signups.index': {
     methods: ["GET","HEAD"]
     pattern: '/signups'

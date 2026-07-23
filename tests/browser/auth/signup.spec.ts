@@ -1,7 +1,9 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import hash from '@adonisjs/core/services/hash'
 import Membership from '#models/membership'
 import School from '#models/school'
+import User from '#models/user'
 import { UserFactory } from '#database/factories/user_factory'
 import { RoleName } from '#values/role'
 import { seedRoles } from '#tests/helpers'
@@ -26,7 +28,11 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('Institutional email').fill('jane@example.com')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
-    await page.getByLabel('I agree to create this institution workspace for my swim school.').check()
+    await page.getByLabel('Password', { exact: true }).fill('supersecret')
+    await page.getByLabel('Confirm password').fill('supersecret')
+    await page
+      .getByLabel('I agree to create this institution workspace for my swim school.')
+      .check()
     await page.getByRole('button', { name: 'Register institution' }).click()
 
     await page.assertPath(route('home'))
@@ -38,6 +44,9 @@ test.group('Account registrations', (group) => {
       email: 'jane@example.com',
       full_name: 'Jane Doe',
     })
+
+    const founder = await User.findByOrFail('email', 'jane@example.com')
+    assert.isTrue(await hash.verify(founder.password!, 'supersecret'))
     await db.assertHas('organisations', {
       name: 'Aqua Swim Organisation',
       slug: 'aqua-swim-organisation',
@@ -67,7 +76,11 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('Institutional email').fill('jane@example.com')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
-    await page.getByLabel('I agree to create this institution workspace for my swim school.').check()
+    await page.getByLabel('Password', { exact: true }).fill('supersecret')
+    await page.getByLabel('Confirm password').fill('supersecret')
+    await page
+      .getByLabel('I agree to create this institution workspace for my swim school.')
+      .check()
     await page.getByRole('button', { name: 'Register institution' }).click()
 
     await page.assertPath(route('account_registrations.create'))
@@ -84,10 +97,33 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('Institutional email').fill('jane@example.com')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
+    await page.getByLabel('Password', { exact: true }).fill('supersecret')
+    await page.getByLabel('Confirm password').fill('supersecret')
     await page.getByRole('button', { name: 'Register institution' }).click()
 
     await page.assertPath(route('account_registrations.create'))
     await page.assertVisible('text=The terms field must be defined')
+    await db.assertCount('users', 0)
+    await db.assertCount('schools', 0)
+  })
+
+  test('rejects a password that does not match its confirmation', async ({ visit, route, db }) => {
+    const page = await visit(route('account_registrations.create'))
+
+    await page.getByLabel('First name').fill('Jane')
+    await page.getByLabel('Last name').fill('Doe')
+    await page.getByLabel('Institutional email').fill('jane@example.com')
+    await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
+    await page.getByLabel('Location').fill('Accra')
+    await page.getByLabel('Password', { exact: true }).fill('supersecret')
+    await page.getByLabel('Confirm password').fill('different-secret')
+    await page
+      .getByLabel('I agree to create this institution workspace for my swim school.')
+      .check()
+    await page.getByRole('button', { name: 'Register institution' }).click()
+
+    await page.assertPath(route('account_registrations.create'))
+    await page.assertVisible('text=must be the same')
     await db.assertCount('users', 0)
     await db.assertCount('schools', 0)
   })

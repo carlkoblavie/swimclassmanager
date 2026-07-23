@@ -1,6 +1,6 @@
 import vine from '@vinejs/vine'
 
-export const storeAccountRegistrationValidator = vine.create({
+const accountFields = {
   firstName: vine.string().trim().minLength(1).maxLength(100),
   lastName: vine.string().trim().minLength(1).maxLength(100),
   accountType: vine.enum(['educational_institution', 'swim_school', 'hospitality_institution']),
@@ -13,5 +13,17 @@ export const storeAccountRegistrationValidator = vine.create({
     .email()
     .maxLength(254)
     .unique({ table: 'users', column: 'email', caseInsensitive: true }),
+}
+
+// Web signup: password confirmed against a second field, and terms accepted.
+export const storeAccountRegistrationValidator = vine.create({
+  ...accountFields,
+  password: vine.string().minLength(8).maxLength(128).confirmed({ as: 'passwordConfirmation' }),
   terms: vine.accepted(),
+})
+
+// Programmatic account creation: plain password, no confirmation or terms field.
+export const storeApiAccountValidator = vine.create({
+  ...accountFields,
+  password: vine.string().minLength(8).maxLength(128),
 })

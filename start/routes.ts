@@ -108,6 +108,10 @@ router
   .where('organisationSlug', router.matchers.slug())
   .where('schoolSlug', router.matchers.slug())
 
+// Programmatic account creation (JSON) — public self-serve, same flow as the
+// web signup. CSRF-exempt via the /api prefix in config/shield.ts.
+router.post('api/accounts', [controllers.AccountRegistrations, 'storeApi']).as('api.accounts.store')
+
 // Admin sign-ups list — active-school scoped, permission-gated.
 router
   .get('signups', [controllers.Signups, 'index'])

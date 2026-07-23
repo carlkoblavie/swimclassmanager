@@ -50,6 +50,11 @@ export interface ApiDefinition {
     index: typeof routes['customer_plans.index']
     show: typeof routes['customer_plans.show']
   }
+  api: {
+    accounts: {
+      store: typeof routes['api.accounts.store']
+    }
+  }
   programs: {
     index: typeof routes['programs.index']
     create: typeof routes['programs.create']
