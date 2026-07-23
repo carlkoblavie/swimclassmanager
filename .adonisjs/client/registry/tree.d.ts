@@ -8,6 +8,10 @@ export interface ApiDefinition {
     create: typeof routes['sign_in_links.create']
     store: typeof routes['sign_in_links.store']
   }
+  sessions: {
+    store: typeof routes['sessions.store']
+    destroy: typeof routes['sessions.destroy']
+  }
   accountRegistrations: {
     create: typeof routes['account_registrations.create']
     store: typeof routes['account_registrations.store']
@@ -19,8 +23,9 @@ export interface ApiDefinition {
     edit: typeof routes['accounts.edit']
     update: typeof routes['accounts.update']
   }
-  sessions: {
-    destroy: typeof routes['sessions.destroy']
+  accountPasswords: {
+    edit: typeof routes['account_passwords.edit']
+    update: typeof routes['account_passwords.update']
   }
   schools: {
     create: typeof routes['schools.create']
@@ -40,6 +45,10 @@ export interface ApiDefinition {
     create: typeof routes['signups.create']
     store: typeof routes['signups.store']
     index: typeof routes['signups.index']
+  }
+  customerPlans: {
+    index: typeof routes['customer_plans.index']
+    show: typeof routes['customer_plans.show']
   }
   programs: {
     index: typeof routes['programs.index']

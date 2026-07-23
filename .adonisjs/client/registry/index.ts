@@ -24,10 +24,16 @@ const routes = {
     tokens: [{"old":"/login","type":0,"val":"login","end":""}],
     types: placeholder as Registry['sign_in_links.create']['types'],
   },
-  'sign_in_links.store': {
+  'sessions.store': {
     methods: ["POST"],
     pattern: '/login',
     tokens: [{"old":"/login","type":0,"val":"login","end":""}],
+    types: placeholder as Registry['sessions.store']['types'],
+  },
+  'sign_in_links.store': {
+    methods: ["POST"],
+    pattern: '/login/magic-link',
+    tokens: [{"old":"/login/magic-link","type":0,"val":"login","end":""},{"old":"/login/magic-link","type":0,"val":"magic-link","end":""}],
     types: placeholder as Registry['sign_in_links.store']['types'],
   },
   'account_registrations.create': {
@@ -59,6 +65,18 @@ const routes = {
     pattern: '/complete-profile',
     tokens: [{"old":"/complete-profile","type":0,"val":"complete-profile","end":""}],
     types: placeholder as Registry['accounts.update']['types'],
+  },
+  'account_passwords.edit': {
+    methods: ["GET","HEAD"],
+    pattern: '/account/password',
+    tokens: [{"old":"/account/password","type":0,"val":"account","end":""},{"old":"/account/password","type":0,"val":"password","end":""}],
+    types: placeholder as Registry['account_passwords.edit']['types'],
+  },
+  'account_passwords.update': {
+    methods: ["PATCH"],
+    pattern: '/account/password',
+    tokens: [{"old":"/account/password","type":0,"val":"account","end":""},{"old":"/account/password","type":0,"val":"password","end":""}],
+    types: placeholder as Registry['account_passwords.update']['types'],
   },
   'sessions.destroy': {
     methods: ["POST"],
@@ -113,6 +131,18 @@ const routes = {
     pattern: '/register/:organisationSlug/:schoolSlug',
     tokens: [{"old":"/register/:organisationSlug/:schoolSlug","type":0,"val":"register","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"organisationSlug","end":""},{"old":"/register/:organisationSlug/:schoolSlug","type":1,"val":"schoolSlug","end":""}],
     types: placeholder as Registry['signups.store']['types'],
+  },
+  'customer_plans.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/register/:organisationSlug/:schoolSlug/plans',
+    tokens: [{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":0,"val":"api","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":0,"val":"register","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":1,"val":"organisationSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":1,"val":"schoolSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":0,"val":"plans","end":""}],
+    types: placeholder as Registry['customer_plans.index']['types'],
+  },
+  'customer_plans.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels',
+    tokens: [{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"api","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"register","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":1,"val":"organisationSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":1,"val":"schoolSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"programs","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":1,"val":"programId","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels","type":0,"val":"levels","end":""}],
+    types: placeholder as Registry['customer_plans.show']['types'],
   },
   'signups.index': {
     methods: ["GET","HEAD"],

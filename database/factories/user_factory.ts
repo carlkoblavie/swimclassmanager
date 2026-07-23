@@ -14,4 +14,8 @@ export const UserFactory = factory
     user.country = 'Ghana'
     user.profileCompletedAt = DateTime.now()
   })
+  .state('temporaryPassword', (user) => {
+    user.password = 'temporary-password'
+    user.mustChangePassword = true
+  })
   .build()

@@ -39,13 +39,25 @@ export interface Registry {
       paramsTuple: []
       params: {}
       query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sign_in_links_controller').default['create']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sign_in_links_controller').default['create']>>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['create']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['create']>>>
+    }
+  }
+  'sessions.store': {
+    methods: ["POST"]
+    pattern: '/login'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/sign_in_link').storeSessionValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/sign_in_link').storeSessionValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'sign_in_links.store': {
     methods: ["POST"]
-    pattern: '/login'
+    pattern: '/login/magic-link'
     types: {
       body: ExtractBody<InferInput<(typeof import('#validators/sign_in_link').storeSignInLinkValidator)>>
       paramsTuple: []
@@ -86,9 +98,9 @@ export interface Registry {
       body: {}
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQueryForGet<InferInput<(typeof import('#validators/sign_in_link').storeSessionValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['store']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/sessions_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'accounts.edit': {
@@ -113,6 +125,30 @@ export interface Registry {
       query: ExtractQuery<InferInput<(typeof import('#validators/account').updateAccountValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/accounts_controller').default['update']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/accounts_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'account_passwords.edit': {
+    methods: ["GET","HEAD"]
+    pattern: '/account/password'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_passwords_controller').default['edit']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_passwords_controller').default['edit']>>>
+    }
+  }
+  'account_passwords.update': {
+    methods: ["PATCH"]
+    pattern: '/account/password'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/sign_in_link').updatePasswordValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/sign_in_link').updatePasswordValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/account_passwords_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_passwords_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'sessions.destroy': {
@@ -221,6 +257,30 @@ export interface Registry {
       query: ExtractQuery<InferInput<(typeof import('#validators/signup').storeSignupValidator)>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'customer_plans.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/register/:organisationSlug/:schoolSlug/plans'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/customer_plans_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/customer_plans_controller').default['index']>>>
+    }
+  }
+  'customer_plans.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue; programId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/customer_plans_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/customer_plans_controller').default['show']>>>
     }
   }
   'signups.index': {

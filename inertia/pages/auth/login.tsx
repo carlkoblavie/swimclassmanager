@@ -1,11 +1,13 @@
-import { ReactElement } from 'react'
-import { Form, Link } from '@adonisjs/inertia/react'
-import { Anchor, Button, Divider, Group, Stack, Text, TextInput, Title } from '@mantine/core'
-import { IconArrowRight, IconMail } from '@tabler/icons-react'
+import { ReactElement, useState } from 'react'
+import { Form } from '@adonisjs/inertia/react'
+import { Anchor, Button, Checkbox, Divider, Group, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
+import { IconArrowRight, IconMail, IconSparkles } from '@tabler/icons-react'
 import { type Data } from '@generated/data'
 import AuthLayout from '~/layouts/auth'
 
 function Login() {
+  const [email, setEmail] = useState('')
+
   return (
     <Stack gap={30}>
       <Stack gap={8}>
@@ -13,22 +15,34 @@ function Login() {
           Sign in
         </Title>
         <Text c="dimmed" fz="md">
-          Enter your email and we&apos;ll send you a secure sign-in link.
+          Enter your email and password to access your swim school dashboard.
         </Text>
       </Stack>
 
-      <Form route="sign_in_links.store">
+      <Form route="sessions.store">
         {({ errors, processing }) => (
           <Stack gap="lg">
             <TextInput
               label="Email"
               type="email"
               name="email"
+              value={email}
+              onChange={(event) => setEmail(event.currentTarget.value)}
               autoComplete="email"
               placeholder="name@example.com"
               leftSection={<IconMail size={18} stroke={1.7} />}
               error={errors.email}
             />
+
+            <PasswordInput
+              label="Password"
+              name="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              error={errors.password}
+            />
+
+            <Checkbox name="remember" label="Keep me signed in" />
 
             <Button
               type="submit"
@@ -36,7 +50,7 @@ function Login() {
               loading={processing}
               rightSection={<IconArrowRight size={18} stroke={1.8} />}
             >
-              Send sign-in link
+              Sign in
             </Button>
           </Stack>
         )}
@@ -44,12 +58,27 @@ function Login() {
 
       <Divider label="Passwordless access" labelPosition="center" />
 
-      <Text ta="center" c="dimmed" fz="sm">
-        Don&apos;t have an account?{' '}
-        <Anchor component={Link} route="account_registrations.create" fw={700}>
-          Register institution
-        </Anchor>
-      </Text>
+      <Form route="sign_in_links.store">
+        {({ errors, processing }) => (
+          <Stack gap="sm">
+            <input type="hidden" name="email" value={email} />
+            <Button
+              type="submit"
+              variant="default"
+              size="md"
+              loading={processing}
+              leftSection={<IconSparkles size={18} stroke={1.7} />}
+            >
+              Send sign-in link
+            </Button>
+            {errors.email && (
+              <Text c="red" size="sm">
+                {errors.email}
+              </Text>
+            )}
+          </Stack>
+        )}
+      </Form>
 
       <Group justify="center" gap="xl" className="auth-footer-links">
         <Anchor size="xs" c="dimmed">

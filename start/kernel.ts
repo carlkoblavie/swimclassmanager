@@ -49,6 +49,7 @@ router.use([
 export const middleware = router.named({
   authorize: () => import('#middleware/authorize_middleware'),
   activeSchool: () => import('#middleware/active_school_middleware'),
+  forcePasswordChange: () => import('#middleware/force_password_change_middleware'),
   guest: () => import('#middleware/guest_middleware'),
   auth: () => import('#middleware/auth_middleware'),
   completeProfile: () => import('#middleware/complete_profile_middleware'),
