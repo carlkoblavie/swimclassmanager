@@ -34,6 +34,23 @@ test.group('Customer site CORS', () => {
     assert.equal(response.header('access-control-allow-headers'), 'accept')
   })
 
+  test('allows local static previews to read only the public catalog', async ({
+    client,
+    assert,
+  }) => {
+    const fileResponse = await client
+      .get('/api/register/swim-africa-ghana/swim-africa-ghana/plans')
+      .header('Origin', 'null')
+    const localhostResponse = await client
+      .get('/api/register/swim-africa-ghana/swim-africa-ghana/plans')
+      .header('Origin', 'http://localhost:8787')
+    const appPageResponse = await client.get('/dashboard').header('Origin', 'http://localhost:8787')
+
+    assert.equal(fileResponse.header('access-control-allow-origin'), 'null')
+    assert.equal(localhostResponse.header('access-control-allow-origin'), 'http://localhost:8787')
+    assert.isUndefined(appPageResponse.header('access-control-allow-origin'))
+  })
+
   test('does not allow arbitrary websites to read public catalog responses', async ({
     client,
     assert,
