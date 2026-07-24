@@ -15,10 +15,9 @@ const corsConfig = defineConfig({
 
   /**
    * In development, allow every origin to simplify local front/backend setup.
-   * In production, keep an explicit allowlist (empty by default, so no
-   * cross-origin browser access is allowed until configured).
+   * In production, allow customer websites that render the public catalog.
    */
-  origin: app.inDev ? true : [],
+  origin: app.inDev ? true : ['https://swimafricaghana.com', 'https://www.swimafricaghana.com'],
 
   /**
    * HTTP methods accepted for cross-origin requests.
