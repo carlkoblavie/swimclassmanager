@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon'
+import string from '@adonisjs/core/helpers/string'
 import { inject } from '@adonisjs/core'
 import User from '#models/user'
 import SchoolFoundingService from '#services/school_founding_service'
@@ -19,11 +20,13 @@ export default class AccountRegistrationsController {
     schoolFounding: SchoolFoundingService
   ) {
     const payload = await request.validateUsing(storeAccountRegistrationValidator)
+    const password = payload.password || string.random(16)
     const user = await User.create({
       email: payload.email,
       fullName: `${payload.firstName} ${payload.lastName}`,
-      password: payload.password,
+      password: password,
       profileCompletedAt: DateTime.now(),
+      mustChangePassword: true,
     })
 
     const school = await schoolFounding.foundFirstSchool(user, {
