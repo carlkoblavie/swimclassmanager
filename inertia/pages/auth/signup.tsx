@@ -7,7 +7,6 @@ import {
   Divider,
   Group,
   NativeSelect,
-  PasswordInput,
   SimpleGrid,
   Stack,
   Text,
@@ -17,7 +16,6 @@ import {
 import {
   IconArrowRight,
   IconBuildingCommunity,
-  IconLock,
   IconMail,
   IconMapPin,
   IconUser,
@@ -95,25 +93,6 @@ function Signup() {
               leftSection={<IconMapPin size={18} stroke={1.7} />}
               error={errors.location}
             />
-
-            <SimpleGrid cols={{ base: 1, sm: 2 }}>
-              <PasswordInput
-                label="Password"
-                name="password"
-                placeholder="At least 8 characters"
-                autoComplete="new-password"
-                leftSection={<IconLock size={18} stroke={1.7} />}
-                error={errors.password}
-              />
-              <PasswordInput
-                label="Confirm password"
-                name="passwordConfirmation"
-                placeholder="Re-enter password"
-                autoComplete="new-password"
-                leftSection={<IconLock size={18} stroke={1.7} />}
-                error={errors.passwordConfirmation}
-              />
-            </SimpleGrid>
 
             <Checkbox
               name="terms"
