@@ -5,94 +5,54 @@
 
 ## Overview
 
-Replace the institution account signup flow with a pre-launch waitlist. This allows prospective swim schools to express interest before the product is ready for full onboarding, while keeping the signup path simple and low-friction.
+Convert the existing institution signup flow into a pre-launch waitlist by hiding password fields and auto-generating a default password server-side. This reuses the existing signup form and route, creating real accounts immediately while keeping the signup friction-free during waitlist phase.
 
 ## What's Changing
 
-1. **Remove** the institution signup route (`/signup` GET/POST)
-2. **Remove** the signup page (`inertia/pages/auth/signup.tsx`)
-3. **Create** a new Waitlist table and model
-4. **Add** a waitlist signup API endpoint (`POST /api/waitlist`)
+1. **Hide** password input fields from the signup form
+2. **Make** password optional in the signup validator
+3. **Generate** a default secure password server-side when no password is provided
+4. **Set** `mustChangePassword: true` on generated accounts so they must change password on first login
+5. **Keep** the signup route, page, and controller logic—just simplify the flow
 
-## Database Schema
+## No Database Changes
 
-**Table:** `waitlists`
+Uses the existing `users` table. No new tables or migrations needed. Signup still creates a full `User` account with email, first/last name, institution details, and a randomly-generated password.
 
-```sql
-CREATE TABLE waitlists (
-  id uuid PRIMARY KEY,
-  first_name varchar NOT NULL,
-  last_name varchar NOT NULL,
-  email varchar NOT NULL UNIQUE,
-  phone varchar NOT NULL,
-  school varchar NOT NULL,
-  created_at timestamp NOT NULL,
-  updated_at timestamp NOT NULL
-)
-```
+## Frontend Changes
 
-- Email should be indexed for uniqueness to prevent duplicates
-- All fields are required
+**Signup Form (`inertia/pages/auth/signup.tsx`):**
+- Remove the password input fields (both "Password" and "Confirm password")
+- Keep all other fields: first name, last name, account type, email, institution name, location, terms checkbox
+- Keep the submit button
 
-## API Endpoint
+After submission, users are redirected to complete their profile (as they do now).
 
-**POST /api/waitlist**
+## Validator Changes
 
-**Request body:**
-```json
-{
-  "first_name": "string (required)",
-  "last_name": "string (required)",
-  "email": "string (required, email format)",
-  "phone": "string (required)",
-  "school": "string (required, swim school name)"
-}
-```
+**Web Signup (`storeAccountRegistrationValidator`):**
+- Make `password` field optional with `.optional()`
+- Password is now provided only if user enters it; if absent, controller generates one
 
-**Responses:**
-- `201 Created` + `{ message: "You're on the waitlist" }` on success
-- `422 Unprocessable Entity` + validation errors if validation fails (e.g., duplicate email)
-- `500 Internal Server Error` if database error
+**Programmatic API (`storeApiAccountValidator`):**
+- Keep unchanged—still requires password for `/api/accounts` endpoint
 
-**CSRF:** Exempt via `/api` prefix in `config/shield.ts` (already configured for `/api/accounts`)
+## Controller Logic
 
-## Frontend
-
-The landing page (`design/landing-page.html`) already has the waitlist form with fields matching our schema. After successful signup, the form hides and displays: "You're on the list — we'll email you at launch."
-
-No changes needed to the login page—it currently has no signup link.
-
-## Routes to Remove
-
-From `start/routes.ts`:
-```typescript
-// REMOVE these lines (currently 38-39):
-router.get('signup', [controllers.AccountRegistrations, 'create'])
-router.post('signup', [controllers.AccountRegistrations, 'store'])
-```
-
-The `account_registrations.store` action in the controller can be updated to remove the route or left unused if it's called by the API endpoint.
-
-## Files to Create/Modify
-
-**Create:**
-- `app/models/waitlist.ts` — Lucid model
-- `database/migrations/<timestamp>_create_waitlists_table.ts` — Schema migration
-- `app/controllers/waitlist_signups_controller.ts` — Controller with `storeApi` action
-- `app/validators/waitlist_signup_validator.ts` — Validation rules
-
-**Modify:**
-- `start/routes.ts` — Remove signup routes, add waitlist endpoint
-- `app/controllers/account_registrations_controller.ts` — Remove or deprecate `create`/`store` if they're no longer needed
-
-**Delete:**
-- `inertia/pages/auth/signup.tsx` — No longer used
+**`AccountRegistrations.store()` action:**
+- After validation, check if password was provided
+- If not provided: `const password = string.random(16)` to generate a secure 16-character random password
+- Create user with generated password
+- Set `mustChangePassword: true` to force password change on first login
+- User lands on complete-profile flow (unchanged)
 
 ## Success Criteria
 
-- Waitlist form on landing page POSTs to `/api/waitlist` and succeeds
-- Duplicate emails are rejected with a validation error
-- All required fields are validated
-- Database stores signup data correctly
-- Signup routes are removed and return 404
+- Signup form renders without password fields
+- Form submission with no password succeeds
+- Account is created with a random default password
+- User is directed to complete profile
+- On first login attempt, forced to change password via existing `forcePasswordChange` middleware
+- Duplicate emails are rejected (existing behavior)
 - Sign-in flow is unaffected
+- No new database tables or migrations needed
