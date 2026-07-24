@@ -15,10 +15,10 @@ const accountFields = {
     .unique({ table: 'users', column: 'email', caseInsensitive: true }),
 }
 
-// Web signup: password confirmed against a second field, and terms accepted.
+// Web signup: password is optional (generated server-side for waitlist)
 export const storeAccountRegistrationValidator = vine.create({
   ...accountFields,
-  password: vine.string().minLength(8).maxLength(128).confirmed({ as: 'passwordConfirmation' }),
+  password: vine.string().minLength(8).maxLength(128).confirmed({ as: 'passwordConfirmation' }).optional(),
   terms: vine.accepted(),
 })
 
