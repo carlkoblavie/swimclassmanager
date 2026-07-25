@@ -12,12 +12,12 @@ import { controllers } from '#generated/controllers'
 import router from '@adonisjs/core/services/router'
 
 router
-  .get('/', ({ auth, inertia, response }) => {
+  .get('/', ({ auth, response }) => {
     if (auth.user) {
       return response.redirect().toRoute('home')
     }
 
-    return inertia.render('landing', {})
+    return response.redirect('/signup')
   })
   .as('landing')
 
