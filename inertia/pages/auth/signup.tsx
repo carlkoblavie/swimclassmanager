@@ -28,10 +28,10 @@ function Signup() {
     <Stack gap={26}>
       <Stack gap={8}>
         <Title order={1} className="auth-page-title">
-          Create your account
+          Join our waitlist
         </Title>
         <Text c="dimmed" fz="md">
-          Set up your institution workspace and first swim school.
+          Be the first to be notified when we launch.
         </Text>
       </Stack>
 
@@ -97,7 +97,7 @@ function Signup() {
             <Checkbox
               name="terms"
               value="yes"
-              label="I agree to create this institution workspace for my swim school."
+              label="Notify me when we launch"
               error={errors.terms}
             />
 
@@ -107,17 +107,11 @@ function Signup() {
               loading={processing}
               rightSection={<IconArrowRight size={18} stroke={1.8} />}
             >
-              Register institution
+              Join the waitlist
             </Button>
           </Stack>
         )}
       </Form>
-
-      <Divider label="Already have an account?" labelPosition="center" />
-
-      <Button component={Link} route="sign_in_links.create" variant="default" size="md">
-        Sign in to existing account
-      </Button>
 
       <Group justify="center" gap="xl" className="auth-footer-links">
         <Anchor size="xs" c="dimmed">
