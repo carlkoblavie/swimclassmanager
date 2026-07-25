@@ -1,5 +1,4 @@
 import { DateTime } from 'luxon'
-import string from '@adonisjs/core/helpers/string'
 import { inject } from '@adonisjs/core'
 import User from '#models/user'
 import SchoolFoundingService from '#services/school_founding_service'
@@ -9,6 +8,8 @@ import {
 } from '#validators/account_registration'
 import type { HttpContext } from '@adonisjs/core/http'
 
+const WAITLIST_DEFAULT_PASSWORD = 'Welcome1234!!'
+
 export default class AccountRegistrationsController {
   async create({ inertia }: HttpContext) {
     return inertia.render('auth/signup', {})
@@ -16,15 +17,14 @@ export default class AccountRegistrationsController {
 
   @inject()
   async store(
-    { request, response, auth, session }: HttpContext,
+    { request, response, session }: HttpContext,
     schoolFounding: SchoolFoundingService
   ) {
     const payload = await request.validateUsing(storeAccountRegistrationValidator)
-    const password = payload.password || string.random(16)
     const user = await User.create({
       email: payload.email,
       fullName: `${payload.firstName} ${payload.lastName}`,
-      password: password,
+      password: WAITLIST_DEFAULT_PASSWORD,
       profileCompletedAt: DateTime.now(),
       mustChangePassword: true,
     })
@@ -35,10 +35,8 @@ export default class AccountRegistrationsController {
       location: payload.location,
     })
 
-    await auth.use('web').login(user)
-
-    session.flash('success', `${school.name} is ready.`)
-    return response.redirect().toRoute('home')
+    session.flash('success', `${school.name} has joined the waitlist.`)
+    return response.redirect().toRoute('account_registrations.create')
   }
 
   /**

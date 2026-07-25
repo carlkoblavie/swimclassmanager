@@ -15,7 +15,7 @@ test.group('Account registrations', (group) => {
     return truncate
   })
 
-  test('creates an institution account, signs in the founder, and lands on the dashboard', async ({
+  test('creates a waitlist account and leaves the founder signed out', async ({
     visit,
     route,
     db,
@@ -28,17 +28,12 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('Institutional email').fill('jane@example.com')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
-    await page.getByLabel('Password', { exact: true }).fill('supersecret')
-    await page.getByLabel('Confirm password').fill('supersecret')
-    await page
-      .getByLabel('I agree to create this institution workspace for my swim school.')
-      .check()
-    await page.getByRole('button', { name: 'Register institution' }).click()
+    await page.getByLabel('Notify me when we launch').check()
+    await page.getByRole('button', { name: 'Join the waitlist' }).click()
 
-    await page.assertPath(route('home'))
-    await page.assertVisible(page.getByRole('heading', { name: 'Aqua Swim Organisation' }))
-    await page.assertVisible(page.getByRole('button', { name: 'Logout' }))
-    await page.assertVisible('text=Aqua Swim Organisation is ready.')
+    await page.assertPath(route('account_registrations.create'))
+    await page.assertVisible(page.getByRole('heading', { name: 'Join our waitlist' }))
+    await page.assertVisible('text=Aqua Swim Organisation has joined the waitlist.')
 
     await db.assertHas('users', {
       email: 'jane@example.com',
@@ -46,7 +41,8 @@ test.group('Account registrations', (group) => {
     })
 
     const founder = await User.findByOrFail('email', 'jane@example.com')
-    assert.isTrue(await hash.verify(founder.password!, 'supersecret'))
+    assert.isTrue(await hash.verify(founder.password!, 'Welcome1234!!'))
+    assert.isTrue(Boolean(founder.mustChangePassword))
     await db.assertHas('organisations', {
       name: 'Aqua Swim Organisation',
       slug: 'aqua-swim-organisation',
@@ -76,12 +72,8 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('Institutional email').fill('jane@example.com')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
-    await page.getByLabel('Password', { exact: true }).fill('supersecret')
-    await page.getByLabel('Confirm password').fill('supersecret')
-    await page
-      .getByLabel('I agree to create this institution workspace for my swim school.')
-      .check()
-    await page.getByRole('button', { name: 'Register institution' }).click()
+    await page.getByLabel('Notify me when we launch').check()
+    await page.getByRole('button', { name: 'Join the waitlist' }).click()
 
     await page.assertPath(route('account_registrations.create'))
     await page.assertVisible('text=The email has already been taken')
@@ -97,33 +89,10 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('Institutional email').fill('jane@example.com')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
-    await page.getByLabel('Password', { exact: true }).fill('supersecret')
-    await page.getByLabel('Confirm password').fill('supersecret')
-    await page.getByRole('button', { name: 'Register institution' }).click()
+    await page.getByRole('button', { name: 'Join the waitlist' }).click()
 
     await page.assertPath(route('account_registrations.create'))
     await page.assertVisible('text=The terms field must be defined')
-    await db.assertCount('users', 0)
-    await db.assertCount('schools', 0)
-  })
-
-  test('rejects a password that does not match its confirmation', async ({ visit, route, db }) => {
-    const page = await visit(route('account_registrations.create'))
-
-    await page.getByLabel('First name').fill('Jane')
-    await page.getByLabel('Last name').fill('Doe')
-    await page.getByLabel('Institutional email').fill('jane@example.com')
-    await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
-    await page.getByLabel('Location').fill('Accra')
-    await page.getByLabel('Password', { exact: true }).fill('supersecret')
-    await page.getByLabel('Confirm password').fill('different-secret')
-    await page
-      .getByLabel('I agree to create this institution workspace for my swim school.')
-      .check()
-    await page.getByRole('button', { name: 'Register institution' }).click()
-
-    await page.assertPath(route('account_registrations.create'))
-    await page.assertVisible('text=must be the same')
     await db.assertCount('users', 0)
     await db.assertCount('schools', 0)
   })
