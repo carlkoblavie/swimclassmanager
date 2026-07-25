@@ -24,6 +24,7 @@ export default class AccountRegistrationsController {
     const user = await User.create({
       email: payload.email,
       fullName: `${payload.firstName} ${payload.lastName}`,
+      phone: payload.phone,
       password: WAITLIST_DEFAULT_PASSWORD,
       profileCompletedAt: DateTime.now(),
       mustChangePassword: true,
@@ -50,6 +51,7 @@ export default class AccountRegistrationsController {
     const user = await User.create({
       email: payload.email,
       fullName: `${payload.firstName} ${payload.lastName}`,
+      phone: payload.phone,
       password: payload.password,
       profileCompletedAt: DateTime.now(),
     })

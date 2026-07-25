@@ -26,6 +26,7 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('First name').fill('Jane')
     await page.getByLabel('Last name').fill('Doe')
     await page.getByLabel('Institutional email').fill('jane@example.com')
+    await page.getByLabel('Phone number').fill('0240000998')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
     await page.getByLabel('Notify me when we launch').check()
@@ -38,6 +39,7 @@ test.group('Account registrations', (group) => {
     await db.assertHas('users', {
       email: 'jane@example.com',
       full_name: 'Jane Doe',
+      phone: '0240000998',
     })
 
     const founder = await User.findByOrFail('email', 'jane@example.com')
@@ -70,6 +72,7 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('First name').fill('Jane')
     await page.getByLabel('Last name').fill('Doe')
     await page.getByLabel('Institutional email').fill('jane@example.com')
+    await page.getByLabel('Phone number').fill('0240000998')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
     await page.getByLabel('Notify me when we launch').check()
@@ -87,6 +90,7 @@ test.group('Account registrations', (group) => {
     await page.getByLabel('First name').fill('Jane')
     await page.getByLabel('Last name').fill('Doe')
     await page.getByLabel('Institutional email').fill('jane@example.com')
+    await page.getByLabel('Phone number').fill('0240000998')
     await page.getByLabel('Institution name').fill('Aqua Swim Organisation')
     await page.getByLabel('Location').fill('Accra')
     await page.getByRole('button', { name: 'Join the waitlist' }).click()

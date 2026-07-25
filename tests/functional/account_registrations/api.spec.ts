@@ -11,6 +11,7 @@ const validPayload = {
   accountType: 'swim_school',
   organisationName: 'Aqua Swim Organisation',
   location: 'Accra',
+  phone: '0240000998',
   email: 'jane@example.com',
   password: 'supersecret',
 }
@@ -40,7 +41,33 @@ test.group('Account creation API', (group) => {
 
     const user = await User.findByOrFail('email', 'jane@example.com')
     assert.isTrue(await hash.verify(user.password!, 'supersecret'))
+    assert.equal(user.phone, '0240000998')
     assert.notOk(user.mustChangePassword)
+  })
+
+  test('rejects a missing phone number', async ({ client }) => {
+    const { phone: _phone, ...payload } = validPayload
+    const response = await client
+      .post('/api/accounts')
+      .accept('json')
+      .json(payload)
+
+    response.assertStatus(422)
+    response.assertBodyContains({
+      errors: [{ field: 'phone', rule: 'required' }],
+    })
+  })
+
+  test('rejects a phone number that is not 10 digits', async ({ client }) => {
+    const response = await client
+      .post('/api/accounts')
+      .accept('json')
+      .json({ ...validPayload, phone: '024000998' })
+
+    response.assertStatus(422)
+    response.assertBodyContains({
+      errors: [{ field: 'phone', rule: 'regex' }],
+    })
   })
 
   test('rejects a duplicate email', async ({ client }) => {

@@ -18,6 +18,7 @@ import {
   IconBuildingCommunity,
   IconMail,
   IconMapPin,
+  IconPhone,
   IconUser,
 } from '@tabler/icons-react'
 import { type Data } from '@generated/data'
@@ -76,6 +77,21 @@ function Signup() {
               autoComplete="email"
               leftSection={<IconMail size={18} stroke={1.7} />}
               error={errors.email}
+            />
+
+            <TextInput
+              label="Phone number"
+              type="tel"
+              name="phone"
+              placeholder="0240000998"
+              autoComplete="tel"
+              inputMode="numeric"
+              maxLength={10}
+              pattern="[0-9]{10}"
+              required
+              withAsterisk
+              leftSection={<IconPhone size={18} stroke={1.7} />}
+              error={errors.phone}
             />
 
             <TextInput

@@ -1,11 +1,14 @@
 import vine from '@vinejs/vine'
 
+const phoneField = vine.string().trim().regex(/^\d{10}$/)
+
 const accountFields = {
   firstName: vine.string().trim().minLength(1).maxLength(100),
   lastName: vine.string().trim().minLength(1).maxLength(100),
   accountType: vine.enum(['educational_institution', 'swim_school', 'hospitality_institution']),
   organisationName: vine.string().trim().minLength(1).maxLength(255),
   location: vine.string().trim().minLength(1).maxLength(255),
+  phone: phoneField,
   email: vine
     .string()
     .trim()
@@ -18,7 +21,12 @@ const accountFields = {
 // Web signup: password is optional (generated server-side for waitlist)
 export const storeAccountRegistrationValidator = vine.create({
   ...accountFields,
-  password: vine.string().minLength(8).maxLength(128).confirmed({ as: 'passwordConfirmation' }).optional(),
+  password: vine
+    .string()
+    .minLength(8)
+    .maxLength(128)
+    .confirmed({ as: 'passwordConfirmation' })
+    .optional(),
   terms: vine.accepted(),
 })
 
