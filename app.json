@@ -1,4 +1,11 @@
 {
+  "cron": [
+    {
+      "command": "node ace backup:sqlite",
+      "schedule": "30 2 * * *",
+      "concurrency_policy": "forbid"
+    }
+  ],
   "scripts": {
     "dokku": {
       "predeploy": "node ace migration:run --force"
