@@ -20,3 +20,6 @@ tasks:
   - name: organisations-and-schools
     description: Introduce organisations as parent accounts, rename clubs to schools, and make organisation premium status the source for premium school capabilities.
     track: task
+  - name: postgres-production-migration
+    description: Move production from persisted SQLite on Dokku to Postgres with a staged app config, data import, backup replacement, and cutover runbook.
+    track: task
