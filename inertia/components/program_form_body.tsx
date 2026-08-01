@@ -62,10 +62,52 @@ function SectionHeading({
   )
 }
 
+function parseCount(value: string): number {
+  const count = Number(value)
+  return Number.isFinite(count) ? count : 0
+}
+
+function formatDraftAmount(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  const [whole, decimal] = trimmed.split('.')
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return decimal === undefined ? grouped : `${grouped}.${decimal}`
+}
+
+function classAllocation(level: LevelDraft) {
+  const total = parseCount(level.classesCount)
+  const used = level.stages.reduce((sum, stage) => sum + parseCount(stage.classesCount), 0)
+  return {
+    total,
+    used,
+    remaining: total - used,
+    balanced: level.stages.length === 0 || used === total,
+  }
+}
+
 export default function ProgramFormBody({ errors, initial }: Props) {
   const [levels, setLevels] = useState<LevelDraft[]>(initial?.levels ?? [])
   // 'new' shows the inline add form; a number edits that level in place.
   const [levelFormTarget, setLevelFormTarget] = useState<'new' | number | null>(null)
+  const [stageTarget, setStageTarget] = useState<StageTarget | null>(null)
+
+  const openLevelForm = (target: 'new' | number) => {
+    setStageTarget(null)
+    setLevelFormTarget(target)
+  }
+
+  const closeLevelForm = () => setLevelFormTarget(null)
+
+  const openStageForm = (target: StageTarget) => {
+    setLevelFormTarget(null)
+    setStageTarget(target)
+  }
+
+  const closeStageForm = () => setStageTarget(null)
 
   const remove = (index: number) => setLevels((current) => current.filter((_, i) => i !== index))
   const save = (draft: LevelDraft) => {
@@ -77,7 +119,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
     setLevelFormTarget(null)
   }
 
-  const [stageTarget, setStageTarget] = useState<StageTarget | null>(null)
   const saveStage = (draft: StageDraft) => {
     if (!stageTarget) return
     setLevels((current) =>
@@ -222,14 +263,12 @@ export default function ProgramFormBody({ errors, initial }: Props) {
             title="Curriculum hierarchy"
             subtitle="Define the progression path: the levels swimmers move through."
           />
-          <Button variant="light" size="sm" onClick={() => setLevelFormTarget('new')}>
+          <Button variant="light" size="sm" onClick={() => openLevelForm('new')}>
             Add level
           </Button>
         </Group>
 
-        {levelFormTarget === 'new' && (
-          <LevelForm onCancel={() => setLevelFormTarget(null)} onSave={save} />
-        )}
+        {levelFormTarget === 'new' && <LevelForm onCancel={closeLevelForm} onSave={save} />}
 
         {levels.length === 0 ? (
           <Card>
@@ -238,122 +277,142 @@ export default function ProgramFormBody({ errors, initial }: Props) {
             </Text>
           </Card>
         ) : (
-          levels.map((level, index) => (
-            <Card key={index}>
-              <Stack gap="sm">
-                <Group justify="space-between" align="flex-start" wrap="nowrap">
-                  <div>
-                    <Group gap="xs">
-                      <Badge variant="light" size="lg">
-                        Level
-                      </Badge>
-                      <Text fw={700} fz="lg">
-                        {level.name}
+          levels.map((level, index) => {
+            const allocation = classAllocation(level)
+            return (
+              <Card key={index}>
+                <Stack gap="sm">
+                  <Group justify="space-between" align="flex-start" wrap="nowrap">
+                    <div>
+                      <Group gap="xs">
+                        <Badge variant="light" size="lg">
+                          Level
+                        </Badge>
+                        <Text fw={700} fz="lg">
+                          {level.name}
+                        </Text>
+                        {level.code && (
+                          <Badge variant="light" color="gray" size="sm">
+                            {level.code}
+                          </Badge>
+                        )}
+                      </Group>
+                      <Text size="sm" mt={4}>
+                        {level.ageGroup} · GHS {formatDraftAmount(level.defaultFee)} ·{' '}
+                        {level.classesCount} classes —{' '}
+                        <Text span size="sm" c="dimmed">
+                          {level.description}
+                        </Text>
                       </Text>
-                      {level.code && (
-                        <Badge variant="light" color="gray" size="sm">
-                          {level.code}
+                    </div>
+                    <Group gap="xs" wrap="nowrap">
+                      <Tooltip label="Edit level">
+                        <ActionIcon
+                          variant="default"
+                          aria-label="Edit"
+                          onClick={() => openLevelForm(index)}
+                        >
+                          <IconPencil size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Remove level">
+                        <ActionIcon
+                          variant="default"
+                          aria-label="Remove"
+                          onClick={() => remove(index)}
+                        >
+                          <IconTrash size={16} color="var(--mantine-color-red-7)" />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  </Group>
+
+                  <Divider />
+
+                  <Group justify="space-between" align="center">
+                    <Group gap="xs">
+                      <Text fw={700}>Stages</Text>
+                      <Badge variant="light" color="gray" size="sm">
+                        {level.stages.length}
+                      </Badge>
+                      {level.stages.length > 0 && (
+                        <Badge
+                          variant="light"
+                          color={allocation.balanced ? 'green' : 'red'}
+                          size="sm"
+                        >
+                          {allocation.used}/{allocation.total} classes
                         </Badge>
                       )}
+                      {level.stages.length > 0 && !allocation.balanced && (
+                        <Text c="red" size="xs" fw={600}>
+                          {allocation.remaining > 0
+                            ? `${allocation.remaining} unassigned`
+                            : `${Math.abs(allocation.remaining)} over`}
+                        </Text>
+                      )}
                     </Group>
-                    <Text size="sm" mt={4}>
-                      {level.ageGroup} · GHS {level.defaultFee} · {level.classesCount} classes —{' '}
-                      <Text span size="sm" c="dimmed">
-                        {level.description}
-                      </Text>
-                    </Text>
-                  </div>
-                  <Group gap="xs" wrap="nowrap">
-                    <Tooltip label="Edit level">
-                      <ActionIcon
-                        variant="default"
-                        aria-label="Edit"
-                        onClick={() => setLevelFormTarget(index)}
-                      >
-                        <IconPencil size={16} />
-                      </ActionIcon>
-                    </Tooltip>
-                    <Tooltip label="Remove level">
-                      <ActionIcon
-                        variant="default"
-                        aria-label="Remove"
-                        onClick={() => remove(index)}
-                      >
-                        <IconTrash size={16} color="var(--mantine-color-red-7)" />
-                      </ActionIcon>
-                    </Tooltip>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="xs"
+                      leftSection={<IconPlus size={14} />}
+                      onClick={() => openStageForm({ levelIndex: index, stageIndex: null })}
+                    >
+                      Add stage
+                    </Button>
                   </Group>
-                </Group>
 
-                <Divider />
+                  {level.stages.length > 0 && (
+                    <StageTree
+                      stages={level.stages}
+                      onEditStage={(stageIndex) => openStageForm({ levelIndex: index, stageIndex })}
+                      onRemoveStage={(stageIndex) => removeStage(index, stageIndex)}
+                      onAddSkill={(stageIndex, skill) => addSkill(index, stageIndex, skill)}
+                      onUpdateSkill={(stageIndex, skillIndex, skill) =>
+                        updateSkill(index, stageIndex, skillIndex, skill)
+                      }
+                      onRemoveSkill={(stageIndex, skillIndex) =>
+                        removeSkill(index, stageIndex, skillIndex)
+                      }
+                      onAddActivity={(stageIndex, skillIndex, activity) =>
+                        addActivity(index, stageIndex, skillIndex, activity)
+                      }
+                      onUpdateActivity={(stageIndex, skillIndex, activityIndex, activity) =>
+                        updateActivity(index, stageIndex, skillIndex, activityIndex, activity)
+                      }
+                      onRemoveActivity={(stageIndex, skillIndex, activityIndex) =>
+                        removeActivity(index, stageIndex, skillIndex, activityIndex)
+                      }
+                    />
+                  )}
 
-                <Group justify="space-between" align="center">
-                  <Group gap="xs">
-                    <Text fw={700}>Stages</Text>
-                    <Badge variant="light" color="gray" size="sm">
-                      {level.stages.length}
-                    </Badge>
-                  </Group>
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="xs"
-                    leftSection={<IconPlus size={14} />}
-                    onClick={() => setStageTarget({ levelIndex: index, stageIndex: null })}
-                  >
-                    Add stage
-                  </Button>
-                </Group>
+                  {levelFormTarget === index && (
+                    <LevelForm
+                      key={index}
+                      initial={level}
+                      onCancel={closeLevelForm}
+                      onSave={save}
+                    />
+                  )}
 
-                {level.stages.length > 0 && (
-                  <StageTree
-                    stages={level.stages}
-                    onEditStage={(stageIndex) => setStageTarget({ levelIndex: index, stageIndex })}
-                    onRemoveStage={(stageIndex) => removeStage(index, stageIndex)}
-                    onAddSkill={(stageIndex, skill) => addSkill(index, stageIndex, skill)}
-                    onUpdateSkill={(stageIndex, skillIndex, skill) =>
-                      updateSkill(index, stageIndex, skillIndex, skill)
-                    }
-                    onRemoveSkill={(stageIndex, skillIndex) =>
-                      removeSkill(index, stageIndex, skillIndex)
-                    }
-                    onAddActivity={(stageIndex, skillIndex, activity) =>
-                      addActivity(index, stageIndex, skillIndex, activity)
-                    }
-                    onUpdateActivity={(stageIndex, skillIndex, activityIndex, activity) =>
-                      updateActivity(index, stageIndex, skillIndex, activityIndex, activity)
-                    }
-                    onRemoveActivity={(stageIndex, skillIndex, activityIndex) =>
-                      removeActivity(index, stageIndex, skillIndex, activityIndex)
-                    }
-                  />
-                )}
-
-                {levelFormTarget === index && (
-                  <LevelForm
-                    key={index}
-                    initial={level}
-                    onCancel={() => setLevelFormTarget(null)}
-                    onSave={save}
-                  />
-                )}
-
-                {stageTarget?.levelIndex === index && (
-                  <StageBuilder
-                    key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
-                    nextPosition={level.stages.length + 1}
-                    initial={
-                      stageTarget.stageIndex !== null
-                        ? level.stages[stageTarget.stageIndex]
-                        : undefined
-                    }
-                    onCancel={() => setStageTarget(null)}
-                    onSave={saveStage}
-                  />
-                )}
-              </Stack>
-            </Card>
-          ))
+                  {stageTarget?.levelIndex === index && (
+                    <StageBuilder
+                      key={`${stageTarget.levelIndex}-${stageTarget.stageIndex ?? 'new'}`}
+                      nextPosition={level.stages.length + 1}
+                      initial={
+                        stageTarget.stageIndex !== null
+                          ? level.stages[stageTarget.stageIndex]
+                          : undefined
+                      }
+                      onCancel={closeStageForm}
+                      onSave={saveStage}
+                    />
+                  )}
+                </Stack>
+              </Card>
+            )
+          })
         )}
 
         {errors.levels && (
@@ -386,6 +445,11 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                   )}
                   <input type="hidden" name={`${prefix}[name]`} value={stage.name} />
                   <input type="hidden" name={`${prefix}[position]`} value={stage.position} />
+                  <input
+                    type="hidden"
+                    name={`${prefix}[classesCount]`}
+                    value={stage.classesCount}
+                  />
                   {stage.description.trim() !== '' && (
                     <input
                       type="hidden"

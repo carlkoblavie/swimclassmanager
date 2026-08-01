@@ -1,55 +1,71 @@
 import { useState } from 'react'
 import { Form } from '@adonisjs/inertia/react'
-import { Button, Group, MultiSelect, Stack, Textarea } from '@mantine/core'
+import { Button, Checkbox, Group, Stack, Textarea } from '@mantine/core'
 import type { Data } from '@generated/data'
+import LessonActivityBankBuilder from '~/components/lesson_activity_bank_builder'
 
 type Lesson = Data.SwimmingClass['lessons'][number]
 
 export default function EditLessonForm({
   lesson,
-  skills,
+  activityBank,
+  durationMinutes,
   onCancel,
 }: {
   lesson: Lesson
-  skills: Data.SwimmingClass['skills']
+  activityBank: Data.SchoolActivityCategory[]
+  durationMinutes: number
   onCancel: () => void
 }) {
-  const [activityIds, setActivityIds] = useState<string[]>(
-    lesson.activities.map((activity) => String(activity.id))
-  )
+  const [conclude, setConclude] = useState(lesson.isConcluded)
 
   return (
     <Form route="class_lessons.update" routeParams={{ id: lesson.id }}>
       {({ processing }) => (
         <Stack gap="sm">
-          {skills.map((skill) => (
-            <MultiSelect
-              key={skill.id}
-              label={`${skill.name} activities`}
-              value={activityIds.filter((id) =>
-                skill.activities.some((activity) => String(activity.id) === id)
-              )}
-              onChange={(selected) => {
-                const others = activityIds.filter(
-                  (id) => !skill.activities.some((activity) => String(activity.id) === id)
-                )
-                setActivityIds([...others, ...selected])
-              }}
-              data={skill.activities.map((activity) => ({
-                value: String(activity.id),
-                label: activity.name,
-              }))}
-            />
-          ))}
-          {activityIds.map((id, index) => (
-            <input key={id} type="hidden" name={`activityIds[${index}]`} value={id} />
-          ))}
+          <Textarea
+            label="Lesson objectives"
+            name="objectives"
+            autosize
+            minRows={2}
+            defaultValue={lesson.objectives ?? ''}
+            required
+          />
+          <LessonActivityBankBuilder
+            activityBank={activityBank}
+            durationMinutes={durationMinutes}
+            initialActivities={lesson.activities.flatMap((activity) =>
+              activity.schoolActivityId
+                ? [
+                    {
+                      schoolActivityId: activity.schoolActivityId,
+                      durationMinutes: activity.durationMinutes,
+                      ledBy: activity.ledBy,
+                    },
+                  ]
+                : []
+            )}
+          />
           <Textarea
             label="Lesson notes (optional)"
             name="notes"
             autosize
             minRows={2}
             defaultValue={lesson.notes ?? ''}
+          />
+          <Checkbox
+            label="Conclude this lesson"
+            checked={conclude}
+            onChange={(event) => setConclude(event.currentTarget.checked)}
+          />
+          {conclude && <input type="hidden" name="intent" value="conclude" />}
+          <Textarea
+            label="Lesson observation"
+            name="observation"
+            autosize
+            minRows={3}
+            defaultValue={lesson.observation ?? ''}
+            required={conclude}
           />
           <Group justify="flex-end" gap="sm">
             <Button type="button" size="xs" variant="default" onClick={onCancel}>

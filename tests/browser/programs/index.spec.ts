@@ -104,6 +104,7 @@ test.group('Programs index', (group) => {
       ageGroup: '4-7',
       description: 'Intro level.',
       defaultFee: 5000,
+      classesCount: 10,
       capacity: 8,
     })
     await LevelStage.create({
@@ -111,6 +112,7 @@ test.group('Programs index', (group) => {
       levelId: level.id,
       name: 'Water Discovery',
       position: 1,
+      classesCount: 10,
       description: null,
     })
     await seedSwimYear(school)
@@ -122,6 +124,64 @@ test.group('Programs index', (group) => {
     await page.assertPath(route('programs.index'))
     await page.assertVisible(page.getByLabel('Base class name'))
     await page.assertVisible(page.getByRole('button', { name: 'Create 1 class' }))
+  })
+
+  test('program managers can add skills and activities from an expanded stage', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const manager = await UserFactory.apply('completed').create()
+    const school = await SchoolFactory.merge({ createdByUserId: manager.id }).create()
+    await joinSchool(manager, school, RoleName.ADMINISTRATOR)
+    const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
+    const level = await Level.create({
+      code: 'P90L907',
+      programId: program.id,
+      name: 'Beginners',
+      ageGroup: '4-7',
+      description: 'Intro level.',
+      defaultFee: 5000,
+      classesCount: 10,
+      capacity: 8,
+    })
+    await LevelStage.create({
+      code: 'L90ST907',
+      levelId: level.id,
+      name: 'Water Discovery',
+      position: 1,
+      classesCount: 10,
+      description: 'Intro stage.',
+    })
+    await browserContext.loginAs(manager)
+
+    const page = await visit(route('programs.index'))
+    await page.getByRole('button', { name: /Water Discovery/ }).click()
+    await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByLabel('Skill name').fill('Float and glide')
+    await page.getByLabel('Pass criteria').fill('10')
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+
+    await page.assertVisible('text=Program updated.')
+    await db.assertHas('level_stage_skills', {
+      name: 'Float and glide',
+      pass_criteria: '10',
+    })
+
+    const addActivity = page.getByRole('button', { name: 'Add activity' }).last()
+    if (!(await addActivity.isVisible())) {
+      await page.getByRole('button', { name: /Water Discovery/ }).click()
+    }
+    await addActivity.click()
+    await page.getByLabel('Activity name').fill('Push and float')
+    await page.getByLabel('Activity description (optional)').fill('Push off the wall and glide.')
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+
+    await db.assertHas('level_stage_activities', {
+      name: 'Push and float',
+      description: 'Push off the wall and glide.',
+    })
   })
 
   test('unavailable levels and non-managers have no program-level create-class link')

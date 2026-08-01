@@ -11,6 +11,7 @@ import type LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import Membership from '#models/membership'
 import Role from '#models/role'
+import SchoolActivity from '#models/school_activity'
 import type School from '#models/school'
 import SwimmingClass from '#models/swimming_class'
 import ClassInstructor from '#models/class_instructor'
@@ -18,6 +19,10 @@ import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
 import Term from '#models/term'
+import {
+  ClassInstructorRole,
+  type ClassInstructorRole as ClassInstructorRoleValue,
+} from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
 import { classCode, codeSegment, nextTierNumber } from '#values/account_code'
 import {
@@ -40,6 +45,10 @@ type DayInput = StoreSwimmingClassesInput['days'][number]
 
 type InstructorSelection = Pick<
   UpdateSwimmingClassInput,
+  | 'leadInstructorMembershipId'
+  | 'leadInstructorInvitationId'
+  | 'supportingInstructorMembershipIds'
+  | 'supportingInstructorInvitationIds'
   | 'instructorMembershipIds'
   | 'instructorInvitationIds'
   | 'inviteTeacherEmail'
@@ -49,15 +58,26 @@ type InstructorSelection = Pick<
   | 'inviteTeacherCertifications'
 >
 
+type InstructorAssignment = {
+  role: ClassInstructorRoleValue
+  membershipId: number | null
+  invitationId: number | null
+}
+
 type ResolvedInstructors = {
-  membershipIds: number[]
-  invitationIds: number[]
+  assignments: InstructorAssignment[]
   newInvitation?: Invitation
 }
 
 type CurriculumSelection = {
   stage: LevelStage
   skillIds: number[]
+}
+
+type SchoolLessonActivitySelection = {
+  activity: SchoolActivity
+  durationMinutes: number
+  ledBy: number
 }
 
 export default class ClassSeriesAuthoringService {
@@ -190,11 +210,19 @@ export default class ClassSeriesAuthoringService {
     data: StoreClassLessonInput
   ): Promise<ClassLesson> {
     return db.transaction(async (trx) => {
-      const activityIds = await this.resolveLessonActivities(
+      const legacyActivityIds = await this.resolveLessonActivities(
         swimmingClass.id,
         data.activityIds ?? [],
         trx
       )
+      const schoolActivities = await this.resolveSchoolActivities(
+        swimmingClass.schoolId,
+        data.schoolActivityIds ?? [],
+        data.schoolActivityDurations ?? [],
+        data.schoolActivityLedBys ?? [],
+        trx
+      )
+      this.assertConclusionObservation(data)
 
       // The level's curriculum length is a hard lesson allowance per class.
       const level = await Level.findOrFail(swimmingClass.levelId, { client: trx })
@@ -221,12 +249,14 @@ export default class ClassSeriesAuthoringService {
       }
 
       swimmingClass.useTransaction(trx)
-      const lesson = await swimmingClass
-        .related('lessons')
-        .create({ date, notes: data.notes ?? null })
-      await lesson
-        .related('lessonActivities')
-        .createMany(activityIds.map((levelStageActivityId) => ({ levelStageActivityId })))
+      const lesson = await swimmingClass.related('lessons').create({
+        date,
+        objectives: data.objectives,
+        notes: data.notes ?? null,
+        observation: data.observation ?? null,
+        concludedAt: data.intent === 'conclude' ? DateTime.now() : null,
+      })
+      await this.syncLessonActivities(lesson, legacyActivityIds, schoolActivities)
       return lesson
     })
   }
@@ -248,22 +278,41 @@ export default class ClassSeriesAuthoringService {
    */
   async updateLesson(lesson: ClassLesson, data: StoreClassLessonInput): Promise<ClassLesson> {
     return db.transaction(async (trx) => {
-      const activityIds = await this.resolveLessonActivities(
+      const swimmingClass = await SwimmingClass.findOrFail(lesson.swimmingClassId, { client: trx })
+      const legacyActivityIds = await this.resolveLessonActivities(
         lesson.swimmingClassId,
         data.activityIds ?? [],
         trx
       )
+      const schoolActivities = await this.resolveSchoolActivities(
+        swimmingClass.schoolId,
+        data.schoolActivityIds ?? [],
+        data.schoolActivityDurations ?? [],
+        data.schoolActivityLedBys ?? [],
+        trx
+      )
+      this.assertConclusionObservation(data)
 
       lesson.useTransaction(trx)
+      lesson.objectives = data.objectives
       lesson.notes = data.notes ?? null
+      lesson.observation = data.observation ?? null
+      lesson.concludedAt =
+        data.intent === 'conclude' ? (lesson.concludedAt ?? DateTime.now()) : null
       await lesson.save()
 
       await LessonActivity.query({ client: trx }).where('classLessonId', lesson.id).delete()
-      await lesson
-        .related('lessonActivities')
-        .createMany(activityIds.map((levelStageActivityId) => ({ levelStageActivityId })))
+      await this.syncLessonActivities(lesson, legacyActivityIds, schoolActivities)
       return lesson
     })
+  }
+
+  protected assertConclusionObservation(data: StoreClassLessonInput): void {
+    if (data.intent === 'conclude' && !data.observation?.trim()) {
+      throw new ClassAuthoringException(
+        'Lesson observation is required before concluding a lesson.'
+      )
+    }
   }
 
   protected async resolveLessonActivities(
@@ -289,6 +338,72 @@ export default class ClassSeriesAuthoringService {
       }
     }
     return activityIds
+  }
+
+  protected async resolveSchoolActivities(
+    schoolId: number,
+    requested: number[],
+    requestedDurations: number[],
+    requestedLedBys: number[],
+    trx: TransactionClientContract
+  ): Promise<SchoolLessonActivitySelection[]> {
+    if (requested.length === 0) {
+      return []
+    }
+    const activityIds = uniqueNumbers(requested)
+
+    const activities = await SchoolActivity.query({ client: trx })
+      .where('schoolId', schoolId)
+      .where('isActive', true)
+      .whereIn('id', activityIds)
+      .preload('category')
+
+    if (activities.length !== activityIds.length) {
+      throw new ClassAuthoringException('Choose activities from this school’s activity bank.')
+    }
+
+    const byId = new Map(activities.map((activity) => [activity.id, activity]))
+    return requested.flatMap((id, index) => {
+      const activity = byId.get(id)
+      return activity
+        ? [
+            {
+              activity,
+              durationMinutes: requestedDurations[index] ?? activity.durationMinutes,
+              ledBy: requestedLedBys[index] ?? activity.ledBy,
+            },
+          ]
+        : []
+    })
+  }
+
+  protected async syncLessonActivities(
+    lesson: ClassLesson,
+    legacyActivityIds: number[],
+    schoolActivities: SchoolLessonActivitySelection[]
+  ): Promise<void> {
+    await lesson.related('lessonActivities').createMany([
+      ...legacyActivityIds.map((levelStageActivityId, index) => ({
+        levelStageActivityId,
+        schoolActivityId: null,
+        position: index + 1,
+      })),
+      ...schoolActivities.map((selection, index) => {
+        const activity = selection.activity
+        const category = activity.category
+        return {
+          levelStageActivityId: null,
+          schoolActivityId: activity.id,
+          position: legacyActivityIds.length + index + 1,
+          categoryName: category?.name ?? 'Activity Bank',
+          activityName: activity.name,
+          activityDescription: activity.description,
+          durationMinutes: selection.durationMinutes,
+          ledBy: selection.ledBy,
+          successCue: activity.successCue,
+        }
+      }),
+    ])
   }
 
   async removeLesson(lesson: ClassLesson): Promise<void> {
@@ -385,7 +500,9 @@ export default class ClassSeriesAuthoringService {
       await LessonActivity.query({ client: trx }).whereHas('classLesson', (lessonQuery) =>
         lessonQuery.where('swimmingClassId', swimmingClass.id)
       )
-    ).map((lessonActivity) => lessonActivity.levelStageActivityId)
+    ).flatMap((lessonActivity) =>
+      lessonActivity.levelStageActivityId ? [lessonActivity.levelStageActivityId] : []
+    )
 
     if (usedActivityIds.length === 0) {
       return
@@ -437,7 +554,36 @@ export default class ClassSeriesAuthoringService {
     data: InstructorSelection,
     trx: TransactionClientContract
   ): Promise<ResolvedInstructors> {
-    const membershipIds = uniqueNumbers(data.instructorMembershipIds ?? [])
+    if (data.leadInstructorMembershipId && data.leadInstructorInvitationId) {
+      throw new ClassAuthoringException('Choose only one lead instructor.')
+    }
+
+    const hasNewRoleFields =
+      data.leadInstructorMembershipId ||
+      data.leadInstructorInvitationId ||
+      (data.supportingInstructorMembershipIds?.length ?? 0) > 0 ||
+      (data.supportingInstructorInvitationIds?.length ?? 0) > 0
+
+    const legacyMembershipIds = uniqueNumbers(data.instructorMembershipIds ?? [])
+    const legacyInvitationIds = uniqueNumbers(data.instructorInvitationIds ?? [])
+    const leadMembershipId =
+      data.leadInstructorMembershipId ?? (!hasNewRoleFields ? legacyMembershipIds[0] : undefined)
+    const leadInvitationId =
+      data.leadInstructorInvitationId ??
+      (!hasNewRoleFields && !leadMembershipId ? legacyInvitationIds[0] : undefined)
+
+    const supportingMembershipIds = uniqueNumbers([
+      ...(data.supportingInstructorMembershipIds ?? []),
+      ...(!hasNewRoleFields ? legacyMembershipIds.slice(leadMembershipId ? 1 : 0) : []),
+    ]).filter((id) => id !== leadMembershipId)
+    const supportingInvitationIds = uniqueNumbers([
+      ...(data.supportingInstructorInvitationIds ?? []),
+      ...(!hasNewRoleFields ? legacyInvitationIds.slice(leadInvitationId ? 1 : 0) : []),
+    ]).filter((id) => id !== leadInvitationId)
+
+    const membershipIds = uniqueNumbers(
+      [leadMembershipId, ...supportingMembershipIds].filter((id): id is number => id !== undefined)
+    )
     if (membershipIds.length > 0) {
       const memberships = await Membership.query({ client: trx })
         .whereIn('id', membershipIds)
@@ -452,7 +598,9 @@ export default class ClassSeriesAuthoringService {
       }
     }
 
-    const invitationIds = uniqueNumbers(data.instructorInvitationIds ?? [])
+    const invitationIds = uniqueNumbers(
+      [leadInvitationId, ...supportingInvitationIds].filter((id): id is number => id !== undefined)
+    )
     if (invitationIds.length > 0) {
       const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER, { client: trx })
       const invitations = await Invitation.query({ client: trx })
@@ -466,6 +614,37 @@ export default class ClassSeriesAuthoringService {
       }
     }
 
+    const assignments: InstructorAssignment[] = [
+      ...(leadMembershipId
+        ? [
+            {
+              role: ClassInstructorRole.LEAD,
+              membershipId: leadMembershipId,
+              invitationId: null,
+            },
+          ]
+        : []),
+      ...(leadInvitationId
+        ? [
+            {
+              role: ClassInstructorRole.LEAD,
+              membershipId: null,
+              invitationId: leadInvitationId,
+            },
+          ]
+        : []),
+      ...supportingMembershipIds.map((membershipId) => ({
+        role: ClassInstructorRole.SUPPORTING,
+        membershipId,
+        invitationId: null,
+      })),
+      ...supportingInvitationIds.map((invitationId) => ({
+        role: ClassInstructorRole.SUPPORTING,
+        membershipId: null,
+        invitationId,
+      })),
+    ]
+
     const hasInviteInput =
       data.inviteTeacherEmail ||
       data.inviteTeacherFirstName ||
@@ -473,7 +652,7 @@ export default class ClassSeriesAuthoringService {
       data.inviteTeacherPhone ||
       (data.inviteTeacherCertifications?.length ?? 0) > 0
     if (!hasInviteInput) {
-      return { membershipIds, invitationIds }
+      return { assignments }
     }
 
     if (
@@ -503,9 +682,14 @@ export default class ClassSeriesAuthoringService {
       { client: trx }
     )
 
-    const withNew = new Set(invitationIds)
-    withNew.add(invitation.id)
-    return { membershipIds, invitationIds: [...withNew], newInvitation: invitation }
+    if (!assignments.some((assignment) => assignment.invitationId === invitation.id)) {
+      assignments.push({
+        role: ClassInstructorRole.SUPPORTING,
+        membershipId: null,
+        invitationId: invitation.id,
+      })
+    }
+    return { assignments, newInvitation: invitation }
   }
 
   /** Replace the class's instructor rows with the resolved set. */
@@ -515,16 +699,7 @@ export default class ClassSeriesAuthoringService {
     trx: TransactionClientContract
   ): Promise<void> {
     await ClassInstructor.query({ client: trx }).where('swimmingClassId', swimmingClass.id).delete()
-    await swimmingClass.related('classInstructors').createMany([
-      ...instructors.membershipIds.map((membershipId) => ({
-        membershipId,
-        invitationId: null,
-      })),
-      ...instructors.invitationIds.map((invitationId) => ({
-        membershipId: null,
-        invitationId,
-      })),
-    ])
+    await swimmingClass.related('classInstructors').createMany(instructors.assignments)
   }
 
   /** Send the newly created teacher invitation once the transaction commits. */

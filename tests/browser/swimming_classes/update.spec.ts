@@ -6,6 +6,7 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import InvitationMail from '#mails/invitation'
 import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { ClassInstructorRole } from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
 
 test.group('Swimming classes update', (group) => {
@@ -55,7 +56,12 @@ test.group('Swimming classes update', (group) => {
     })
   })
 
-  test('a manager assigns an existing instructor', async ({ visit, route, browserContext, db }) => {
+  test('a manager assigns an existing lead instructor', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
     const user = await UserFactory.apply('completed').create()
     const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
     await joinSchool(user, school, RoleName.ADMINISTRATOR)
@@ -74,7 +80,7 @@ test.group('Swimming classes update', (group) => {
     }).create()
 
     const page = await visit(route('swimming_classes.edit', { id: swimmingClass.id }))
-    await page.getByRole('combobox', { name: 'Instructors' }).click()
+    await page.getByRole('combobox', { name: 'Lead instructor' }).click()
     await page.getByRole('option', { name: /Coach Sarah/ }).click()
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Save changes' }).click()
@@ -84,6 +90,7 @@ test.group('Swimming classes update', (group) => {
     await db.assertHas('class_instructors', {
       swimming_class_id: swimmingClass.id,
       membership_id: teacherMembership.id,
+      role: ClassInstructorRole.LEAD,
     })
   })
 
@@ -127,7 +134,10 @@ test.group('Swimming classes update', (group) => {
       invitee_last_name: 'Coach',
       certifications: JSON.stringify(['Lifeguard Level 1', 'First Aid']),
     })
-    await db.assertHas('class_instructors', { swimming_class_id: swimmingClass.id })
+    await db.assertHas('class_instructors', {
+      swimming_class_id: swimmingClass.id,
+      role: ClassInstructorRole.SUPPORTING,
+    })
     fake.mails.assertQueued(InvitationMail, ({ message }) => message.hasTo('pending@example.com'))
   })
 })

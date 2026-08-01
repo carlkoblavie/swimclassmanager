@@ -5,7 +5,10 @@ import type Program from '#models/program'
 import type SchoolLevelSetting from '#models/school_level_setting'
 
 function formatCedis(minorUnits: number): string {
-  return `GHS ${(minorUnits / 100).toFixed(2)}`
+  return `GHS ${(minorUnits / 100).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
 }
 
 export default class LevelTransformer extends BaseTransformer<Level> {
@@ -51,6 +54,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
         code: stage.code,
         name: stage.name,
         position: stage.position,
+        classesCount: stage.classesCount,
         description: stage.description,
         skills: (stage.skills ?? []).map((skill) => ({
           id: skill.id,

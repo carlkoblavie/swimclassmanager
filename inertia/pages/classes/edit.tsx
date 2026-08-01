@@ -17,6 +17,9 @@ import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import InstructorPicker, { invitationKey, membershipKey } from '~/components/instructor_picker'
 
+const CLASS_INSTRUCTOR_ROLE_LEAD = 1
+const CLASS_INSTRUCTOR_ROLE_SUPPORTING = 2
+
 const WEEKDAYS = [
   { value: '1', label: 'Monday' },
   { value: '2', label: 'Tuesday' },
@@ -62,9 +65,18 @@ export default function ClassEdit({
   const stage = stages.find((candidate) => String(candidate.id) === levelStageId)
   const stageSkills = stage?.skills ?? []
 
-  const initialInstructors = swimmingClass.instructors.map((instructor) =>
+  const instructorKey = (instructor: Data.SwimmingClass['instructors'][number]) =>
     instructor.type === 'membership' ? membershipKey(instructor.id) : invitationKey(instructor.id)
-  )
+  const leadInstructor =
+    swimmingClass.leadInstructor ??
+    swimmingClass.instructors.find((instructor) => instructor.role === CLASS_INSTRUCTOR_ROLE_LEAD)
+  const savedSupportingInstructors = swimmingClass.supportingInstructors ?? []
+  const supportingInstructors =
+    savedSupportingInstructors.length > 0
+      ? savedSupportingInstructors
+      : swimmingClass.instructors.filter(
+          (instructor) => instructor.role === CLASS_INSTRUCTOR_ROLE_SUPPORTING
+        )
 
   return (
     <Container size="md" py="xl">
@@ -181,7 +193,8 @@ export default function ClassEdit({
               <InstructorPicker
                 instructorOptions={instructorOptions}
                 pendingInstructorOptions={pendingInstructorOptions}
-                initialSelection={initialInstructors}
+                initialLead={leadInstructor ? instructorKey(leadInstructor) : null}
+                initialSupporting={supportingInstructors.map(instructorKey)}
                 errors={errors}
               />
             </Card>

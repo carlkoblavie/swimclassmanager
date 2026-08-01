@@ -45,6 +45,7 @@ test.group('Programs store', (group) => {
 
     await page.getByRole('button', { name: 'Add stage' }).click()
     await page.getByLabel('Stage name').fill('Water Discovery')
+    await page.getByLabel('Classes assigned to this stage').fill('10')
     await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Add skill' }).click()
@@ -75,7 +76,12 @@ test.group('Programs store', (group) => {
       audience: 'child',
     })
     await db.assertHas('levels', { name: 'Beginners', code: 'P01L01' })
-    await db.assertHas('level_stages', { name: 'Water Discovery', position: 1, code: 'L01ST01' })
+    await db.assertHas('level_stages', {
+      name: 'Water Discovery',
+      position: 1,
+      code: 'L01ST01',
+      classes_count: 10,
+    })
     await db.assertHas('level_stage_skills', {
       name: 'Face in Water',
       pass_criteria: 'Submerge face for 5 seconds',
@@ -119,6 +125,44 @@ test.group('Programs store', (group) => {
     })
   })
 
+  test('rejects stage class allocations that do not match the level total', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    await browserContext.loginAs(await manager())
+
+    const page = await visit(route('programs.create'))
+    await page.getByLabel('Program name').fill('Learn to Swim')
+    await page.getByLabel('Description', { exact: true }).fill('Our flagship program.')
+
+    await page.getByRole('button', { name: 'Add level' }).click()
+    await page.getByLabel('Level name').fill('Beginners')
+    await page.getByLabel('From age').selectOption('4')
+    await page.getByLabel('To age').selectOption('7')
+    await page.getByLabel('Fee (GHS)').fill('50')
+    await page.getByLabel('Lessons required to complete this Level').fill('10')
+    await page.getByLabel('Level description').fill('Intro level.')
+    await page.getByRole('button', { name: 'Save level' }).click()
+
+    await page.getByRole('button', { name: 'Add stage' }).click()
+    await page.getByLabel('Stage name').fill('Starter')
+    await page.getByLabel('Classes assigned to this stage').fill('6')
+    await page.getByRole('button', { name: 'Save stage' }).click()
+
+    await page.getByRole('button', { name: 'Add stage' }).click()
+    await page.getByLabel('Stage name').fill('Improver')
+    await page.getByLabel('Classes assigned to this stage').fill('3')
+    await page.getByRole('button', { name: 'Save stage' }).click()
+
+    await page.getByRole('button', { name: 'Save as draft' }).click()
+
+    await page.assertVisible('text=Stage classes for "Beginners" must add up to 10.')
+    await db.assertCount('programs', 0)
+    await db.assertCount('level_stages', 0)
+  })
+
   test('rejects duplicate skill names within a stage', async ({ visit, route, browserContext }) => {
     await browserContext.loginAs(await manager())
 
@@ -134,6 +178,7 @@ test.group('Programs store', (group) => {
 
     await page.getByRole('button', { name: 'Add stage' }).click()
     await page.getByLabel('Stage name').fill('Water Discovery')
+    await page.getByLabel('Classes assigned to this stage').fill('10')
     await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Add skill' }).click()
@@ -173,6 +218,7 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Save stage' }).click()
     await page.assertVisible(page.getByText('This field is required').first())
     await page.getByLabel('Stage name').fill('Water Discovery')
+    await page.getByLabel('Classes assigned to this stage').fill('10')
     await page.getByRole('button', { name: 'Save stage' }).click()
 
     // Skill fields left empty: adding the skill is rejected in place.

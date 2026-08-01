@@ -104,7 +104,14 @@ export default function ProgramsShow({ program, classes }: PageProps) {
                     </Text>
                     {level.stages.length > 0 && (
                       <Text size="sm" c="dimmed">
-                        Stages: {level.stages.map((stage) => stage.name).join(' → ')}
+                        Stages:{' '}
+                        {level.stages
+                          .map((stage) =>
+                            typeof stage.classesCount === 'number'
+                              ? `${stage.name} (${stage.classesCount})`
+                              : stage.name
+                          )
+                          .join(' -> ')}
                       </Text>
                     )}
                   </Stack>

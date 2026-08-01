@@ -17,6 +17,7 @@ export const SwimmingClassFactory = factory
         code: `L00ST${faker.string.numeric(6)}`,
         name: 'Foundations',
         position: 1,
+        classesCount: 10,
         description: null,
       },
       $trx ? { client: $trx } : undefined

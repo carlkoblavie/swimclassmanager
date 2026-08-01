@@ -26,7 +26,7 @@ function countLabel(count: number, singular: string, plural: string) {
 
 // Popover form for adding or editing a skill on a stage. When `initial` is
 // provided the fields pre-fill and its id/activities are preserved on submit.
-function SkillPopover({
+export function SkillPopover({
   existingNames,
   initial,
   submitLabel = 'Add',
@@ -118,7 +118,7 @@ function SkillPopover({
 
 // Popover form for adding or editing an activity on a skill. Defaults to the
 // dashed "+" trigger; pass `trigger` (e.g. a pencil) to edit an existing one.
-function ActivityPopover({
+export function ActivityPopover({
   initial,
   submitLabel = 'Add',
   onSubmit,
@@ -402,6 +402,9 @@ export default function StageTree({
                       {stage.code}
                     </Text>
                   )}
+                  <Badge variant="light" color="blue" size="sm">
+                    {countLabel(Number(stage.classesCount), 'class', 'classes')}
+                  </Badge>
                   <Text size="sm" c="dimmed">
                     {stage.skills.length === 0
                       ? 'no skills yet'

@@ -8,9 +8,11 @@ import School from '#models/school'
 import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
+import SchoolActivityBankService from '#services/school_activity_bank_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
 import LevelTransformer from '#transformers/level_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
+import SchoolActivityCategoryTransformer from '#transformers/school_activity_category_transformer'
 import SwimYearTransformer from '#transformers/swim_year_transformer'
 import SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import {
@@ -69,7 +71,8 @@ export default class SwimmingClassesController {
   /**
    * Show a class with its planned lessons
    */
-  async show({ auth, inertia, params }: HttpContext) {
+  @inject()
+  async show({ auth, inertia, params }: HttpContext, activityBank: SchoolActivityBankService) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
     const swimmingClass = await SwimmingClass.query()
       .where('id', params.id)
@@ -88,14 +91,19 @@ export default class SwimmingClassesController {
       .preload('lessons', (lessonsQuery) =>
         lessonsQuery
           .preload('lessonActivities', (activitiesQuery) =>
-            activitiesQuery.preload('levelStageActivity')
+            activitiesQuery
+              .preload('levelStageActivity')
+              .preload('schoolActivity', (activityQuery) => activityQuery.preload('category'))
+              .orderBy('position')
           )
           .orderBy('date')
       )
       .firstOrFail()
+    const bank = await activityBank.forSchool(schoolId)
 
     return inertia.render('classes/show', {
       swimmingClass: SwimmingClassTransformer.transform(swimmingClass),
+      activityBank: SchoolActivityCategoryTransformer.transform(bank),
     })
   }
 

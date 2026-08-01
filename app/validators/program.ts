@@ -29,6 +29,7 @@ const stageObject = {
   id: vine.number().optional(),
   name: vine.string().trim().minLength(1).maxLength(120),
   position: vine.number().withoutDecimals().positive(),
+  classesCount: vine.number().withoutDecimals().positive(),
   description: vine.string().trim().maxLength(2000).nullable().optional(),
   skills: vine
     .array(

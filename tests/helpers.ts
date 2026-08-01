@@ -101,6 +101,7 @@ export async function seedCurriculum(
     code: 'L01ST01',
     name: names.stage ?? 'Waist movement',
     position: 1,
+    classesCount: 10,
     description: null,
   })
   const skill = await LevelStageSkill.create({

@@ -10,6 +10,9 @@ export default function ClassCard({
   swimmingClass: Data.SwimmingClass
   showLessons?: boolean
 }) {
+  const leadInstructor = swimmingClass.leadInstructor
+  const supportingInstructors = swimmingClass.supportingInstructors ?? []
+
   return (
     <Card>
       <Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -37,25 +40,67 @@ export default function ClassCard({
               ? ` · ${swimmingClass.lessons.length} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} planned`
               : ' · no lessons yet'}
           </Text>
-          {swimmingClass.instructors.length > 0 && (
-            <Group gap={6} wrap="wrap">
-              <Text size="sm" c="dimmed">
-                {swimmingClass.instructors.length === 1 ? 'Instructor:' : 'Instructors:'}
-              </Text>
-              {swimmingClass.instructors.map((instructor) => (
-                <Group key={`${instructor.type}-${instructor.id}`} gap={4} wrap="nowrap">
+          {(leadInstructor || supportingInstructors.length > 0) && (
+            <Stack gap={2}>
+              {leadInstructor && (
+                <Group gap={6} wrap="wrap">
                   <Text size="sm" c="dimmed">
-                    {instructor.label}
+                    Lead:
                   </Text>
-                  {instructor.status === 'pending' && (
-                    <Badge variant="light" color="yellow" size="sm">
-                      Pending
-                    </Badge>
-                  )}
+                  <Group gap={4} wrap="nowrap">
+                    <Text size="sm" c="dimmed">
+                      {leadInstructor.label}
+                    </Text>
+                    {leadInstructor.status === 'pending' && (
+                      <Badge variant="light" color="yellow" size="sm">
+                        Pending
+                      </Badge>
+                    )}
+                  </Group>
                 </Group>
-              ))}
-            </Group>
+              )}
+              {supportingInstructors.length > 0 && (
+                <Group gap={6} wrap="wrap">
+                  <Text size="sm" c="dimmed">
+                    Supporting:
+                  </Text>
+                  {supportingInstructors.map((instructor) => (
+                    <Group key={`${instructor.type}-${instructor.id}`} gap={4} wrap="nowrap">
+                      <Text size="sm" c="dimmed">
+                        {instructor.label}
+                      </Text>
+                      {instructor.status === 'pending' && (
+                        <Badge variant="light" color="yellow" size="sm">
+                          Pending
+                        </Badge>
+                      )}
+                    </Group>
+                  ))}
+                </Group>
+              )}
+            </Stack>
           )}
+          {!leadInstructor &&
+            supportingInstructors.length === 0 &&
+            swimmingClass.instructors.length > 0 && (
+              <Group gap={6} wrap="wrap">
+                <Text size="sm" c="dimmed">
+                  {swimmingClass.instructors.length === 1 ? 'Instructor:' : 'Instructors:'}
+                </Text>
+                {swimmingClass.instructors.map((instructor) => (
+                  <Group key={`${instructor.type}-${instructor.id}`} gap={4} wrap="nowrap">
+                    <Text size="sm" c="dimmed">
+                      {instructor.label}
+                    </Text>
+                    {instructor.status === 'pending' && (
+                      <Badge variant="light" color="yellow" size="sm">
+                        Pending
+                      </Badge>
+                    )}
+                  </Group>
+                ))}
+              </Group>
+            )}
         </Stack>
         <Button
           component={Link}

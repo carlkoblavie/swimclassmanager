@@ -246,7 +246,7 @@ export default function ClassInlineBuilder({
                 />
               </Group>
 
-              {/* One instructor selection applies to every class created below. */}
+              {/* One lead/supporting instructor selection applies to every class created below. */}
               <InstructorPicker
                 instructorOptions={instructorOptions}
                 pendingInstructorOptions={pendingInstructorOptions}

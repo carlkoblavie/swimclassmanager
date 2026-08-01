@@ -28,6 +28,7 @@ export default function EditProgram({ program }: PageProps) {
           code: stage.code,
           name: stage.name,
           position: String(stage.position),
+          classesCount: stage.classesCount === null ? '' : String(stage.classesCount),
           description: stage.description ?? '',
           skills: stage.skills.map((skill) => ({
             id: skill.id,

@@ -8,7 +8,7 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class ClassInstructorSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'invitationId', 'membershipId', 'swimmingClassId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'id', 'invitationId', 'membershipId', 'role', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassInstructorSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -19,14 +19,18 @@ export class ClassInstructorSchema extends BaseModel {
   @column()
   declare membershipId: number | null
   @column()
+  declare role: number
+  @column()
   declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
 
 export class ClassLessonSchema extends BaseModel {
-  static $columns = ['createdAt', 'date', 'id', 'notes', 'swimmingClassId', 'updatedAt'] as const
+  static $columns = ['concludedAt', 'createdAt', 'date', 'id', 'notes', 'objectives', 'observation', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassLessonSchema.$columns
+  @column.dateTime()
+  declare concludedAt: DateTime | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column.date()
@@ -35,6 +39,10 @@ export class ClassLessonSchema extends BaseModel {
   declare id: number
   @column()
   declare notes: string | null
+  @column()
+  declare objectives: string | null
+  @column()
+  declare observation: string | null
   @column()
   declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -146,16 +154,32 @@ export class LearnerSchema extends BaseModel {
 }
 
 export class LessonActivitySchema extends BaseModel {
-  static $columns = ['classLessonId', 'createdAt', 'id', 'levelStageActivityId', 'updatedAt'] as const
+  static $columns = ['activityDescription', 'activityName', 'categoryName', 'classLessonId', 'createdAt', 'durationMinutes', 'id', 'ledBy', 'levelStageActivityId', 'position', 'schoolActivityId', 'successCue', 'updatedAt'] as const
   $columns = LessonActivitySchema.$columns
+  @column()
+  declare activityDescription: string | null
+  @column()
+  declare activityName: string | null
+  @column()
+  declare categoryName: string | null
   @column()
   declare classLessonId: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare durationMinutes: number | null
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare levelStageActivityId: number
+  declare ledBy: number | null
+  @column()
+  declare levelStageActivityId: number | null
+  @column()
+  declare position: number
+  @column()
+  declare schoolActivityId: number | null
+  @column()
+  declare successCue: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -199,8 +223,10 @@ export class LevelStageSkillSchema extends BaseModel {
 }
 
 export class LevelStageSchema extends BaseModel {
-  static $columns = ['code', 'createdAt', 'description', 'id', 'levelId', 'name', 'position', 'updatedAt'] as const
+  static $columns = ['classesCount', 'code', 'createdAt', 'description', 'id', 'levelId', 'name', 'position', 'updatedAt'] as const
   $columns = LevelStageSchema.$columns
+  @column()
+  declare classesCount: number | null
   @column()
   declare code: string
   @column.dateTime({ autoCreate: true })
@@ -329,6 +355,66 @@ export class RoleSchema extends BaseModel {
   declare name: string
   @column()
   declare permissions: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class SchoolActivitySchema extends BaseModel {
+  static $columns = ['createdAt', 'description', 'durationMinutes', 'equipment', 'focusArea', 'id', 'isActive', 'ledBy', 'name', 'position', 'progressionEasier', 'progressionHarder', 'safetyNotes', 'schoolActivityCategoryId', 'schoolId', 'successCue', 'updatedAt'] as const
+  $columns = SchoolActivitySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column()
+  declare durationMinutes: number | null
+  @column()
+  declare equipment: string | null
+  @column()
+  declare focusArea: string | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isActive: boolean
+  @column()
+  declare ledBy: number
+  @column()
+  declare name: string
+  @column()
+  declare position: number
+  @column()
+  declare progressionEasier: string | null
+  @column()
+  declare progressionHarder: string | null
+  @column()
+  declare safetyNotes: string | null
+  @column()
+  declare schoolActivityCategoryId: number
+  @column()
+  declare schoolId: number
+  @column()
+  declare successCue: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class SchoolActivityCategorySchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'isActive', 'name', 'position', 'purpose', 'schoolId', 'updatedAt'] as const
+  $columns = SchoolActivityCategorySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isActive: boolean
+  @column()
+  declare name: string
+  @column()
+  declare position: number
+  @column()
+  declare purpose: number
+  @column()
+  declare schoolId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

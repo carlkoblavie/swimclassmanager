@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Form } from '@adonisjs/inertia/react'
-import { Button, Card, Group, MultiSelect, Stack, Text, Textarea } from '@mantine/core'
+import { Button, Card, Group, Stack, Text, Textarea } from '@mantine/core'
 import type { Data } from '@generated/data'
+import LessonActivityBankBuilder from '~/components/lesson_activity_bank_builder'
 
 /** The next date falling on `weekday` (1=Monday) strictly after `after`. */
 export function nextWeekdayDate(weekday: number, after: Date): string {
@@ -17,26 +18,28 @@ export default function PlanLessonForm({
   classId,
   weekday,
   weekdayName,
-  skills,
   existingDates,
+  activityBank,
+  durationMinutes,
 }: {
   classId: number
   weekday: number
   weekdayName: string
-  skills: Data.SwimmingClass['skills']
   existingDates: string[]
+  activityBank: Data.SchoolActivityCategory[]
+  durationMinutes: number
 }) {
   const latest = existingDates.toSorted().at(-1)
   const today = new Date()
   const anchor = latest && new Date(latest) > today ? new Date(latest) : today
   const nextDate = nextWeekdayDate(weekday, anchor)
 
-  const [activityIds, setActivityIds] = useState<string[]>([])
+  const [objectives, setObjectives] = useState('')
 
-  if (skills.length === 0) {
+  if (activityBank.length === 0) {
     return (
       <Text size="sm" c="dimmed">
-        This class has no skills yet — pick skills on the class before planning lessons.
+        This school has no activity bank yet.
       </Text>
     )
   }
@@ -54,28 +57,19 @@ export default function PlanLessonForm({
                 Lessons follow the class day: next up is {weekdayName} {nextDate}.
               </Text>
             </div>
-            {skills.map((skill) => (
-              <MultiSelect
-                key={skill.id}
-                label={`${skill.name} activities`}
-                value={activityIds.filter((id) =>
-                  skill.activities.some((activity) => String(activity.id) === id)
-                )}
-                onChange={(selected) => {
-                  const others = activityIds.filter(
-                    (id) => !skill.activities.some((activity) => String(activity.id) === id)
-                  )
-                  setActivityIds([...others, ...selected])
-                }}
-                data={skill.activities.map((activity) => ({
-                  value: String(activity.id),
-                  label: activity.name,
-                }))}
-              />
-            ))}
-            {activityIds.map((id, index) => (
-              <input key={id} type="hidden" name={`activityIds[${index}]`} value={id} />
-            ))}
+            <Textarea
+              label="Lesson objectives"
+              name="objectives"
+              autosize
+              minRows={2}
+              value={objectives}
+              onChange={(event) => setObjectives(event.currentTarget.value)}
+              required
+            />
+            <LessonActivityBankBuilder
+              activityBank={activityBank}
+              durationMinutes={durationMinutes}
+            />
             <Textarea
               label="Lesson notes (optional)"
               name="notes"

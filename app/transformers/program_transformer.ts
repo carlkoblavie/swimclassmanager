@@ -41,6 +41,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
           code: stage.code,
           name: stage.name,
           position: stage.position,
+          classesCount: stage.classesCount,
           description: stage.description,
           skills: (stage.skills ?? []).map((skill) => ({
             id: skill.id,

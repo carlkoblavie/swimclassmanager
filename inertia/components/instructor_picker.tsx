@@ -1,10 +1,19 @@
 import { useState } from 'react'
-import { Button, MultiSelect, SimpleGrid, Stack, TagsInput, Text, TextInput } from '@mantine/core'
+import {
+  Button,
+  MultiSelect,
+  Select,
+  SimpleGrid,
+  Stack,
+  TagsInput,
+  Text,
+  TextInput,
+} from '@mantine/core'
 import { IconPlus, IconX } from '@tabler/icons-react'
 import type { Data } from '@generated/data'
 
 // Selected instructors are encoded as "m-<membershipId>" | "i-<invitationId>"
-// so accepted members and pending invitees share one MultiSelect.
+// so accepted members and pending invitees share one picker option list.
 const MEMBERSHIP_PREFIX = 'm-'
 const INVITATION_PREFIX = 'i-'
 
@@ -29,22 +38,36 @@ function inviteeOptionLabel(invitation: Data.Invitation): string {
 export default function InstructorPicker({
   instructorOptions,
   pendingInstructorOptions,
-  initialSelection = [],
+  initialLead = null,
+  initialSupporting = [],
+  initialSelection,
   errors,
 }: {
   instructorOptions: Data.Membership[]
   pendingInstructorOptions: Data.Invitation[]
+  initialLead?: string | null
+  initialSupporting?: string[]
   initialSelection?: string[]
   errors: Record<string, string>
 }) {
-  const [selected, setSelected] = useState<string[]>(initialSelection)
+  const legacySelection = initialSelection ?? []
+  const [lead, setLead] = useState<string | null>(initialLead ?? legacySelection[0] ?? null)
+  const [supporting, setSupporting] = useState<string[]>(
+    initialSupporting.length > 0 ? initialSupporting : legacySelection.slice(1)
+  )
   const [inviteOpen, setInviteOpen] = useState(false)
   const [certifications, setCertifications] = useState<string[]>([])
 
-  const membershipIds = selected
+  const leadMembershipId = lead?.startsWith(MEMBERSHIP_PREFIX)
+    ? lead.slice(MEMBERSHIP_PREFIX.length)
+    : null
+  const leadInvitationId = lead?.startsWith(INVITATION_PREFIX)
+    ? lead.slice(INVITATION_PREFIX.length)
+    : null
+  const supportingMembershipIds = supporting
     .filter((key) => key.startsWith(MEMBERSHIP_PREFIX))
     .map((key) => key.slice(MEMBERSHIP_PREFIX.length))
-  const invitationIds = selected
+  const supportingInvitationIds = supporting
     .filter((key) => key.startsWith(INVITATION_PREFIX))
     .map((key) => key.slice(INVITATION_PREFIX.length))
 
@@ -54,55 +77,91 @@ export default function InstructorPicker({
     ...instructorOptions.map((membership) => membershipKey(membership.id)),
     ...pendingInstructorOptions.map((invitation) => invitationKey(invitation.id)),
   ])
-  const orphanInvitations = selected.filter((key) => !optionKeys.has(key))
+  const selectedKeys = [lead, ...supporting].filter((key): key is string => Boolean(key))
+  const orphanKeys = selectedKeys.filter((key) => !optionKeys.has(key))
+  const options = [
+    {
+      group: 'Members',
+      items: instructorOptions.map((membership) => ({
+        value: membershipKey(membership.id),
+        label: memberOptionLabel(membership),
+      })),
+    },
+    {
+      group: 'Invited (pending)',
+      items: pendingInstructorOptions.map((invitation) => ({
+        value: invitationKey(invitation.id),
+        label: inviteeOptionLabel(invitation),
+      })),
+    },
+    ...(orphanKeys.length > 0
+      ? [
+          {
+            group: 'Currently assigned',
+            items: orphanKeys.map((key) => ({ value: key, label: 'Assigned instructor' })),
+          },
+        ]
+      : []),
+  ]
+  const supportingOptions = options.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.value !== lead),
+  }))
 
   return (
     <Stack gap="sm">
-      {membershipIds.map((id, index) => (
-        <input key={`m${id}`} type="hidden" name={`instructorMembershipIds[${index}]`} value={id} />
+      {leadMembershipId && (
+        <input type="hidden" name="leadInstructorMembershipId" value={leadMembershipId} />
+      )}
+      {leadInvitationId && (
+        <input type="hidden" name="leadInstructorInvitationId" value={leadInvitationId} />
+      )}
+      {supportingMembershipIds.map((id, index) => (
+        <input
+          key={`m${id}`}
+          type="hidden"
+          name={`supportingInstructorMembershipIds[${index}]`}
+          value={id}
+        />
       ))}
-      {invitationIds.map((id, index) => (
-        <input key={`i${id}`} type="hidden" name={`instructorInvitationIds[${index}]`} value={id} />
+      {supportingInvitationIds.map((id, index) => (
+        <input
+          key={`i${id}`}
+          type="hidden"
+          name={`supportingInstructorInvitationIds[${index}]`}
+          value={id}
+        />
       ))}
 
-      <MultiSelect
-        label="Instructors"
+      <Select
+        label="Lead instructor"
         description="Teachers and Head Coaches — including invitees who have not accepted yet."
-        placeholder={selected.length === 0 ? 'No instructors assigned' : undefined}
-        value={selected}
-        onChange={setSelected}
-        error={errors.instructorMembershipIds ?? errors.instructorInvitationIds}
-        data={[
-          {
-            group: 'Members',
-            items: instructorOptions.map((membership) => ({
-              value: membershipKey(membership.id),
-              label: memberOptionLabel(membership),
-            })),
-          },
-          {
-            group: 'Invited (pending)',
-            items: pendingInstructorOptions.map((invitation) => ({
-              value: invitationKey(invitation.id),
-              label: inviteeOptionLabel(invitation),
-            })),
-          },
-          ...(orphanInvitations.length > 0
-            ? [
-                {
-                  group: 'Currently assigned',
-                  items: orphanInvitations.map((key) => ({ value: key, label: 'Pending invitee' })),
-                },
-              ]
-            : []),
-        ]}
+        placeholder="No lead assigned"
+        value={lead}
+        onChange={(value) => {
+          setLead(value)
+          setSupporting((current) => current.filter((key) => key !== value))
+        }}
+        error={errors.leadInstructorMembershipId ?? errors.leadInstructorInvitationId}
+        data={options}
+        clearable
+      />
+
+      <MultiSelect
+        label="Supporting instructors"
+        description="Additional teachers who help with the class."
+        placeholder={supporting.length === 0 ? 'No supporting instructors assigned' : undefined}
+        value={supporting}
+        onChange={setSupporting}
+        error={errors.supportingInstructorMembershipIds ?? errors.supportingInstructorInvitationIds}
+        data={supportingOptions}
       />
 
       {inviteOpen ? (
         <Stack gap="sm">
           <Text size="sm" c="dimmed">
-            The class can be saved while the Teacher invitation is pending; they join the
-            instructors above once invited.
+            The class can be saved while the Teacher invitation is pending; they join the supporting
+            instructors once invited.
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
             <TextInput

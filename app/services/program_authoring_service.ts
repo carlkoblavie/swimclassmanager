@@ -17,11 +17,28 @@ type StoreData = Infer<typeof storeProgramValidator>
 type UpdateData = Infer<typeof updateProgramValidator>
 
 type StageInput = NonNullable<StoreData['levels'][number]['stages']>[number]
+type LevelInput = StoreData['levels'][number] | UpdateData['levels'][number]
 type SkillInput = NonNullable<StageInput['skills']>[number]
 type ActivityInput = NonNullable<SkillInput['activities']>[number]
 
 function toMinorUnits(cedis: number): number {
   return Math.round(cedis * 100)
+}
+
+function assertStageClassesBalance(levels: LevelInput[]): void {
+  for (const level of levels) {
+    const stages = level.stages ?? []
+    if (stages.length === 0) {
+      continue
+    }
+
+    const stageTotal = stages.reduce((total, stage) => total + stage.classesCount, 0)
+    if (stageTotal !== level.classesCount) {
+      throw new ProgramAuthoringException(
+        `Stage classes for "${level.name}" must add up to ${level.classesCount}.`
+      )
+    }
+  }
 }
 
 // Codes are strictly system-generated with platform-continuous numbers per
@@ -213,6 +230,7 @@ async function reconcileStages(
     stage.merge({
       name: input.name,
       position: input.position,
+      classesCount: input.classesCount,
       description: input.description ?? null,
     })
     await stage.save()
@@ -226,6 +244,7 @@ async function reconcileStages(
     const stage = await level.related('stages').create({
       name: input.name,
       position: input.position,
+      classesCount: input.classesCount,
       description: input.description ?? null,
       code: reserveStageCode(level.code, codes),
     })
@@ -239,6 +258,8 @@ export default class ProgramAuthoringService {
    * level fee from cedis to minor units.
    */
   async create(data: StoreData, accountName: string): Promise<Program> {
+    assertStageClassesBalance(data.levels)
+
     return db.transaction(async (trx) => {
       const programCodes = (await trx.from('programs').select('code')).map(
         (row: { code: unknown }) => String(row.code)
@@ -312,6 +333,8 @@ export default class ProgramAuthoringService {
    * reconciled the same way because classes reference them.
    */
   async update(program: Program, data: UpdateData): Promise<Program> {
+    assertStageClassesBalance(data.levels)
+
     return db.transaction(async (trx) => {
       program.useTransaction(trx)
       program.merge({ name: data.name, description: data.description })

@@ -145,14 +145,21 @@ export default function LevelsShow({ level, classes }: PageProps) {
                     {stage.position}
                   </Text>
                 </ThemeIcon>
-                <Text fw={700}>{stage.name}</Text>
+                <Box style={{ minWidth: 0, flex: 1 }}>
+                  <Text fw={700}>{stage.name}</Text>
+                  {stage.description && (
+                    <Text size="sm" c="dimmed">
+                      {stage.description}
+                    </Text>
+                  )}
+                </Box>
                 <Badge variant="light" color="gray" size="sm">
                   {stage.code}
                 </Badge>
-                {stage.description && (
-                  <Text size="sm" c="dimmed">
-                    {stage.description}
-                  </Text>
+                {typeof stage.classesCount === 'number' && (
+                  <Badge variant="light" color="blue" size="sm">
+                    {stage.classesCount} classes
+                  </Badge>
                 )}
               </Group>
 

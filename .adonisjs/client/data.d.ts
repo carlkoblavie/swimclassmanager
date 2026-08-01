@@ -13,6 +13,7 @@ import type LevelTransformer from '#transformers/level_transformer'
 import type MembershipTransformer from '#transformers/membership_transformer'
 import type OrganisationTransformer from '#transformers/organisation_transformer'
 import type ProgramTransformer from '#transformers/program_transformer'
+import type SchoolActivityCategoryTransformer from '#transformers/school_activity_category_transformer'
 import type SchoolTransformer from '#transformers/school_transformer'
 import type SignupTransformer from '#transformers/signup_transformer'
 import type SwimYearTransformer from '#transformers/swim_year_transformer'
@@ -48,6 +49,10 @@ export namespace Data {
   export type Program = InferData<ProgramTransformer>
   export namespace Program {
     export type Variants = InferVariants<ProgramTransformer>
+  }
+  export type SchoolActivityCategory = InferData<SchoolActivityCategoryTransformer>
+  export namespace SchoolActivityCategory {
+    export type Variants = InferVariants<SchoolActivityCategoryTransformer>
   }
   export type School = InferData<SchoolTransformer>
   export namespace School {

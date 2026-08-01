@@ -7,12 +7,30 @@ import type Invitation from '#models/invitation'
 import type LessonActivity from '#models/lesson_activity'
 import type Level from '#models/level'
 import type LevelStage from '#models/level_stage'
+import type LevelStageActivity from '#models/level_stage_activity'
 import type Membership from '#models/membership'
 import type Program from '#models/program'
+import type SchoolActivity from '#models/school_activity'
+import type SchoolActivityCategory from '#models/school_activity_category'
 import type SwimYear from '#models/swim_year'
 import type SwimmingClass from '#models/swimming_class'
 import type Term from '#models/term'
 import type User from '#models/user'
+import { ClassInstructorRole } from '#values/class_instructor_role'
+
+type TransformedLessonActivity = {
+  id: number
+  schoolActivityId: number | null
+  levelStageActivityId: number | null
+  skillId: number | null
+  categoryName: string | null
+  name: string
+  description: string | null
+  durationMinutes: number | null
+  ledBy: number | null
+  successCue: string | null
+  position: number
+}
 
 export const WEEKDAY_NAMES: Record<number, string> = {
   1: 'Monday',
@@ -63,6 +81,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         return {
           type: 'membership' as const,
           id: membership.id,
+          role: classInstructor.role,
           status: 'active' as const,
           label: user?.fullName?.trim() || user?.email || 'Assigned instructor',
         }
@@ -70,10 +89,16 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       return {
         type: 'invitation' as const,
         id: invitation?.id ?? classInstructor.invitationId ?? 0,
+        role: classInstructor.role,
         status: 'pending' as const,
         label: invitation?.inviteeFullName || invitation?.email || 'Pending instructor',
       }
     })
+    const leadInstructor =
+      instructors.find((instructor) => instructor.role === ClassInstructorRole.LEAD) ?? null
+    const supportingInstructors = instructors.filter(
+      (instructor) => instructor.role === ClassInstructorRole.SUPPORTING
+    )
 
     return {
       ...this.pick(this.resource, [
@@ -126,6 +151,8 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         }
       })(),
       instructors,
+      leadInstructor,
+      supportingInstructors,
       skills: classSkills.flatMap((classSkill) => {
         const skill = classSkill.levelStageSkill
         if (!skill) {
@@ -153,18 +180,67 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             raw: lesson.date.toISODate() ?? '',
             formatted: lesson.date.toFormat('cccc d LLL yyyy'),
           },
+          objectives: lesson.objectives,
           notes: lesson.notes,
-          activities: lessonActivities.flatMap((lessonActivity) => {
+          observation: lesson.observation,
+          concludedAt: lesson.concludedAt
+            ? {
+                raw: lesson.concludedAt.toISO(),
+                formatted: lesson.concludedAt.toFormat('d LLL yyyy, h:mm a'),
+              }
+            : null,
+          isConcluded: lesson.concludedAt !== null,
+          activities: lessonActivities.flatMap((lessonActivity): TransformedLessonActivity[] => {
+            const activityPreloaded = lessonActivity.$preloaded as {
+              schoolActivity?: SchoolActivity
+              levelStageActivity?: LevelStageActivity
+            }
+            const schoolActivity = activityPreloaded.schoolActivity
+            const categoryPreloaded = schoolActivity?.$preloaded as
+              | { category?: SchoolActivityCategory }
+              | undefined
+            if (schoolActivity || lessonActivity.schoolActivityId) {
+              return [
+                {
+                  id: lessonActivity.id,
+                  schoolActivityId: lessonActivity.schoolActivityId,
+                  levelStageActivityId: null,
+                  skillId: null,
+                  categoryName:
+                    lessonActivity.categoryName ??
+                    categoryPreloaded?.category?.name ??
+                    'Activity Bank',
+                  name:
+                    lessonActivity.activityName ??
+                    schoolActivity?.name ??
+                    'Removed activity bank item',
+                  description:
+                    lessonActivity.activityDescription ?? schoolActivity?.description ?? null,
+                  durationMinutes:
+                    lessonActivity.durationMinutes ?? schoolActivity?.durationMinutes ?? null,
+                  ledBy: lessonActivity.ledBy ?? schoolActivity?.ledBy ?? null,
+                  successCue: lessonActivity.successCue ?? schoolActivity?.successCue ?? null,
+                  position: lessonActivity.position,
+                },
+              ]
+            }
             const activity = lessonActivity.levelStageActivity
             if (!activity) {
               return []
             }
             return [
               {
-                id: activity.id,
+                id: lessonActivity.id,
+                schoolActivityId: null,
+                levelStageActivityId: activity.id,
                 name: activity.name,
                 description: activity.description,
+                categoryName: null,
+                durationMinutes: null,
+                ledBy: null,
+                successCue: null,
                 skillId: activity.levelStageSkillId,
+                position: lessonActivity.position,
               },
             ]
           }),

@@ -11,6 +11,7 @@ import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
 import Role from '#models/role'
 import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { ClassInstructorRole } from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
 
 test.group('Swimming classes show', (group) => {
@@ -85,7 +86,11 @@ test.group('Swimming classes show', (group) => {
       inviteeLastName: 'Coach',
     }).create()
     const swimmingClass = await SwimmingClassFactory.merge({ schoolId: school.id }).create()
-    await ClassInstructor.create({ swimmingClassId: swimmingClass.id, invitationId: invitation.id })
+    await ClassInstructor.create({
+      swimmingClassId: swimmingClass.id,
+      invitationId: invitation.id,
+      role: ClassInstructorRole.LEAD,
+    })
     await browserContext.loginAs(user)
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))

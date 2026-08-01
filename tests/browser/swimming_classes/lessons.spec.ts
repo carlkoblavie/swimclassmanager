@@ -7,6 +7,7 @@ import { SwimmingClassFactory } from '#database/factories/swimming_class_factory
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { LessonActivityLeader } from '#values/lesson_activity_leader'
 import { RoleName } from '#values/role'
 
 async function setupClass() {
@@ -43,9 +44,12 @@ test.group('Class lessons', (group) => {
     await browserContext.loginAs(user)
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
-    await page.getByLabel('Hip rotation activities').first().click({ force: true })
-    await page.getByRole('option', { name: 'Standing twists' }).click()
+    await page.getByLabel('Lesson objectives').fill('Practise a calm float and safe recovery.')
+    await page.getByRole('button', { name: 'Add to Warm Up' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).first().click()
+    await page.getByRole('button', { name: 'Add again' }).first().click()
     await page.keyboard.press('Escape')
+    await page.getByRole('spinbutton').first().fill('0')
     await page.getByLabel('Lesson notes (optional)').fill('Focus on slow, relaxed rotation.')
     await page.getByRole('button', { name: 'Plan next lesson' }).click()
 
@@ -53,9 +57,14 @@ test.group('Class lessons', (group) => {
     await page.assertVisible('text=Focus on slow, relaxed rotation.')
     await db.assertHas('class_lessons', {
       swimming_class_id: swimmingClass.id,
+      objectives: 'Practise a calm float and safe recovery.',
       notes: 'Focus on slow, relaxed rotation.',
     })
-    await db.assertCount('lesson_activities', 1)
+    await db.assertHas('lesson_activities', {
+      duration_minutes: 1,
+      led_by: LessonActivityLeader.MIXED,
+    })
+    await db.assertCount('lesson_activities', 2)
   })
 
   test('lesson dates append sequentially on the class day', async ({
@@ -75,6 +84,7 @@ test.group('Class lessons', (group) => {
     await browserContext.loginAs(user)
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
+    await page.getByLabel('Lesson objectives').fill('Build on the previous Monday lesson.')
     await page.getByRole('button', { name: 'Plan next lesson' }).click()
 
     await page.assertVisible('text=Lesson planned.')
@@ -101,19 +111,25 @@ test.group('Class lessons', (group) => {
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
     await page.getByRole('button', { name: 'Edit lesson Monday 13 Jul 2026' }).click()
-    await page.getByLabel('Hip rotation activities').first().click({ force: true })
-    await page.getByRole('option', { name: 'Standing twists' }).click()
+    await page.getByLabel('Lesson objectives').first().fill('Recover to the wall after floating.')
+    await page.getByRole('button', { name: 'Add to Warm Up' }).first().click()
+    await page.getByRole('button', { name: 'Add', exact: true }).first().click()
     await page.keyboard.press('Escape')
+    await page.getByRole('spinbutton').first().fill('11')
     await page.getByLabel('Lesson notes (optional)').first().fill('Added after creation.')
+    await page.getByLabel('Conclude this lesson').check()
+    await page.getByLabel('Lesson observation').fill('Learners recovered calmly after each float.')
     await page.getByRole('button', { name: 'Save lesson' }).click()
 
     await page.assertVisible('text=Lesson updated.')
-    await page.assertVisible(page.getByText('Standing twists').first())
+    await page.assertVisible(page.getByText('Learners recovered calmly after each float.').first())
     await db.assertHas('class_lessons', {
       swimming_class_id: swimmingClass.id,
+      objectives: 'Recover to the wall after floating.',
       notes: 'Added after creation.',
+      observation: 'Learners recovered calmly after each float.',
     })
-    await db.assertCount('lesson_activities', 1)
+    await db.assertHas('lesson_activities', { duration_minutes: 11 })
   })
 
   test('a manager removes a planned lesson', async ({ visit, route, browserContext, db }) => {

@@ -66,6 +66,7 @@ test.group('Programs update', (group) => {
       levelId: level.id,
       name: 'Old Stage Name',
       position: 1,
+      classesCount: 10,
       description: null,
     })
     await SwimmingClassFactory.merge({
@@ -100,6 +101,7 @@ test.group('Programs update', (group) => {
       levelId: level.id,
       name: 'Guarded Stage',
       position: 1,
+      classesCount: 10,
       description: null,
     })
     await SwimmingClassFactory.merge({
@@ -125,6 +127,7 @@ test.group('Programs update', (group) => {
       levelId: level.id,
       name: 'Old Stage',
       position: 1,
+      classesCount: 10,
       description: 'Old requirement',
     })
 

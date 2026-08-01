@@ -14,8 +14,11 @@ import LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import LevelStageSkill from '#models/level_stage_skill'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
+import SchoolActivityBankService from '#services/school_activity_bank_service'
 import type { StoreSwimmingClassesInput } from '#validators/swimming_class'
 import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { ClassInstructorRole } from '#values/class_instructor_role'
+import { LessonActivityLeader } from '#values/lesson_activity_leader'
 import { RoleName } from '#values/role'
 
 type AssertSubset = {
@@ -120,6 +123,7 @@ test.group('Class series authoring service', (group) => {
       levelId: draftLevel.id,
       name: 'Draft Stage',
       position: 1,
+      classesCount: 10,
       description: null,
     })
 
@@ -177,6 +181,7 @@ test.group('Class series authoring service', (group) => {
       levelId: level.id,
       name: 'Other Stage',
       position: 2,
+      classesCount: 10,
       description: null,
     })
     const foreignSkill = await LevelStageSkill.create({
@@ -222,6 +227,7 @@ test.group('Class series authoring service', (group) => {
       assert,
       () =>
         new ClassSeriesAuthoringService().planLesson(created, {
+          objectives: 'Keep the selected activities within class skills.',
           activityIds: [foreignActivity.id],
         }),
       'A selected activity does not belong to the class skills.'
@@ -273,9 +279,40 @@ test.group('Class series authoring service', (group) => {
       days: [day({ lessonDate: firstDate })],
     })
 
-    const lesson = await new ClassSeriesAuthoringService().planLesson(created, {})
+    const lesson = await new ClassSeriesAuthoringService().planLesson(created, {
+      objectives: 'Build on the previous class day.',
+    })
 
     assert.equal(lesson.date.toISODate(), firstDate.plus({ days: 7 }).toISODate())
+  })
+
+  test('school activity bank items can be planned with lesson objectives', async ({ assert }) => {
+    const { school, level, term, day } = await setupContext()
+    const [created] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      termId: term.id,
+      days: [day()],
+    })
+    const bank = await new SchoolActivityBankService().forSchool(school.id)
+    const activity = bank[0].activities[0]
+
+    const lesson = await new ClassSeriesAuthoringService().planLesson(created, {
+      objectives: 'Float calmly and return to the wall.',
+      schoolActivityIds: [activity.id, activity.id],
+      schoolActivityDurations: [9, 4],
+      schoolActivityLedBys: [LessonActivityLeader.LEARNER, LessonActivityLeader.INSTRUCTOR],
+    })
+    await lesson.load('lessonActivities')
+
+    assert.equal(lesson.objectives, 'Float calmly and return to the wall.')
+    assert.equal(lesson.lessonActivities[0].schoolActivityId, activity.id)
+    assert.equal(lesson.lessonActivities[0].activityName, activity.name)
+    assert.equal(lesson.lessonActivities[0].categoryName, bank[0].name)
+    assert.equal(lesson.lessonActivities[0].durationMinutes, 9)
+    assert.equal(lesson.lessonActivities[0].ledBy, LessonActivityLeader.LEARNER)
+    assert.equal(lesson.lessonActivities[1].schoolActivityId, activity.id)
+    assert.equal(lesson.lessonActivities[1].durationMinutes, 4)
+    assert.equal(lesson.lessonActivities[1].ledBy, LessonActivityLeader.INSTRUCTOR)
   })
 
   test('class codes stay continuous across separate creations', async ({ assert }) => {
@@ -376,8 +413,8 @@ test.group('Class series authoring service', (group) => {
     const classes = await new ClassSeriesAuthoringService().createMany(school, {
       levelId: level.id,
       termId: term.id,
-      instructorMembershipIds: [membership.id],
-      instructorInvitationIds: [invitation.id],
+      leadInstructorMembershipId: membership.id,
+      supportingInstructorInvitationIds: [invitation.id],
       days: [
         day(),
         day({
@@ -391,10 +428,10 @@ test.group('Class series authoring service', (group) => {
     for (const created of classes) {
       const rows = await ClassInstructor.query().where('swimmingClassId', created.id)
       assert.deepEqual(
-        rows.map((row) => [row.membershipId, row.invitationId]).toSorted(),
+        rows.map((row) => [row.membershipId, row.invitationId, row.role]).toSorted(),
         [
-          [membership.id, null],
-          [null, invitation.id],
+          [membership.id, null, ClassInstructorRole.LEAD],
+          [null, invitation.id, ClassInstructorRole.SUPPORTING],
         ].toSorted()
       )
     }
@@ -457,7 +494,10 @@ test.group('Class series authoring service', (group) => {
 
     await expectAuthoringError(
       assert,
-      () => new ClassSeriesAuthoringService().planLesson(created, {}),
+      () =>
+        new ClassSeriesAuthoringService().planLesson(created, {
+          objectives: 'This should fail before creating another lesson.',
+        }),
       'This class already has all 1 lesson its level allows.'
     )
   })

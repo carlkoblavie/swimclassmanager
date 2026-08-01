@@ -1,4 +1,4 @@
-import { type ChangeEvent, useState } from 'react'
+import { type ChangeEvent, useEffect, useRef, useState } from 'react'
 import { Button, Card, Group, Stack, Text, Textarea, TextInput } from '@mantine/core'
 
 export type StageActivityDraft = {
@@ -21,12 +21,13 @@ export type StageDraft = {
   code?: string
   name: string
   position: string // as entered
+  classesCount: string // lessons assigned from the parent level
   description: string
   skills: StageSkillDraft[]
 }
 
 export function emptyStageDraft(position: number): StageDraft {
-  return { name: '', position: String(position), description: '', skills: [] }
+  return { name: '', position: String(position), classesCount: '', description: '', skills: [] }
 }
 
 type Props = {
@@ -40,10 +41,17 @@ type Props = {
 // activities are managed on the stage tree, not here.
 export default function StageBuilder({ onCancel, onSave, nextPosition, initial }: Props) {
   const [draft, setDraft] = useState<StageDraft>(initial ?? emptyStageDraft(nextPosition))
-  const [errors, setErrors] = useState<{ name?: string; position?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string; position?: string; classesCount?: string }>(
+    {}
+  )
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
 
   const set =
-    (field: 'name' | 'position' | 'description') =>
+    (field: 'name' | 'position' | 'classesCount' | 'description') =>
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = event.currentTarget.value
       setDraft((current) => ({ ...current, [field]: value }))
@@ -53,13 +61,19 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
     const next: typeof errors = {}
     if (!draft.name.trim()) next.name = 'This field is required'
     if (!draft.position.trim()) next.position = 'This field is required'
+    const classCount = Number(draft.classesCount)
+    if (!draft.classesCount.trim()) {
+      next.classesCount = 'This field is required'
+    } else if (!Number.isInteger(classCount) || classCount <= 0) {
+      next.classesCount = 'Enter a whole number greater than 0'
+    }
     setErrors(next)
     if (Object.keys(next).length > 0) return
     onSave(draft)
   }
 
   return (
-    <Card mt="sm" padding="md" bg="gray.0">
+    <Card ref={rootRef} mt="sm" padding="md" bg="gray.0" style={{ scrollMarginTop: 76 }}>
       <Stack gap="sm">
         <div>
           <Text fw={700}>{initial ? 'Edit stage' : 'Create a stage'}</Text>
@@ -85,6 +99,15 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
             value={draft.position}
             onChange={set('position')}
             error={errors.position}
+          />
+          <TextInput
+            label="Classes assigned to this stage"
+            type="number"
+            size="sm"
+            w={210}
+            value={draft.classesCount}
+            onChange={set('classesCount')}
+            error={errors.classesCount}
           />
         </Group>
         <Textarea

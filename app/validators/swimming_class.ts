@@ -1,4 +1,5 @@
 import vine from '@vinejs/vine'
+import { LESSON_ACTIVITY_LEADER_VALUES } from '#values/lesson_activity_leader'
 
 const timeRule = () =>
   vine
@@ -21,7 +22,19 @@ const dayObject = {
 }
 
 const instructorFields = {
-  // Accepted members and still-pending teacher invitations, in any mix.
+  // One lead instructor, plus optional supporting instructors.
+  leadInstructorMembershipId: vine.number().withoutDecimals().positive().optional(),
+  leadInstructorInvitationId: vine.number().withoutDecimals().positive().optional(),
+  supportingInstructorMembershipIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+  supportingInstructorInvitationIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+  // Legacy accepted members and still-pending teacher invitations, kept so old
+  // callers continue to save while the UI moves to lead/supporting fields.
   instructorMembershipIds: vine
     .array(vine.number().withoutDecimals().positive())
     .distinct()
@@ -66,8 +79,16 @@ export const updateSwimmingClassValidator = vine.create({
 })
 
 export const storeClassLessonValidator = vine.create({
+  objectives: vine.string().trim().minLength(1).maxLength(2000),
+  schoolActivityIds: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  schoolActivityDurations: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  schoolActivityLedBys: vine
+    .array(vine.number().withoutDecimals().in(LESSON_ACTIVITY_LEADER_VALUES))
+    .optional(),
   activityIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
   notes: vine.string().trim().maxLength(2000).nullable().optional(),
+  observation: vine.string().trim().maxLength(2000).nullable().optional(),
+  intent: vine.string().trim().maxLength(20).optional(),
 })
 
 export type StoreSwimmingClassesInput = Awaited<

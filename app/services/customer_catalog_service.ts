@@ -11,7 +11,10 @@ function money(minorUnits: number) {
   return {
     raw: minorUnits,
     currency: 'GHS',
-    formatted: `GHS ${(minorUnits / 100).toFixed(2)}`,
+    formatted: `GHS ${(minorUnits / 100).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`,
   }
 }
 

@@ -3,6 +3,7 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { seedRoles, joinSchool, seedCurriculum, seedSwimYear } from '#tests/helpers'
+import { ClassInstructorRole } from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
 import type School from '#models/school'
 import type User from '#models/user'
@@ -28,6 +29,10 @@ test.group('Swimming classes store', (group) => {
     db,
   }) => {
     const { user, school } = await manager()
+    const teacher = await UserFactory.apply('completed').create()
+    teacher.fullName = 'Coach Ama'
+    await teacher.save()
+    const teacherMembership = await joinSchool(teacher, school, RoleName.TEACHER)
     await browserContext.loginAs(user)
     await seedCurriculum()
     await seedSwimYear(school)
@@ -36,6 +41,9 @@ test.group('Swimming classes store', (group) => {
     await page.getByRole('button', { name: 'Create class' }).click()
 
     await page.getByLabel('Base class name').fill('Evening squad')
+    await page.getByRole('combobox', { name: 'Lead instructor' }).click()
+    await page.getByRole('option', { name: /Coach Ama/ }).click()
+    await page.keyboard.press('Escape')
     await page.getByLabel('Select skills').first().click({ force: true })
     await page.getByRole('option', { name: 'Hip rotation' }).click()
     await page.keyboard.press('Escape')
@@ -60,6 +68,11 @@ test.group('Swimming classes store', (group) => {
     // Skills live on the class; each class starts with its first dated lesson.
     await db.assertCount('class_skills', 1)
     await db.assertCount('class_lessons', 2)
+    await db.assertCount('class_instructors', 2)
+    await db.assertHas('class_instructors', {
+      membership_id: teacherMembership.id,
+      role: ClassInstructorRole.LEAD,
+    })
   })
 
   test('a single day creates a single class', async ({ visit, route, browserContext, db }) => {
