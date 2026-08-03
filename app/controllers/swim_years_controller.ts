@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import School from '#models/school'
 import SwimYear from '#models/swim_year'
+import SchoolAgeGroupService from '#services/school_age_group_service'
 import SwimYearAuthoringService from '#services/swim_year_authoring_service'
 import SwimYearTransformer from '#transformers/swim_year_transformer'
 import { storeSwimYearValidator, updateSwimYearValidator } from '#validators/swim_year'
@@ -10,7 +11,8 @@ export default class SwimYearsController {
   /**
    * The settings page listing the school's swim years and terms
    */
-  async index({ auth, inertia }: HttpContext) {
+  @inject()
+  async index({ auth, inertia }: HttpContext, ageGroups: SchoolAgeGroupService) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
 
     const swimYears = await SwimYear.query()
@@ -20,6 +22,14 @@ export default class SwimYearsController {
 
     return inertia.render('settings/swim_years', {
       swimYears: SwimYearTransformer.transform(swimYears),
+      ageGroups: (await ageGroups.allForSchool(schoolId)).map((group) => ({
+        id: group.id,
+        displayName: group.displayName,
+        minAgeYear: group.minAgeYear,
+        maxAgeYear: group.maxAgeYear,
+        position: group.position,
+        isActive: group.isActive,
+      })),
     })
   }
 

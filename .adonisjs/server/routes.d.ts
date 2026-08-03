@@ -42,6 +42,24 @@ export type ScannedRoutes = {
     'swim_years.store': { paramsTuple?: []; params?: {} }
     'swim_years.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swim_years.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'school_age_groups.store': { paramsTuple?: []; params?: {} }
+    'school_age_groups.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'school_age_groups.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank.index': { paramsTuple?: []; params?: {} }
+    'skill_bank.store': { paramsTuple?: []; params?: {} }
+    'skill_bank.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'bank_packs.index': { paramsTuple?: []; params?: {} }
+    'bank_packs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank_families.store': { paramsTuple?: []; params?: {} }
+    'skill_bank_families.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank_families.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank.index': { paramsTuple?: []; params?: {} }
+    'activity_bank.store': { paramsTuple?: []; params?: {} }
+    'activity_bank.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank_categories.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank_categories.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
     'swimming_classes.store': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -72,6 +90,9 @@ export type ScannedRoutes = {
     'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'levels.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swim_years.index': { paramsTuple?: []; params?: {} }
+    'skill_bank.index': { paramsTuple?: []; params?: {} }
+    'bank_packs.index': { paramsTuple?: []; params?: {} }
+    'activity_bank.index': { paramsTuple?: []; params?: {} }
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -97,6 +118,9 @@ export type ScannedRoutes = {
     'programs.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'levels.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swim_years.index': { paramsTuple?: []; params?: {} }
+    'skill_bank.index': { paramsTuple?: []; params?: {} }
+    'bank_packs.index': { paramsTuple?: []; params?: {} }
+    'activity_bank.index': { paramsTuple?: []; params?: {} }
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -112,6 +136,10 @@ export type ScannedRoutes = {
     'api.accounts.store': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
     'swim_years.store': { paramsTuple?: []; params?: {} }
+    'school_age_groups.store': { paramsTuple?: []; params?: {} }
+    'skill_bank.store': { paramsTuple?: []; params?: {} }
+    'skill_bank_families.store': { paramsTuple?: []; params?: {} }
+    'activity_bank.store': { paramsTuple?: []; params?: {} }
     'swimming_classes.store': { paramsTuple?: []; params?: {} }
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
@@ -122,17 +150,34 @@ export type ScannedRoutes = {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swim_years.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'school_age_groups.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'bank_packs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank_families.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank_categories.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PUT: {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swim_years.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'school_age_groups.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'bank_packs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank_families.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank_categories.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   DELETE: {
     'programs.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swim_years.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'school_age_groups.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'skill_bank_families.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'activity_bank_categories.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
 }

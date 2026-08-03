@@ -1,4 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
+import type ClassSkill from '#models/class_skill'
+import LevelStageActivity from '#models/level_stage_activity'
 import SchoolActivity from '#models/school_activity'
 import SchoolActivityCategory from '#models/school_activity_category'
 import { LessonActivityCategoryPurpose } from '#values/lesson_activity_category_purpose'
@@ -22,6 +24,13 @@ type StarterCategory = {
     progressionEasier?: string
     progressionHarder?: string
   }[]
+}
+
+type ActivityBankScope = {
+  levelId: number
+  levelStageId: number | null
+  levelStageSkillIds: number[]
+  levelStageActivityIds: number[]
 }
 
 const STARTER_BANK: StarterCategory[] = [
@@ -281,17 +290,193 @@ const STARTER_BANK: StarterCategory[] = [
 ]
 
 export default class SchoolActivityBankService {
-  async forSchool(schoolId: number): Promise<SchoolActivityCategory[]> {
+  async forSchool(schoolId: number, scope?: ActivityBankScope): Promise<SchoolActivityCategory[]> {
     await this.ensureStarterBank(schoolId)
+    if (scope) {
+      await this.ensureScopedCurriculumActivities(schoolId, scope)
+    }
 
     return SchoolActivityCategory.query()
       .where('schoolId', schoolId)
       .where('isActive', true)
-      .preload('activities', (activityQuery) =>
-        activityQuery.where('isActive', true).orderBy('position').orderBy('name')
-      )
+      .preload('activities', (activityQuery) => {
+        activityQuery.where('isActive', true)
+        if (scope) {
+          this.applyScope(activityQuery, scope)
+        }
+        activityQuery.orderBy('position').orderBy('name')
+      })
       .orderBy('position')
       .orderBy('name')
+  }
+
+  scopeFromClassSkills(
+    levelId: number,
+    levelStageId: number | null,
+    classSkills: ClassSkill[]
+  ): ActivityBankScope {
+    const levelStageSkillIds = classSkills.flatMap((classSkill) =>
+      classSkill.levelStageSkillId ? [classSkill.levelStageSkillId] : []
+    )
+    const levelStageActivityIds = classSkills.flatMap((classSkill) =>
+      (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
+    )
+
+    return {
+      levelId,
+      levelStageId,
+      levelStageSkillIds,
+      levelStageActivityIds,
+    }
+  }
+
+  protected applyScope(
+    activityQuery: ReturnType<typeof SchoolActivity.query>,
+    scope: ActivityBankScope
+  ) {
+    activityQuery
+      .where((query) => {
+        query.whereNull('levelId').orWhere('levelId', scope.levelId)
+      })
+      .where((query) => {
+        query.whereNull('levelStageId')
+        if (scope.levelStageId !== null) {
+          query.orWhere('levelStageId', scope.levelStageId)
+        }
+      })
+      .where((query) => {
+        query.whereNull('levelStageSkillId')
+        if (scope.levelStageSkillIds.length > 0) {
+          query.orWhereIn('levelStageSkillId', scope.levelStageSkillIds)
+        }
+      })
+      .where((query) => {
+        query.whereNull('levelStageActivityId')
+        if (scope.levelStageActivityIds.length > 0) {
+          query.orWhereIn('levelStageActivityId', scope.levelStageActivityIds)
+        }
+      })
+  }
+
+  protected async ensureScopedCurriculumActivities(
+    schoolId: number,
+    scope: ActivityBankScope
+  ): Promise<void> {
+    if (scope.levelStageActivityIds.length === 0) {
+      return
+    }
+
+    const category = await this.ensureCoreSkillsCategory(schoolId)
+    const curriculumActivities = await LevelStageActivity.query()
+      .whereIn('id', scope.levelStageActivityIds)
+      .preload('levelStageSkill', (skillQuery) => skillQuery.preload('levelStage'))
+      .orderBy('id')
+
+    let position = await this.nextActivityPosition(category.id)
+    for (const curriculumActivity of curriculumActivities) {
+      const existing = await SchoolActivity.query()
+        .where('schoolId', schoolId)
+        .where('levelStageActivityId', curriculumActivity.id)
+        .first()
+      if (existing) {
+        continue
+      }
+
+      const skill = curriculumActivity.levelStageSkill
+      const stage = skill?.levelStage
+      if (!skill || !stage) {
+        continue
+      }
+
+      await SchoolActivity.create({
+        schoolId,
+        schoolActivityCategoryId: category.id,
+        levelId: stage.levelId,
+        levelStageId: stage.id,
+        levelStageSkillId: skill.id,
+        levelStageActivityId: curriculumActivity.id,
+        name: await this.uniqueActivityName(schoolId, curriculumActivity.name, skill.name),
+        focusArea: skill.name,
+        ledBy: LessonActivityLeader.INSTRUCTOR,
+        description: curriculumActivity.description,
+        equipment: null,
+        safetyNotes: null,
+        successCue: skill.passCriteria,
+        progressionEasier: null,
+        progressionHarder: curriculumActivity.applicationNotes,
+        durationMinutes: 5,
+        position,
+        isActive: true,
+      })
+      position += 1
+    }
+  }
+
+  protected async ensureCoreSkillsCategory(schoolId: number): Promise<SchoolActivityCategory> {
+    const existing = await SchoolActivityCategory.query()
+      .where('schoolId', schoolId)
+      .where('name', 'Core Skills')
+      .first()
+    if (existing) {
+      return existing
+    }
+
+    const total = await SchoolActivityCategory.query()
+      .where('schoolId', schoolId)
+      .count('* as total')
+
+    return SchoolActivityCategory.create({
+      schoolId,
+      name: 'Core Skills',
+      purpose: LessonActivityCategoryPurpose.CORE_SKILLS,
+      position: Number(total[0].$extras.total) + 1,
+      isActive: true,
+    })
+  }
+
+  protected async nextActivityPosition(categoryId: number): Promise<number> {
+    const total = await SchoolActivity.query()
+      .where('schoolActivityCategoryId', categoryId)
+      .count('* as total')
+
+    return Number(total[0].$extras.total) + 1
+  }
+
+  protected async uniqueActivityName(
+    schoolId: number,
+    preferredName: string,
+    skillName: string
+  ): Promise<string> {
+    const baseName = preferredName.trim() || skillName
+    const alreadyUsed = await SchoolActivity.query()
+      .where('schoolId', schoolId)
+      .where('name', baseName)
+      .first()
+    if (!alreadyUsed) {
+      return baseName
+    }
+
+    const skillScopedName = `${baseName} - ${skillName}`
+    const skillScopedUsed = await SchoolActivity.query()
+      .where('schoolId', schoolId)
+      .where('name', skillScopedName)
+      .first()
+    if (!skillScopedUsed) {
+      return skillScopedName
+    }
+
+    let suffix = 2
+    while (true) {
+      const candidate = `${skillScopedName} ${suffix}`
+      const exists = await SchoolActivity.query()
+        .where('schoolId', schoolId)
+        .where('name', candidate)
+        .first()
+      if (!exists) {
+        return candidate
+      }
+      suffix += 1
+    }
   }
 
   async ensureStarterBank(schoolId: number): Promise<void> {

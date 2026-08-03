@@ -34,10 +34,6 @@ const SKILL_DOT_COLORS = [
 
 export default function LevelsShow({ level, classes }: PageProps) {
   const skillCount = level.stages.reduce((total, stage) => total + stage.skills.length, 0)
-  const activityCount = level.stages.reduce(
-    (total, stage) => total + stage.skills.reduce((sum, skill) => sum + skill.activities.length, 0),
-    0
-  )
 
   return (
     <Container size="lg" py="xl">
@@ -116,7 +112,6 @@ export default function LevelsShow({ level, classes }: PageProps) {
               },
               { label: 'Stages', value: level.stages.length },
               { label: 'Skills', value: skillCount },
-              { label: 'Activities', value: activityCount },
             ]}
           />
         </Card>
@@ -124,11 +119,10 @@ export default function LevelsShow({ level, classes }: PageProps) {
         {/* Curriculum: skill cards grouped per stage */}
         <Group justify="space-between" align="center">
           <Title order={2} fz="lg">
-            Skills & activities
+            Skills
           </Title>
           <Text size="sm" c="dimmed">
-            {skillCount} {skillCount === 1 ? 'skill' : 'skills'} · {activityCount}{' '}
-            {activityCount === 1 ? 'activity' : 'activities'}
+            {skillCount} {skillCount === 1 ? 'skill' : 'skills'}
           </Text>
         </Group>
 
@@ -192,60 +186,6 @@ export default function LevelsShow({ level, classes }: PageProps) {
                         <Text size="sm" c="dimmed" pl={22}>
                           {skill.description}
                         </Text>
-                      )}
-                    </Stack>
-                    <Divider />
-                    <Stack gap={0} p="lg" pt="sm">
-                      <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em" py="xs">
-                        Associated activities ({skill.activities.length})
-                      </Text>
-                      {skill.activities.length === 0 ? (
-                        <Text size="sm" c="dimmed">
-                          No activities yet.
-                        </Text>
-                      ) : (
-                        skill.activities.map((activity, activityIndex) => (
-                          <Group
-                            key={activity.id}
-                            gap="md"
-                            align="flex-start"
-                            wrap="nowrap"
-                            py="sm"
-                            style={
-                              activityIndex > 0
-                                ? { borderTop: '1px solid var(--mantine-color-gray-2)' }
-                                : undefined
-                            }
-                          >
-                            <ThemeIcon variant="light" color="green" radius="md" size={26}>
-                              <Text fz={12} fw={800}>
-                                {activityIndex + 1}
-                              </Text>
-                            </ThemeIcon>
-                            <div>
-                              <Text size="sm" fw={700}>
-                                {activity.name}
-                              </Text>
-                              {activity.description && (
-                                <Text size="sm" c="dimmed" mt={2}>
-                                  {activity.description}
-                                </Text>
-                              )}
-                              {activity.applicationNotes && (
-                                <Badge
-                                  variant="default"
-                                  size="sm"
-                                  mt={6}
-                                  tt="none"
-                                  fw={500}
-                                  style={{ height: 'auto', whiteSpace: 'normal' }}
-                                >
-                                  {activity.applicationNotes}
-                                </Badge>
-                              )}
-                            </div>
-                          </Group>
-                        ))
                       )}
                     </Stack>
                   </Card>

@@ -1,10 +1,9 @@
 import { type ReactElement } from 'react'
-import { Form, Link } from '@adonisjs/inertia/react'
+import { Form } from '@adonisjs/inertia/react'
 import {
   Anchor,
   Button,
   Checkbox,
-  Divider,
   Group,
   NativeSelect,
   SimpleGrid,

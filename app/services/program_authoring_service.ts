@@ -9,6 +9,7 @@ import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
 import SwimmingClass from '#models/swimming_class'
 import ProgramAuthoringException from '#exceptions/program_authoring_exception'
+import SkillBankService from '#services/skill_bank_service'
 import { levelCode, nextTierNumber, programCode, stageCode } from '#values/account_code'
 import type { Infer } from '@vinejs/vine/types'
 import type { storeProgramValidator, updateProgramValidator } from '#validators/program'
@@ -135,10 +136,20 @@ async function assertSkillsUnused(
   }
 }
 
-async function deleteSkills(skillIds: number[], trx: TransactionClientContract): Promise<void> {
+async function deleteSkills(
+  skillIds: number[],
+  trx: TransactionClientContract,
+  schoolId?: number
+): Promise<void> {
   if (skillIds.length === 0) {
     return
   }
+
+  if (schoolId) {
+    const skills = await LevelStageSkill.query({ client: trx }).whereIn('id', skillIds)
+    await new SkillBankService().syncLegacyStageSkillModels(schoolId, skills, trx)
+  }
+
   await LevelStageActivity.query({ client: trx }).whereIn('levelStageSkillId', skillIds).delete()
   await LevelStageSkill.query({ client: trx }).whereIn('id', skillIds).delete()
 }
@@ -146,7 +157,8 @@ async function deleteSkills(skillIds: number[], trx: TransactionClientContract):
 async function reconcileSkills(
   stage: LevelStage,
   inputs: SkillInput[],
-  trx: TransactionClientContract
+  trx: TransactionClientContract,
+  schoolId?: number
 ): Promise<void> {
   const existing = await LevelStageSkill.query({ client: trx }).where('levelStageId', stage.id)
   const existingById = new Map(existing.map((skill) => [skill.id, skill]))
@@ -169,19 +181,23 @@ async function reconcileSkills(
     } else {
       skill = await stage.related('skills').create(attrs)
     }
+    if (schoolId && input.familyKey) {
+      await new SkillBankService().syncStageSkillModel(schoolId, skill, input.familyKey, trx)
+    }
     await reconcileActivities(skill, input.activities ?? [], trx)
   }
 
   const removedIds = existing.filter((skill) => !keptIds.has(skill.id)).map((s) => s.id)
   await assertSkillsUnused(removedIds, trx)
-  await deleteSkills(removedIds, trx)
+  await deleteSkills(removedIds, trx, schoolId)
 }
 
 async function reconcileStages(
   level: Level,
   inputs: StageInput[],
   trx: TransactionClientContract,
-  codes: CodeState
+  codes: CodeState,
+  schoolId?: number
 ): Promise<void> {
   const existing = await LevelStage.query({ client: trx }).where('levelId', level.id)
   const existingById = new Map(existing.map((stage) => [stage.id, stage]))
@@ -221,7 +237,7 @@ async function reconcileStages(
     )
     const nestedSkillIds = nestedSkills.map((skill) => skill.id)
     await assertSkillsUnused(nestedSkillIds, trx)
-    await deleteSkills(nestedSkillIds, trx)
+    await deleteSkills(nestedSkillIds, trx, schoolId)
     await LevelStage.query({ client: trx }).whereIn('id', removedIds).delete()
   }
 
@@ -234,7 +250,7 @@ async function reconcileStages(
       description: input.description ?? null,
     })
     await stage.save()
-    await reconcileSkills(stage, input.skills ?? [], trx)
+    await reconcileSkills(stage, input.skills ?? [], trx, schoolId)
   }
 
   for (const input of inputs) {
@@ -248,7 +264,7 @@ async function reconcileStages(
       description: input.description ?? null,
       code: reserveStageCode(level.code, codes),
     })
-    await reconcileSkills(stage, input.skills ?? [], trx)
+    await reconcileSkills(stage, input.skills ?? [], trx, schoolId)
   }
 }
 
@@ -257,7 +273,7 @@ export default class ProgramAuthoringService {
    * Create a program and its levels in one transaction, converting each
    * level fee from cedis to minor units.
    */
-  async create(data: StoreData, accountName: string): Promise<Program> {
+  async create(data: StoreData, accountName: string, schoolId?: number): Promise<Program> {
     assertStageClassesBalance(data.levels)
 
     return db.transaction(async (trx) => {
@@ -283,7 +299,7 @@ export default class ProgramAuthoringService {
           audience: input.audience,
           code: reserveLevelCode(program.code, codes),
         })
-        await reconcileStages(level, input.stages ?? [], trx, codes)
+        await reconcileStages(level, input.stages ?? [], trx, codes, schoolId)
       }
       return program
     })
@@ -332,7 +348,7 @@ export default class ProgramAuthoringService {
    * levels absent from the payload are removed. Stage/skill/activity rows are
    * reconciled the same way because classes reference them.
    */
-  async update(program: Program, data: UpdateData): Promise<Program> {
+  async update(program: Program, data: UpdateData, schoolId?: number): Promise<Program> {
     assertStageClassesBalance(data.levels)
 
     return db.transaction(async (trx) => {
@@ -371,7 +387,7 @@ export default class ProgramAuthoringService {
           level = created
         }
 
-        await reconcileStages(level, input.stages ?? [], trx, codes)
+        await reconcileStages(level, input.stages ?? [], trx, codes, schoolId)
       }
 
       for (const level of existing) {

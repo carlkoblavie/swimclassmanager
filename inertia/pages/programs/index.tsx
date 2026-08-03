@@ -6,12 +6,14 @@ import type { InertiaProps } from '~/types'
 import { Guard } from '~/utils/permissions'
 import ProgramTable from '~/components/program_table'
 import StatCard from '~/components/stat_card'
+import type { SkillBankOption } from '~/components/stage_tree'
 
 type PageProps = InertiaProps<{
   programs: Data.Program[]
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
   pendingInstructorOptions: Data.Invitation[]
+  skillBankSkills: SkillBankOption[]
 }>
 
 export default function ProgramsIndex({
@@ -19,6 +21,7 @@ export default function ProgramsIndex({
   termOptions,
   instructorOptions,
   pendingInstructorOptions,
+  skillBankSkills,
 }: PageProps) {
   const levels = programs.flatMap((program) => program.levels ?? [])
   const availableLevels = levels.filter((level) => level.available)
@@ -64,6 +67,7 @@ export default function ProgramsIndex({
         ) : (
           <ProgramTable
             programs={programs}
+            skillOptions={skillBankSkills}
             termOptions={termOptions}
             instructorOptions={instructorOptions}
             pendingInstructorOptions={pendingInstructorOptions}

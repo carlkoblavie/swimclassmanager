@@ -4,12 +4,14 @@ import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import ProgramFormBody from '~/components/program_form_body'
 import type { LevelDraft } from '~/components/level_form'
+import type { SkillBankOption } from '~/components/stage_tree'
 
 type PageProps = InertiaProps<{
   program: Data.Program.Variants['forEdit']
+  skillBankSkills: SkillBankOption[]
 }>
 
-export default function EditProgram({ program }: PageProps) {
+export default function EditProgram({ program, skillBankSkills }: PageProps) {
   const initial = {
     name: program.name,
     description: program.description,
@@ -64,7 +66,7 @@ export default function EditProgram({ program }: PageProps) {
               </Button>
             </Group>
 
-            <ProgramFormBody errors={errors} initial={initial} />
+            <ProgramFormBody errors={errors} initial={initial} skillBankSkills={skillBankSkills} />
           </Stack>
         )}
       </Form>

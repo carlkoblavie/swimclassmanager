@@ -76,6 +76,32 @@ export interface ApiDefinition {
     update: typeof routes['swim_years.update']
     destroy: typeof routes['swim_years.destroy']
   }
+  schoolAgeGroups: {
+    store: typeof routes['school_age_groups.store']
+    update: typeof routes['school_age_groups.update']
+    destroy: typeof routes['school_age_groups.destroy']
+  }
+  skillBank: {
+    index: typeof routes['skill_bank.index']
+    store: typeof routes['skill_bank.store']
+    update: typeof routes['skill_bank.update']
+    destroy: typeof routes['skill_bank.destroy']
+  }
+  bankPacks: {
+    index: typeof routes['bank_packs.index']
+    update: typeof routes['bank_packs.update']
+  }
+  skillBankFamilies: {
+    store: typeof routes['skill_bank_families.store']
+    update: typeof routes['skill_bank_families.update']
+    destroy: typeof routes['skill_bank_families.destroy']
+  }
+  activityBank: {
+    index: typeof routes['activity_bank.index']
+    store: typeof routes['activity_bank.store']
+    update: typeof routes['activity_bank.update']
+    destroy: typeof routes['activity_bank.destroy']
+  }
   swimmingClasses: {
     index: typeof routes['swimming_classes.index']
     store: typeof routes['swimming_classes.store']

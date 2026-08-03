@@ -35,6 +35,7 @@ const stageObject = {
     .array(
       vine.object({
         id: vine.number().optional(),
+        familyKey: vine.string().trim().minLength(1).maxLength(120).optional(),
         name: vine.string().trim().minLength(1).maxLength(120),
         passCriteria: vine.string().trim().minLength(1).maxLength(255),
         description: vine.string().trim().maxLength(2000).nullable().optional(),

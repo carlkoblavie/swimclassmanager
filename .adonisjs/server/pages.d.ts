@@ -16,6 +16,9 @@ declare module '@adonisjs/inertia/types' {
     'account/complete_profile': ExtractProps<(typeof import('../../inertia/pages/account/complete_profile.tsx'))['default']>
     'auth/login': ExtractProps<(typeof import('../../inertia/pages/auth/login.tsx'))['default']>
     'auth/signup': ExtractProps<(typeof import('../../inertia/pages/auth/signup.tsx'))['default']>
+    'banks/activities': ExtractProps<(typeof import('../../inertia/pages/banks/activities.tsx'))['default']>
+    'banks/packs': ExtractProps<(typeof import('../../inertia/pages/banks/packs.tsx'))['default']>
+    'banks/skills': ExtractProps<(typeof import('../../inertia/pages/banks/skills.tsx'))['default']>
     'classes/edit': ExtractProps<(typeof import('../../inertia/pages/classes/edit.tsx'))['default']>
     'classes/index': ExtractProps<(typeof import('../../inertia/pages/classes/index.tsx'))['default']>
     'classes/show': ExtractProps<(typeof import('../../inertia/pages/classes/show.tsx'))['default']>

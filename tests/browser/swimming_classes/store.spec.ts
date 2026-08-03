@@ -55,13 +55,13 @@ test.group('Swimming classes store', (group) => {
     await page.assertVisible('text=2 classes created.')
 
     await db.assertHas('swimming_classes', {
-      name: 'Evening squad — Monday',
+      name: 'Evening squad - Monday',
       code: 'ST01CL01',
       weekday: 1,
       duration_minutes: 45,
     })
     await db.assertHas('swimming_classes', {
-      name: 'Evening squad — Tuesday',
+      name: 'Evening squad - Tuesday',
       code: 'ST01CL02',
       weekday: 2,
     })
@@ -83,7 +83,6 @@ test.group('Swimming classes store', (group) => {
 
     const page = await visit(route('programs.index'))
     await page.getByRole('button', { name: 'Create class' }).click()
-    await page.getByLabel('Base class name').fill('Morning starfish')
     await page.getByRole('button', { name: 'Create 1 class' }).click()
 
     await page.assertPath(route('programs.index'))
@@ -91,7 +90,7 @@ test.group('Swimming classes store', (group) => {
     // The builder closes once the classes are created.
     await page.assertNotExists(page.getByLabel('Base class name'))
     await db.assertHas('swimming_classes', {
-      name: 'Morning starfish — Monday',
+      name: 'Aquatic therapy - Waist movement - Monday',
       code: 'ST01CL01',
       weekday: 1,
     })

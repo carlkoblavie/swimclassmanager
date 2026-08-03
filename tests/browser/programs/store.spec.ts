@@ -49,15 +49,11 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add custom skill' }).click()
+    await page.assertVisible(page.getByRole('combobox', { name: 'Skill family' }))
     await page.getByLabel('Skill name').fill('Face in Water')
     await page.getByLabel('Pass criteria').fill('Submerge face for 5 seconds')
     await page.getByLabel('Skill description (optional)').fill('Comfort with submersion.')
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
-
-    await page.getByRole('button', { name: 'Add activity' }).click()
-    await page.getByLabel('Activity name').fill('Bubble Blowing Contest')
-    await page.getByLabel('Activity description (optional)').fill('Group breathing game.')
-    await page.getByLabel('Application notes (optional)').fill('Best in shallow water.')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
 
     await page.getByRole('button', { name: 'Save as draft' }).click()
@@ -87,10 +83,10 @@ test.group('Programs store', (group) => {
       pass_criteria: 'Submerge face for 5 seconds',
       description: 'Comfort with submersion.',
     })
-    await db.assertHas('level_stage_activities', {
-      name: 'Bubble Blowing Contest',
-      description: 'Group breathing game.',
-      application_notes: 'Best in shallow water.',
+    await db.assertHas('skill_bank_skills', {
+      name: 'Face in Water',
+      family: 'propulsion',
+      source_type: 'legacy',
     })
   })
 
@@ -182,17 +178,19 @@ test.group('Programs store', (group) => {
     await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add custom skill' }).click()
     await page.getByLabel('Skill name').fill('Back Float')
     await page.getByLabel('Pass criteria').fill('2 seconds unassisted')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     // Same name, different case: still a duplicate.
     await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add custom skill' }).click()
     await page.getByLabel('Skill name').fill('back float')
     await page.getByLabel('Pass criteria').fill('10 seconds unassisted')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
 
     await page.assertVisible('text=A skill with this name already exists.')
-    await page.assertVisible('text=1 skill · 0 activities')
+    await page.assertVisible('text=1 skill')
   })
 
   test('requires stage and skill fields in the stage builder', async ({
@@ -223,6 +221,7 @@ test.group('Programs store', (group) => {
 
     // Skill fields left empty: adding the skill is rejected in place.
     await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add custom skill' }).click()
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await page.assertVisible(page.getByText('This field is required').first())
 

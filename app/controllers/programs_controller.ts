@@ -8,7 +8,10 @@ import Program from '#models/program'
 import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import { permissions } from '#start/permissions'
+import BankPackService from '#services/bank_pack_service'
 import ProgramAuthoringService from '#services/program_authoring_service'
+import SkillBankFamilyService from '#services/skill_bank_family_service'
+import SkillBankService from '#services/skill_bank_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
 import ProgramTransformer from '#transformers/program_transformer'
@@ -17,8 +20,41 @@ import SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import { storeProgramValidator, updateProgramValidator } from '#validators/program'
 import { RoleName } from '#values/role'
 
+async function stageSkillOptions(
+  schoolId: number,
+  bank: SkillBankService,
+  families: SkillBankFamilyService,
+  packs: BankPackService
+) {
+  await packs.syncEnabledPacks(schoolId)
+  const [skills, schoolFamilies] = await Promise.all([
+    bank.forSchool(schoolId),
+    families.forSchool(schoolId),
+  ])
+  const familyNames = new Map(
+    schoolFamilies.map((family) => [family.familyKey, family.displayName])
+  )
+
+  return skills
+    .filter((skill) => familyNames.has(skill.family))
+    .map((skill) => ({
+      id: skill.id,
+      familyKey: skill.family,
+      familyName: familyNames.get(skill.family)!,
+      name: skill.name,
+      description: skill.description,
+      passCriteria: skill.passCriteria,
+    }))
+}
+
 export default class ProgramsController {
-  async index({ auth, inertia }: HttpContext) {
+  @inject()
+  async index(
+    { auth, inertia }: HttpContext,
+    bank: SkillBankService,
+    families: SkillBankFamilyService,
+    packs: BankPackService
+  ) {
     const user = auth.getUserOrFail()
     const schoolId = user.activeSchoolId!
 
@@ -76,11 +112,22 @@ export default class ProgramsController {
       termOptions: SwimYearTransformer.transform(termYears),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),
+      skillBankSkills: await stageSkillOptions(schoolId, bank, families, packs),
     })
   }
 
-  create({ inertia }: HttpContext) {
-    return inertia.render('programs/create', {})
+  @inject()
+  async create(
+    { auth, inertia }: HttpContext,
+    bank: SkillBankService,
+    families: SkillBankFamilyService,
+    packs: BankPackService
+  ) {
+    const schoolId = auth.getUserOrFail().activeSchoolId!
+
+    return inertia.render('programs/create', {
+      skillBankSkills: await stageSkillOptions(schoolId, bank, families, packs),
+    })
   }
 
   async show({ params, auth, inertia }: HttpContext) {
@@ -152,7 +199,7 @@ export default class ProgramsController {
     const user = auth.getUserOrFail()
     const organisation = await Organisation.findOrFail(user.activeOrganisationId!)
     const payload = await request.validateUsing(storeProgramValidator)
-    const program = await authoring.create(payload, organisation.name)
+    const program = await authoring.create(payload, organisation.name, user.activeSchoolId!)
 
     // Programs are drafts until activated; publishing creates and activates in one step.
     if (request.input('intent') === 'publish') {
@@ -165,7 +212,13 @@ export default class ProgramsController {
     return response.redirect().toRoute('programs.index')
   }
 
-  async edit({ params, auth, inertia }: HttpContext) {
+  @inject()
+  async edit(
+    { params, auth, inertia }: HttpContext,
+    bank: SkillBankService,
+    families: SkillBankFamilyService,
+    packs: BankPackService
+  ) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
 
     const program = await Program.query()
@@ -183,14 +236,16 @@ export default class ProgramsController {
 
     return inertia.render('programs/edit', {
       program: ProgramTransformer.transform(program, schoolId).useVariant('forEdit'),
+      skillBankSkills: await stageSkillOptions(schoolId, bank, families, packs),
     })
   }
 
   @inject()
   async update(
-    { params, request, response, session }: HttpContext,
+    { auth, params, request, response, session }: HttpContext,
     authoring: ProgramAuthoringService
   ) {
+    const user = auth.getUserOrFail()
     const program = await Program.findOrFail(params.id)
 
     if (request.input('intent') === 'activate') {
@@ -202,7 +257,7 @@ export default class ProgramsController {
     const payload = await request.validateUsing(updateProgramValidator, {
       meta: { programId: program.id },
     })
-    await authoring.update(program, payload)
+    await authoring.update(program, payload, user.activeSchoolId!)
 
     session.flash('success', 'Program updated.')
     return response.redirect().toRoute('programs.index')

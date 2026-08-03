@@ -99,7 +99,14 @@ export default class SwimmingClassesController {
           .orderBy('date')
       )
       .firstOrFail()
-    const bank = await activityBank.forSchool(schoolId)
+    const bank = await activityBank.forSchool(
+      schoolId,
+      activityBank.scopeFromClassSkills(
+        swimmingClass.levelId,
+        swimmingClass.levelStageId,
+        swimmingClass.classSkills
+      )
+    )
 
     return inertia.render('classes/show', {
       swimmingClass: SwimmingClassTransformer.transform(swimmingClass),

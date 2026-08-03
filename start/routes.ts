@@ -148,6 +148,12 @@ router
       .resource('swim-years', controllers.SwimYears)
       .only(['index', 'store', 'update', 'destroy'])
       .where('id', router.matchers.number())
+
+    router
+      .resource('age-groups', controllers.SchoolAgeGroups)
+      .only(['store', 'update', 'destroy'])
+      .as('school_age_groups')
+      .where('id', router.matchers.number())
   })
   .prefix('settings')
   .use(middleware.auth())
@@ -155,6 +161,45 @@ router
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
   .use(middleware.authorize('settings.manage'))
+
+// Curriculum banks — school-managed bank content used by stages and lesson planning.
+router
+  .group(() => {
+    router
+      .resource('skill-bank', controllers.SkillBankSkills)
+      .only(['index', 'store', 'update', 'destroy'])
+      .as('skill_bank')
+      .where('id', router.matchers.number())
+
+    router
+      .resource('bank-packs', controllers.BankPacks)
+      .only(['index', 'update'])
+      .as('bank_packs')
+      .where('id', router.matchers.number())
+
+    router
+      .resource('skill-bank-families', controllers.SkillBankFamilies)
+      .only(['store', 'update', 'destroy'])
+      .as('skill_bank_families')
+      .where('id', router.matchers.number())
+
+    router
+      .resource('activity-bank', controllers.ActivityBankActivities)
+      .only(['index', 'store', 'update', 'destroy'])
+      .as('activity_bank')
+      .where('id', router.matchers.number())
+
+    router
+      .resource('activity-bank-categories', controllers.ActivityBankCategories)
+      .only(['update', 'destroy'])
+      .as('activity_bank_categories')
+      .where('id', router.matchers.number())
+  })
+  .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
+  .use(middleware.completeProfile())
+  .use(middleware.activeSchool())
+  .use(middleware.authorize('program.manage'))
 
 // Swimming classes — day-based classes created inline from the programs list.
 router

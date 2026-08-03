@@ -463,6 +463,198 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swim_years_controller').default['destroy']>>>
     }
   }
+  'school_age_groups.store': {
+    methods: ["POST"]
+    pattern: '/settings/age-groups'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').storeSchoolAgeGroupValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').storeSchoolAgeGroupValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/school_age_groups_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/school_age_groups_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'school_age_groups.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/settings/age-groups/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').updateSchoolAgeGroupValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').updateSchoolAgeGroupValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/school_age_groups_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/school_age_groups_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'school_age_groups.destroy': {
+    methods: ["DELETE"]
+    pattern: '/settings/age-groups/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/school_age_groups_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/school_age_groups_controller').default['destroy']>>>
+    }
+  }
+  'skill_bank.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/skill-bank'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['index']>>>
+    }
+  }
+  'skill_bank.store': {
+    methods: ["POST"]
+    pattern: '/skill-bank'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').storeSkillBankSkillValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').storeSkillBankSkillValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'skill_bank.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/skill-bank/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').updateSkillBankSkillValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').updateSkillBankSkillValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'skill_bank.destroy': {
+    methods: ["DELETE"]
+    pattern: '/skill-bank/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/skill_bank_skills_controller').default['destroy']>>>
+    }
+  }
+  'bank_packs.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/bank-packs'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/bank_packs_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/bank_packs_controller').default['index']>>>
+    }
+  }
+  'bank_packs.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/bank-packs/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/bank_packs_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/bank_packs_controller').default['update']>>>
+    }
+  }
+  'skill_bank_families.store': {
+    methods: ["POST"]
+    pattern: '/skill-bank-families'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').storeSkillBankFamilyValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').storeSkillBankFamilyValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/skill_bank_families_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/skill_bank_families_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'skill_bank_families.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/skill-bank-families/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').updateSkillBankFamilyValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').updateSkillBankFamilyValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/skill_bank_families_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/skill_bank_families_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'skill_bank_families.destroy': {
+    methods: ["DELETE"]
+    pattern: '/skill-bank-families/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/skill_bank_families_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/skill_bank_families_controller').default['destroy']>>>
+    }
+  }
+  'activity_bank.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/activity-bank'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['index']>>>
+    }
+  }
+  'activity_bank.store': {
+    methods: ["POST"]
+    pattern: '/activity-bank'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').storeSchoolActivityValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').storeSchoolActivityValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'activity_bank.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/activity-bank/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').updateSchoolActivityValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').updateSchoolActivityValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'activity_bank.destroy': {
+    methods: ["DELETE"]
+    pattern: '/activity-bank/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['destroy']>>>
+    }
+  }
   'swimming_classes.index': {
     methods: ["GET","HEAD"]
     pattern: '/classes'

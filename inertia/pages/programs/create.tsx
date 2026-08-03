@@ -1,8 +1,14 @@
 import { Button, Container, Group, Stack, Text, Title } from '@mantine/core'
 import { Form } from '@adonisjs/inertia/react'
 import ProgramFormBody from '~/components/program_form_body'
+import type { SkillBankOption } from '~/components/stage_tree'
+import type { InertiaProps } from '~/types'
 
-export default function CreateProgram() {
+type PageProps = InertiaProps<{
+  skillBankSkills: SkillBankOption[]
+}>
+
+export default function CreateProgram({ skillBankSkills }: PageProps) {
   return (
     <Container size="lg" py="xl">
       <Form route="programs.store">
@@ -31,7 +37,7 @@ export default function CreateProgram() {
               </Group>
             </Group>
 
-            <ProgramFormBody errors={errors} />
+            <ProgramFormBody errors={errors} skillBankSkills={skillBankSkills} />
           </Stack>
         )}
       </Form>

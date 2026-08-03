@@ -85,6 +85,16 @@ export const storeClassLessonValidator = vine.create({
   schoolActivityLedBys: vine
     .array(vine.number().withoutDecimals().in(LESSON_ACTIVITY_LEADER_VALUES))
     .optional(),
+  customActivityNames: vine.array(vine.string().trim().minLength(1).maxLength(120)).optional(),
+  customActivityCategoryIds: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  customActivityDescriptions: vine
+    .array(vine.string().trim().maxLength(2000).nullable())
+    .optional(),
+  customActivitySuccessCues: vine.array(vine.string().trim().maxLength(255).nullable()).optional(),
+  customActivityDurations: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  customActivityLedBys: vine
+    .array(vine.number().withoutDecimals().in(LESSON_ACTIVITY_LEADER_VALUES))
+    .optional(),
   activityIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
   notes: vine.string().trim().maxLength(2000).nullable().optional(),
   observation: vine.string().trim().maxLength(2000).nullable().optional(),

@@ -12,6 +12,7 @@ import LevelStageActivity from '#models/level_stage_activity'
 import Membership from '#models/membership'
 import Role from '#models/role'
 import SchoolActivity from '#models/school_activity'
+import SchoolActivityCategory from '#models/school_activity_category'
 import type School from '#models/school'
 import SwimmingClass from '#models/swimming_class'
 import ClassInstructor from '#models/class_instructor'
@@ -23,6 +24,7 @@ import {
   ClassInstructorRole,
   type ClassInstructorRole as ClassInstructorRoleValue,
 } from '#values/class_instructor_role'
+import { LessonActivityLeader } from '#values/lesson_activity_leader'
 import { RoleName } from '#values/role'
 import { classCode, codeSegment, nextTierNumber } from '#values/account_code'
 import {
@@ -75,6 +77,12 @@ type CurriculumSelection = {
 }
 
 type SchoolLessonActivitySelection = {
+  activity: SchoolActivity
+  durationMinutes: number
+  ledBy: number
+}
+
+type CustomSchoolActivitySelection = {
   activity: SchoolActivity
   durationMinutes: number
   ledBy: number
@@ -215,11 +223,21 @@ export default class ClassSeriesAuthoringService {
         data.activityIds ?? [],
         trx
       )
+      const customActivities = await this.resolveCustomSchoolActivities(swimmingClass, data, trx)
       const schoolActivities = await this.resolveSchoolActivities(
-        swimmingClass.schoolId,
-        data.schoolActivityIds ?? [],
-        data.schoolActivityDurations ?? [],
-        data.schoolActivityLedBys ?? [],
+        swimmingClass,
+        [
+          ...(data.schoolActivityIds ?? []),
+          ...customActivities.map((selection) => selection.activity.id),
+        ],
+        [
+          ...(data.schoolActivityDurations ?? []),
+          ...customActivities.map((selection) => selection.durationMinutes),
+        ],
+        [
+          ...(data.schoolActivityLedBys ?? []),
+          ...customActivities.map((selection) => selection.ledBy),
+        ],
         trx
       )
       this.assertConclusionObservation(data)
@@ -284,11 +302,21 @@ export default class ClassSeriesAuthoringService {
         data.activityIds ?? [],
         trx
       )
+      const customActivities = await this.resolveCustomSchoolActivities(swimmingClass, data, trx)
       const schoolActivities = await this.resolveSchoolActivities(
-        swimmingClass.schoolId,
-        data.schoolActivityIds ?? [],
-        data.schoolActivityDurations ?? [],
-        data.schoolActivityLedBys ?? [],
+        swimmingClass,
+        [
+          ...(data.schoolActivityIds ?? []),
+          ...customActivities.map((selection) => selection.activity.id),
+        ],
+        [
+          ...(data.schoolActivityDurations ?? []),
+          ...customActivities.map((selection) => selection.durationMinutes),
+        ],
+        [
+          ...(data.schoolActivityLedBys ?? []),
+          ...customActivities.map((selection) => selection.ledBy),
+        ],
         trx
       )
       this.assertConclusionObservation(data)
@@ -341,7 +369,7 @@ export default class ClassSeriesAuthoringService {
   }
 
   protected async resolveSchoolActivities(
-    schoolId: number,
+    swimmingClass: SwimmingClass,
     requested: number[],
     requestedDurations: number[],
     requestedLedBys: number[],
@@ -351,15 +379,42 @@ export default class ClassSeriesAuthoringService {
       return []
     }
     const activityIds = uniqueNumbers(requested)
+    const classSkills = await ClassSkill.query({ client: trx })
+      .where('swimmingClassId', swimmingClass.id)
+      .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+    const allowedSkillIds = new Set(
+      classSkills.flatMap((classSkill) =>
+        classSkill.levelStageSkillId ? [classSkill.levelStageSkillId] : []
+      )
+    )
+    const allowedLegacyActivityIds = new Set(
+      classSkills.flatMap((classSkill) =>
+        (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
+      )
+    )
 
     const activities = await SchoolActivity.query({ client: trx })
-      .where('schoolId', schoolId)
+      .where('schoolId', swimmingClass.schoolId)
       .where('isActive', true)
       .whereIn('id', activityIds)
       .preload('category')
 
     if (activities.length !== activityIds.length) {
       throw new ClassAuthoringException('Choose activities from this school’s activity bank.')
+    }
+
+    for (const activity of activities) {
+      if (
+        (activity.levelId !== null && activity.levelId !== swimmingClass.levelId) ||
+        (activity.levelStageId !== null && activity.levelStageId !== swimmingClass.levelStageId) ||
+        (activity.levelStageSkillId !== null && !allowedSkillIds.has(activity.levelStageSkillId)) ||
+        (activity.levelStageActivityId !== null &&
+          !allowedLegacyActivityIds.has(activity.levelStageActivityId))
+      ) {
+        throw new ClassAuthoringException(
+          'A selected activity bank item does not match this class curriculum.'
+        )
+      }
     }
 
     const byId = new Map(activities.map((activity) => [activity.id, activity]))
@@ -375,6 +430,93 @@ export default class ClassSeriesAuthoringService {
           ]
         : []
     })
+  }
+
+  protected async resolveCustomSchoolActivities(
+    swimmingClass: SwimmingClass,
+    data: StoreClassLessonInput,
+    trx: TransactionClientContract
+  ): Promise<CustomSchoolActivitySelection[]> {
+    const names = data.customActivityNames ?? []
+    if (names.length === 0) {
+      return []
+    }
+
+    const categoryIds = data.customActivityCategoryIds ?? []
+    const descriptions = data.customActivityDescriptions ?? []
+    const successCues = data.customActivitySuccessCues ?? []
+    const durations = data.customActivityDurations ?? []
+    const ledBys = data.customActivityLedBys ?? []
+    const categories = await SchoolActivityCategory.query({ client: trx })
+      .where('schoolId', swimmingClass.schoolId)
+      .where('isActive', true)
+      .whereIn('id', uniqueNumbers(categoryIds))
+    const categoryById = new Map(categories.map((category) => [category.id, category]))
+    const maxPositionRow = await SchoolActivity.query({ client: trx })
+      .where('schoolId', swimmingClass.schoolId)
+      .max('position as maxPosition')
+      .first()
+    let nextPosition = Number(maxPositionRow?.$extras.maxPosition ?? 0) + 1
+    const selections: CustomSchoolActivitySelection[] = []
+
+    for (const [index, rawName] of names.entries()) {
+      const name = rawName.trim()
+      if (!name) {
+        continue
+      }
+
+      const categoryId = categoryIds[index]
+      const category = categoryById.get(categoryId)
+      if (!category) {
+        throw new ClassAuthoringException('Choose a category from this school’s activity bank.')
+      }
+
+      const duration = durations[index] ?? 1
+      const ledBy = ledBys[index] ?? LessonActivityLeader.INSTRUCTOR
+      let activity = await SchoolActivity.query({ client: trx })
+        .where('schoolId', swimmingClass.schoolId)
+        .where('name', name)
+        .first()
+
+      if (activity) {
+        if (!activity.isActive) {
+          activity.useTransaction(trx)
+          activity.isActive = true
+          await activity.save()
+        }
+      } else {
+        activity = await SchoolActivity.create(
+          {
+            schoolId: swimmingClass.schoolId,
+            schoolActivityCategoryId: category.id,
+            name,
+            description: descriptions[index] || null,
+            successCue: successCues[index] || null,
+            durationMinutes: duration,
+            ledBy,
+            focusArea: null,
+            equipment: null,
+            safetyNotes: null,
+            progressionEasier: null,
+            progressionHarder: null,
+            levelId: null,
+            levelStageId: null,
+            levelStageSkillId: null,
+            levelStageActivityId: null,
+            position: nextPosition++,
+            isActive: true,
+            sourceType: 'school',
+            sourceKey: null,
+            sourceVersion: null,
+          },
+          { client: trx }
+        )
+      }
+
+      selections.push({ activity, durationMinutes: duration, ledBy })
+    }
+
+    return selections
   }
 
   protected async syncLessonActivities(

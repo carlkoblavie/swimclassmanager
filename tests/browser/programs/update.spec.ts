@@ -137,6 +137,7 @@ test.group('Programs update', (group) => {
     await page.getByRole('button', { name: 'Save stage' }).click()
 
     await page.getByRole('button', { name: 'Add skill' }).click()
+    await page.getByRole('button', { name: 'Add custom skill' }).click()
     await page.getByLabel('Skill name').fill('Rhythmic Breathing')
     await page.getByLabel('Pass criteria').fill('Exhale underwater 3 times')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
@@ -153,6 +154,46 @@ test.group('Programs update', (group) => {
       pass_criteria: 'Exhale underwater 3 times',
     })
     await db.assertMissing('level_stages', { level_id: level.id, name: 'Old Stage' })
+  })
+
+  test('keeps removed stage skills in the school skills bank', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const user = await manager()
+    await browserContext.loginAs(user)
+    const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
+    const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
+    const stage = await LevelStage.create({
+      code: 'L90ST904',
+      levelId: level.id,
+      name: 'Water Safety',
+      position: 1,
+      classesCount: 10,
+      description: null,
+    })
+    const skill = await stage.related('skills').create({
+      name: 'Legacy tread water',
+      passCriteria: 'Treads safely for 10 seconds',
+      description: 'Older stage skill.',
+    })
+
+    const page = await visit(route('programs.edit', { id: program.id }))
+    await page.getByRole('button', { name: `Remove ${skill.name} from stage` }).click()
+    await page.getByRole('button', { name: 'Save changes' }).click()
+
+    await page.assertPath(route('programs.index'))
+    await db.assertMissing('level_stage_skills', { id: skill.id })
+    await db.assertHas('skill_bank_skills', {
+      school_id: user.activeSchoolId!,
+      source_type: 'legacy',
+      source_key: `level_stage_skill:${skill.id}`,
+      name: 'Legacy tread water',
+      pass_criteria: 'Treads safely for 10 seconds',
+      description: 'Older stage skill.',
+    })
   })
 
   test('adds a level to a program', async ({ visit, route, browserContext, db }) => {

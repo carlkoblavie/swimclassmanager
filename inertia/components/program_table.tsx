@@ -11,7 +11,6 @@ import {
   Group,
   Modal,
   Stack,
-  Table,
   Text,
   TextInput,
   ThemeIcon,
@@ -23,8 +22,8 @@ import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
 import ClassInlineBuilder from '~/components/class_inline_builder'
-import { ActivityPopover, SkillPopover } from '~/components/stage_tree'
-import type { StageActivityDraft, StageSkillDraft } from '~/components/stage_builder'
+import { SkillPopover, type SkillBankOption } from '~/components/stage_tree'
+import type { StageSkillDraft } from '~/components/stage_builder'
 
 // Mockup's catalog columns: Program | Levels | Status | actions.
 const ROW_GRID = {
@@ -40,6 +39,7 @@ type Activity = Skill['activities'][number]
 type ActivityPayload = Omit<Activity, 'id'> & { id?: number }
 type SkillPayload = Omit<Skill, 'id' | 'activities'> & {
   id?: number
+  familyKey?: string
   activities: ActivityPayload[]
 }
 type StagePayload = Omit<Stage, 'id' | 'code' | 'skills'> & {
@@ -94,24 +94,20 @@ function programUpdatePayload(
 
 function StageAccordion({
   stage,
+  skillOptions,
   open,
   onToggle,
   onAddSkill,
   onUpdateSkill,
   onRemoveSkill,
-  onAddActivity,
-  onUpdateActivity,
-  onRemoveActivity,
 }: {
   stage: Stage
+  skillOptions: SkillBankOption[]
   open: boolean
   onToggle: () => void
   onAddSkill: (skill: StageSkillDraft) => void
   onUpdateSkill: (skill: Skill, updated: StageSkillDraft) => void
   onRemoveSkill: (skill: Skill) => void
-  onAddActivity: (skill: Skill, activity: StageActivityDraft) => void
-  onUpdateActivity: (skill: Skill, activity: Activity, updated: StageActivityDraft) => void
-  onRemoveActivity: (skill: Skill, activity: Activity) => void
 }) {
   return (
     <Card withBorder shadow="none" padding={0} radius="md">
@@ -161,6 +157,7 @@ function StageAccordion({
               <Guard for="program.manage">
                 <SkillPopover
                   existingNames={stage.skills.map((skill) => skill.name)}
+                  skillOptions={skillOptions}
                   onSubmit={onAddSkill}
                   trigger={(openPopover) => (
                     <Button type="button" variant="default" size="xs" onClick={openPopover}>
@@ -191,13 +188,11 @@ function StageAccordion({
                       </Group>
                       <Guard for="program.manage">
                         <Group gap={4} wrap="nowrap">
-                          <ActivityPopover
-                            onSubmit={(activity) => onAddActivity(skill, activity)}
-                          />
                           <SkillPopover
                             existingNames={stage.skills
                               .filter((candidate) => candidate.id !== skill.id)
                               .map((candidate) => candidate.name)}
+                            skillOptions={skillOptions}
                             initial={{
                               id: skill.id,
                               name: skill.name,
@@ -225,12 +220,12 @@ function StageAccordion({
                               </Tooltip>
                             )}
                           />
-                          <Tooltip label="Remove skill">
+                          <Tooltip label="Remove from stage">
                             <ActionIcon
                               variant="subtle"
                               color="red"
                               size="sm"
-                              aria-label={`Remove skill ${skill.name}`}
+                              aria-label={`Remove ${skill.name} from stage`}
                               onClick={() => onRemoveSkill(skill)}
                             >
                               <IconTrash size={14} />
@@ -245,94 +240,13 @@ function StageAccordion({
                       </Text>
                     )}
                   </Box>
-                  {skill.activities.length === 0 ? (
-                    <Group justify="space-between" align="center" p="sm" px="md">
-                      <Text size="sm" c="dimmed">
-                        No activities yet.
-                      </Text>
-                      <Guard for="program.manage">
-                        <ActivityPopover
-                          onSubmit={(activity) => onAddActivity(skill, activity)}
-                          trigger={(openPopover) => (
-                            <Button type="button" variant="default" size="xs" onClick={openPopover}>
-                              Add activity
-                            </Button>
-                          )}
-                        />
-                      </Guard>
-                    </Group>
-                  ) : (
-                    <Table verticalSpacing="xs" horizontalSpacing="md" fz="sm">
-                      <Table.Thead>
-                        <Table.Tr>
-                          <Table.Th>Activity</Table.Th>
-                          <Table.Th>Description</Table.Th>
-                          <Table.Th>Application notes</Table.Th>
-                          <Guard for="program.manage">
-                            <Table.Th w={76} />
-                          </Guard>
-                        </Table.Tr>
-                      </Table.Thead>
-                      <Table.Tbody>
-                        {skill.activities.map((activity) => (
-                          <Table.Tr key={activity.id}>
-                            <Table.Td fw={700} style={{ whiteSpace: 'nowrap' }}>
-                              {activity.name}
-                            </Table.Td>
-                            <Table.Td c="dimmed">{activity.description || '—'}</Table.Td>
-                            <Table.Td c="dimmed">{activity.applicationNotes || '—'}</Table.Td>
-                            <Guard for="program.manage">
-                              <Table.Td>
-                                <Group gap={4} wrap="nowrap" justify="flex-end">
-                                  <ActivityPopover
-                                    initial={{
-                                      id: activity.id,
-                                      name: activity.name,
-                                      description: activity.description ?? '',
-                                      applicationNotes: activity.applicationNotes ?? '',
-                                    }}
-                                    submitLabel="Save"
-                                    onSubmit={(updated) =>
-                                      onUpdateActivity(skill, activity, updated)
-                                    }
-                                    trigger={(openPopover) => (
-                                      <Tooltip label="Edit activity">
-                                        <ActionIcon
-                                          variant="subtle"
-                                          size="sm"
-                                          aria-label={`Edit activity ${activity.name}`}
-                                          onClick={openPopover}
-                                        >
-                                          <IconPencil size={14} />
-                                        </ActionIcon>
-                                      </Tooltip>
-                                    )}
-                                  />
-                                  <Tooltip label="Remove activity">
-                                    <ActionIcon
-                                      variant="subtle"
-                                      color="red"
-                                      size="sm"
-                                      aria-label={`Remove activity ${activity.name}`}
-                                      onClick={() => onRemoveActivity(skill, activity)}
-                                    >
-                                      <IconTrash size={14} />
-                                    </ActionIcon>
-                                  </Tooltip>
-                                </Group>
-                              </Table.Td>
-                            </Guard>
-                          </Table.Tr>
-                        ))}
-                      </Table.Tbody>
-                    </Table>
-                  )}
                 </Card>
               ))}
               <Guard for="program.manage">
                 <div>
                   <SkillPopover
                     existingNames={stage.skills.map((skill) => skill.name)}
+                    skillOptions={skillOptions}
                     onSubmit={onAddSkill}
                     trigger={(openPopover) => (
                       <Button
@@ -359,11 +273,13 @@ function StageAccordion({
 function LevelCard({
   program,
   level,
+  skillOptions,
   canCreateClass,
   onCreateClass,
 }: {
   program: Data.Program
   level: Data.Level
+  skillOptions: SkillBankOption[]
   canCreateClass: boolean
   onCreateClass: () => void
 }) {
@@ -382,6 +298,7 @@ function LevelCard({
 
   const skillFromDraft = (skill: StageSkillDraft): SkillPayload => ({
     id: skill.id,
+    familyKey: skill.familyKey,
     name: skill.name,
     passCriteria: skill.passCriteria,
     description: skill.description,
@@ -391,13 +308,6 @@ function LevelCard({
       description: activity.description,
       applicationNotes: activity.applicationNotes,
     })),
-  })
-
-  const activityFromDraft = (activity: StageActivityDraft): ActivityPayload => ({
-    id: activity.id,
-    name: activity.name,
-    description: activity.description,
-    applicationNotes: activity.applicationNotes,
   })
 
   return (
@@ -473,6 +383,7 @@ function LevelCard({
             <StageAccordion
               key={stage.id}
               stage={stage}
+              skillOptions={skillOptions}
               open={openStageId === stage.id}
               onToggle={() => setOpenStageId((current) => (current === stage.id ? null : stage.id))}
               onAddSkill={(skill) =>
@@ -495,51 +406,6 @@ function LevelCard({
                   skills: payload.skills.filter((candidate) => candidate.id !== skill.id),
                 }))
               }
-              onAddActivity={(skill, activity) =>
-                submitStageChange(stage.id, (payload) => ({
-                  ...payload,
-                  skills: payload.skills.map((candidate) =>
-                    candidate.id === skill.id
-                      ? {
-                          ...candidate,
-                          activities: [...candidate.activities, activityFromDraft(activity)],
-                        }
-                      : candidate
-                  ),
-                }))
-              }
-              onUpdateActivity={(skill, activity, updated) =>
-                submitStageChange(stage.id, (payload) => ({
-                  ...payload,
-                  skills: payload.skills.map((candidate) =>
-                    candidate.id === skill.id
-                      ? {
-                          ...candidate,
-                          activities: candidate.activities.map((candidateActivity) =>
-                            candidateActivity.id === activity.id
-                              ? activityFromDraft(updated)
-                              : candidateActivity
-                          ),
-                        }
-                      : candidate
-                  ),
-                }))
-              }
-              onRemoveActivity={(skill, activity) =>
-                submitStageChange(stage.id, (payload) => ({
-                  ...payload,
-                  skills: payload.skills.map((candidate) =>
-                    candidate.id === skill.id
-                      ? {
-                          ...candidate,
-                          activities: candidate.activities.filter(
-                            (candidateActivity) => candidateActivity.id !== activity.id
-                          ),
-                        }
-                      : candidate
-                  ),
-                }))
-              }
             />
           ))}
         </Stack>
@@ -550,6 +416,7 @@ function LevelCard({
 
 function ProgramRows({
   program,
+  skillOptions,
   termOptions,
   instructorOptions,
   pendingInstructorOptions,
@@ -557,6 +424,7 @@ function ProgramRows({
   onToggle,
 }: {
   program: Data.Program
+  skillOptions: SkillBankOption[]
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
   pendingInstructorOptions: Data.Invitation[]
@@ -736,6 +604,7 @@ function ProgramRows({
                 <LevelCard
                   program={program}
                   level={level}
+                  skillOptions={skillOptions}
                   canCreateClass={program.isActive && level.available}
                   onCreateClass={() =>
                     setBuilderLevelId((current) => (current === level.id ? null : level.id))
@@ -763,11 +632,13 @@ function ProgramRows({
 
 export default function ProgramTable({
   programs,
+  skillOptions,
   termOptions,
   instructorOptions,
   pendingInstructorOptions,
 }: {
   programs: Data.Program[]
+  skillOptions: SkillBankOption[]
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
   pendingInstructorOptions: Data.Invitation[]
@@ -789,6 +660,7 @@ export default function ProgramTable({
         <ProgramRows
           key={program.id}
           program={program}
+          skillOptions={skillOptions}
           termOptions={termOptions}
           instructorOptions={instructorOptions}
           pendingInstructorOptions={pendingInstructorOptions}

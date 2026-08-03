@@ -13,6 +13,7 @@ import SwimYear from '#models/swim_year'
 import LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import LevelStageSkill from '#models/level_stage_skill'
+import SchoolActivity from '#models/school_activity'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
 import SchoolActivityBankService from '#services/school_activity_bank_service'
 import type { StoreSwimmingClassesInput } from '#validators/swimming_class'
@@ -313,6 +314,113 @@ test.group('Class series authoring service', (group) => {
     assert.equal(lesson.lessonActivities[1].schoolActivityId, activity.id)
     assert.equal(lesson.lessonActivities[1].durationMinutes, 4)
     assert.equal(lesson.lessonActivities[1].ledBy, LessonActivityLeader.INSTRUCTOR)
+  })
+
+  test('custom lesson activities are added to the school activity bank', async ({ assert }) => {
+    const { school, level, term, day } = await setupContext()
+    const [created] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      termId: term.id,
+      days: [day()],
+    })
+    const bank = await new SchoolActivityBankService().forSchool(school.id)
+    const category = bank[0]
+
+    const lesson = await new ClassSeriesAuthoringService().planLesson(created, {
+      objectives: 'Add a custom activity from the lesson planner.',
+      customActivityNames: ['Wall balance float'],
+      customActivityCategoryIds: [category.id],
+      customActivityDurations: [7],
+      customActivityLedBys: [LessonActivityLeader.INSTRUCTOR],
+    })
+    await lesson.load('lessonActivities')
+    const activity = await SchoolActivity.findByOrFail('name', 'Wall balance float')
+
+    assert.equal(activity.schoolId, school.id)
+    assert.equal(activity.schoolActivityCategoryId, category.id)
+    assert.equal(activity.durationMinutes, 7)
+    assert.equal(lesson.lessonActivities[0].schoolActivityId, activity.id)
+    assert.equal(lesson.lessonActivities[0].activityName, 'Wall balance float')
+    assert.equal(lesson.lessonActivities[0].durationMinutes, 7)
+  })
+
+  test('selected skill curriculum activities are copied into scoped activity bank suggestions', async ({
+    assert,
+  }) => {
+    const { school, level, term, day, skill, activity } = await setupContext()
+    const [created] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      termId: term.id,
+      days: [day()],
+    })
+    await created.load('classSkills', (classSkillQuery) =>
+      classSkillQuery.preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+    )
+
+    const bankService = new SchoolActivityBankService()
+    const bank = await bankService.forSchool(
+      school.id,
+      bankService.scopeFromClassSkills(created.levelId, created.levelStageId, created.classSkills)
+    )
+    const coreSkills = bank.find((category) => category.name === 'Core Skills')
+    const suggestedActivity = coreSkills?.activities.find(
+      (candidate) => candidate.levelStageActivityId === activity.id
+    )
+
+    assert.exists(suggestedActivity)
+    assert.equal(suggestedActivity?.name, 'Standing twists')
+    assert.equal(suggestedActivity?.focusArea, skill.name)
+    assert.equal(suggestedActivity?.levelId, level.id)
+    assert.equal(suggestedActivity?.levelStageSkillId, skill.id)
+    assert.equal(suggestedActivity?.levelStageActivityId, activity.id)
+  })
+
+  test('school activity bank items must match the class curriculum scope', async ({ assert }) => {
+    const { school, level, term, day } = await setupContext()
+    const [created] = await new ClassSeriesAuthoringService().createMany(school, {
+      levelId: level.id,
+      termId: term.id,
+      days: [day()],
+    })
+    const bank = await new SchoolActivityBankService().forSchool(school.id)
+    const category = bank[0]
+    const otherCurriculum = await seedCurriculum({
+      program: 'Adult Program',
+      level: 'Adult Beginner',
+      stage: 'Adult Stage',
+      skill: 'Adult Treading',
+      activity: 'Adult Deep Water Tread',
+    })
+    const adultActivity = await SchoolActivity.create({
+      schoolId: school.id,
+      schoolActivityCategoryId: category.id,
+      levelId: otherCurriculum.level.id,
+      levelStageId: otherCurriculum.stage.id,
+      levelStageSkillId: otherCurriculum.skill.id,
+      levelStageActivityId: otherCurriculum.activity.id,
+      name: 'Adult-only treading drill',
+      focusArea: 'Adult deep water safety',
+      ledBy: LessonActivityLeader.INSTRUCTOR,
+      description: 'A deep-water adult activity.',
+      equipment: null,
+      safetyNotes: null,
+      successCue: 'Maintains a calm tread.',
+      progressionEasier: null,
+      progressionHarder: null,
+      durationMinutes: 10,
+      position: 99,
+      isActive: true,
+    })
+
+    await expectAuthoringError(
+      assert,
+      () =>
+        new ClassSeriesAuthoringService().planLesson(created, {
+          objectives: 'Keep activities in scope for this class.',
+          schoolActivityIds: [adultActivity.id],
+        }),
+      'A selected activity bank item does not match this class curriculum.'
+    )
   })
 
   test('class codes stay continuous across separate creations', async ({ assert }) => {

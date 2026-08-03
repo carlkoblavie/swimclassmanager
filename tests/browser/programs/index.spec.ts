@@ -126,7 +126,7 @@ test.group('Programs index', (group) => {
     await page.assertVisible(page.getByRole('button', { name: 'Create 1 class' }))
   })
 
-  test('program managers can add skills and activities from an expanded stage', async ({
+  test('program managers can add skills from an expanded stage', async ({
     visit,
     route,
     browserContext,
@@ -159,28 +159,16 @@ test.group('Programs index', (group) => {
     const page = await visit(route('programs.index'))
     await page.getByRole('button', { name: /Water Discovery/ }).click()
     await page.getByRole('button', { name: 'Add skill' }).click()
-    await page.getByLabel('Skill name').fill('Float and glide')
-    await page.getByLabel('Pass criteria').fill('10')
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Search skills bank').fill('Front float')
+    await page.getByRole('button', { name: 'Add Front float' }).click()
 
     await page.assertVisible('text=Program updated.')
+    await page.assertVisible(page.getByText('Front float', { exact: true }))
+    await page.getByRole('button', { name: 'Edit skill Front float' }).click()
+    await page.assertVisible(page.getByRole('combobox', { name: 'Skill family' }))
     await db.assertHas('level_stage_skills', {
-      name: 'Float and glide',
-      pass_criteria: '10',
-    })
-
-    const addActivity = page.getByRole('button', { name: 'Add activity' }).last()
-    if (!(await addActivity.isVisible())) {
-      await page.getByRole('button', { name: /Water Discovery/ }).click()
-    }
-    await addActivity.click()
-    await page.getByLabel('Activity name').fill('Push and float')
-    await page.getByLabel('Activity description (optional)').fill('Push off the wall and glide.')
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
-
-    await db.assertHas('level_stage_activities', {
-      name: 'Push and float',
-      description: 'Push off the wall and glide.',
+      name: 'Front float',
+      pass_criteria: 'Independent float and recovery',
     })
   })
 

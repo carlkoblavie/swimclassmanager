@@ -67,6 +67,38 @@ test.group('Class lessons', (group) => {
     await db.assertCount('lesson_activities', 2)
   })
 
+  test('a manager creates a custom activity from the lesson drawer', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const { user, school, swimmingClass } = await setupClass()
+    await browserContext.loginAs(user)
+
+    const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
+    await page.getByLabel('Lesson objectives').fill('Practise a custom balance activity.')
+    await page.getByRole('button', { name: 'Add to Warm Up' }).click()
+    await page.getByRole('button', { name: 'Add custom activity' }).click()
+    await page.getByLabel('Activity name').fill('Wall balance float')
+    await page.getByLabel('Custom activity duration minutes').fill('7')
+    await page.getByRole('button', { name: 'Add activity' }).click()
+    await page.assertVisible(page.getByText('Wall balance float', { exact: true }))
+    await page.getByRole('button', { name: 'Plan next lesson' }).click()
+
+    await page.assertVisible('text=Lesson planned.')
+    await db.assertHas('school_activities', {
+      school_id: school.id,
+      name: 'Wall balance float',
+      duration_minutes: 7,
+      source_type: 'school',
+    })
+    await db.assertHas('lesson_activities', {
+      activity_name: 'Wall balance float',
+      duration_minutes: 7,
+    })
+  })
+
   test('lesson dates append sequentially on the class day', async ({
     visit,
     route,

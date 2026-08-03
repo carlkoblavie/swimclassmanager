@@ -8,6 +8,8 @@ import { Guard } from '~/utils/permissions'
 import {
   AppShell,
   Avatar,
+  Badge,
+  Box,
   Burger,
   Button,
   Container,
@@ -21,12 +23,17 @@ import {
 } from '@mantine/core'
 import {
   IconClipboardList,
+  IconCreditCard,
+  IconListDetails,
   IconLayoutDashboard,
+  IconLogout,
+  IconPackage,
   IconRipple,
   IconSchool,
   IconSettings,
   IconStack2,
   IconSwimming,
+  IconTargetArrow,
   IconUserPlus,
 } from '@tabler/icons-react'
 
@@ -88,6 +95,25 @@ function SidebarLink({
   )
 }
 
+function SidebarSection({ label }: { label: string }) {
+  return (
+    <Text size="xs" tt="uppercase" c="dimmed" fw={800} mt="md" mb={4} style={{ letterSpacing: 1 }}>
+      {label}
+    </Text>
+  )
+}
+
+function DisabledSidebarLink({ label, icon }: { label: string; icon: ReactNode }) {
+  return (
+    <NavLink
+      label={label}
+      leftSection={icon}
+      disabled
+      style={{ borderRadius: 'var(--mantine-radius-md)' }}
+    />
+  )
+}
+
 function useFlashToasts(children: ReactElement<Data.SharedProps>) {
   const { url } = usePage()
 
@@ -133,14 +159,17 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
         <AppShell.Navbar p="md">
           <Stack h="100%" justify="space-between" gap="md">
             <Stack gap={4}>
-              {activeOrganisation && (
-                <Text size="xs" tt="uppercase" c="dimmed" fw={700}>
-                  {activeOrganisation.name}
+              <Box bg="gray.0" p="md" mb="md" style={{ borderRadius: 14 }}>
+                <Text size="xs" tt="uppercase" c="dimmed" fw={800} style={{ letterSpacing: 1 }}>
+                  {activeOrganisation?.name ?? 'School'}
                 </Text>
-              )}
-              <Text size="sm" fw={700} mb={4}>
-                {activeSchool.name}
-              </Text>
+                <Text size="sm" fw={800} mt={4}>
+                  {activeSchool.name}
+                </Text>
+                <Badge mt="sm" variant="light" color="gray" radius="xl">
+                  Starter
+                </Badge>
+              </Box>
               {availableSchools.length > 1 && (
                 <Form route="active_schools.update">
                   {({ processing }) => (
@@ -163,6 +192,8 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                   )}
                 </Form>
               )}
+
+              <SidebarSection label="School" />
               <SidebarLink
                 route="home"
                 label="Dashboard"
@@ -175,6 +206,22 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                 icon={<IconStack2 size={18} stroke={1.6} />}
                 active={url.startsWith('/programs')}
               />
+              <Guard for="program.manage">
+                <SidebarLink
+                  route="skill_bank.index"
+                  label="Skills bank"
+                  icon={<IconTargetArrow size={18} stroke={1.6} />}
+                  active={url.startsWith('/skill-bank')}
+                />
+              </Guard>
+              <Guard for="program.manage">
+                <SidebarLink
+                  route="activity_bank.index"
+                  label="Activity bank"
+                  icon={<IconListDetails size={18} stroke={1.6} />}
+                  active={url.startsWith('/activity-bank')}
+                />
+              </Guard>
               <Guard for="class.view">
                 <SidebarLink
                   route="swimming_classes.index"
@@ -199,6 +246,20 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                   active={url.startsWith('/invitations')}
                 />
               </Guard>
+
+              <SidebarSection label="Account" />
+              <Guard for="program.manage">
+                <SidebarLink
+                  route="bank_packs.index"
+                  label="Bank packs"
+                  icon={<IconPackage size={18} stroke={1.6} />}
+                  active={url.startsWith('/bank-packs')}
+                />
+              </Guard>
+              <DisabledSidebarLink
+                label="Billing"
+                icon={<IconCreditCard size={18} stroke={1.6} />}
+              />
               <Guard for="settings.manage">
                 <SidebarLink
                   route="swim_years.index"
@@ -211,12 +272,39 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
 
             <Stack gap={4}>
               <Divider />
-              <SidebarLink
-                route="schools.create"
-                label="Create a school"
-                icon={<IconSchool size={18} stroke={1.6} />}
-                active={url.startsWith('/schools')}
-              />
+              <Group gap="sm" wrap="nowrap" py="xs">
+                <Avatar radius="xl" size="md" color="aqua">
+                  {user?.initials}
+                </Avatar>
+                <Box style={{ flex: 1, minWidth: 0 }}>
+                  <Text size="sm" fw={800} truncate>
+                    {user?.fullName ?? user?.email}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Owner
+                  </Text>
+                </Box>
+                <Form route="sessions.destroy">
+                  <Button
+                    type="submit"
+                    variant="subtle"
+                    color="gray"
+                    size="compact-sm"
+                    px={6}
+                    aria-label="Logout"
+                  >
+                    <IconLogout size={18} stroke={1.6} />
+                  </Button>
+                </Form>
+              </Group>
+              <Guard for="settings.manage">
+                <SidebarLink
+                  route="schools.create"
+                  label="Create a school"
+                  icon={<IconSchool size={18} stroke={1.6} />}
+                  active={url.startsWith('/schools')}
+                />
+              </Guard>
             </Stack>
           </Stack>
         </AppShell.Navbar>

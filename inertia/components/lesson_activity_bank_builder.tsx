@@ -8,8 +8,10 @@ import {
   Group,
   Progress,
   SegmentedControl,
+  Select,
   Stack,
   Text,
+  Textarea,
   TextInput,
   Tooltip,
 } from '@mantine/core'
@@ -26,6 +28,17 @@ type ActivityWithCategory = Activity & {
 type SelectedActivity = {
   key: string
   activityId: number
+  durationMinutes: string
+  ledBy: string
+}
+
+type CustomActivity = {
+  key: string
+  categoryId: number
+  categoryName: string
+  name: string
+  description: string
+  successCue: string
   durationMinutes: string
   ledBy: string
 }
@@ -95,22 +108,49 @@ export default function LessonActivityBankBuilder({
       }
     })
   )
+  const [customActivities, setCustomActivities] = useState<CustomActivity[]>([])
   const [nextSelectionNumber, setNextSelectionNumber] = useState(initialRows.length + 1)
   const [drawerOpened, setDrawerOpened] = useState(false)
+  const [customFormOpened, setCustomFormOpened] = useState(false)
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(
     activityBank[0]?.id ?? null
   )
+  const [bankMode, setBankMode] = useState<'suggested' | 'all'>('suggested')
   const [search, setSearch] = useState('')
   const [draggedActivityKey, setDraggedActivityKey] = useState<string | null>(null)
-  const selectedRows = selectedActivities.flatMap((selection) => {
-    const activity = activityById.get(selection.activityId)
-    return activity ? [{ selection, activity }] : []
+  const [customDraft, setCustomDraft] = useState({
+    name: '',
+    categoryId: String(activityBank[0]?.id ?? ''),
+    description: '',
+    successCue: '',
+    durationMinutes: '5',
+    ledBy: '1',
   })
-  const activityDuration = (selection: SelectedActivity) => {
+  const [customErrors, setCustomErrors] = useState<{ name?: string; categoryId?: string }>({})
+  const selectedRows = [
+    ...selectedActivities.flatMap((selection) => {
+      const activity = activityById.get(selection.activityId)
+      return activity ? [{ source: 'bank' as const, selection, activity }] : []
+    }),
+    ...customActivities.map((selection) => ({
+      source: 'custom' as const,
+      selection,
+      activity: {
+        categoryId: selection.categoryId,
+        categoryName: selection.categoryName,
+        name: selection.name,
+        description: selection.description,
+        successCue: selection.successCue,
+        durationMinutes: Number(selection.durationMinutes),
+        ledBy: Number(selection.ledBy),
+      },
+    })),
+  ]
+  const activityDuration = (selection: Pick<SelectedActivity, 'durationMinutes'>) => {
     const value = Number(selection.durationMinutes)
     return Number.isFinite(value) && value >= 1 ? value : 1
   }
-  const plannedMinutes = selectedActivities.reduce(
+  const plannedMinutes = [...selectedActivities, ...customActivities].reduce(
     (total, selection) => total + activityDuration(selection),
     0
   )
@@ -118,20 +158,34 @@ export default function LessonActivityBankBuilder({
   const progressValue =
     durationMinutes > 0 ? Math.min(100, Math.round((plannedMinutes / durationMinutes) * 100)) : 0
   const activeCategory = activityBank.find((category) => category.id === activeCategoryId)
+  const isSuggestedActivity = (activity: ActivityWithCategory) =>
+    Boolean(
+      activity.levelId ||
+      activity.levelStageId ||
+      activity.levelStageSkillId ||
+      activity.levelStageActivityId
+    )
+  const suggestedCountForCategory = (category: Data.SchoolActivityCategory) =>
+    category.activities.filter((activity) =>
+      isSuggestedActivity({
+        ...activity,
+        categoryId: category.id,
+        categoryName: category.name,
+      })
+    ).length
+  const suggestedActivitiesCount = allActivities.filter(isSuggestedActivity).length
   const normalizedSearch = search.trim().toLowerCase()
   const drawerActivities = allActivities.filter((activity) => {
     const inActiveCategory = activeCategoryId ? activity.categoryId === activeCategoryId : true
-    const searchableText = [
-      activity.name,
-      activity.focusArea,
-      activity.description,
-      activity.successCue,
-    ].flatMap((value) => (value ? [value] : []))
+    const inBankMode = bankMode === 'all' || isSuggestedActivity(activity)
+    const searchableText = [activity.name, activity.description, activity.successCue].flatMap(
+      (value) => (value ? [value] : [])
+    )
     const matchesSearch =
       normalizedSearch.length === 0 ||
       searchableText.some((value) => value.toLowerCase().includes(normalizedSearch))
 
-    return inActiveCategory && matchesSearch
+    return inActiveCategory && inBankMode && matchesSearch
   })
 
   const addActivity = (activityId: number) => {
@@ -152,6 +206,7 @@ export default function LessonActivityBankBuilder({
     setSelectedActivities((current) =>
       current.filter((selection) => selection.key !== selectionKey)
     )
+    setCustomActivities((current) => current.filter((selection) => selection.key !== selectionKey))
   }
 
   const setActivityDuration = (selectionKey: string, value: string) => {
@@ -164,6 +219,11 @@ export default function LessonActivityBankBuilder({
         selection.key === selectionKey ? { ...selection, durationMinutes: nextValue } : selection
       )
     )
+    setCustomActivities((current) =>
+      current.map((selection) =>
+        selection.key === selectionKey ? { ...selection, durationMinutes: nextValue } : selection
+      )
+    )
   }
 
   const setActivityLeader = (selectionKey: string, ledBy: string) => {
@@ -172,10 +232,29 @@ export default function LessonActivityBankBuilder({
         selection.key === selectionKey ? { ...selection, ledBy } : selection
       )
     )
+    setCustomActivities((current) =>
+      current.map((selection) =>
+        selection.key === selectionKey ? { ...selection, ledBy } : selection
+      )
+    )
   }
 
   const clampActivityDuration = (selectionKey: string) => {
     setSelectedActivities((current) =>
+      current.map((selection) => {
+        if (selection.key !== selectionKey) {
+          return selection
+        }
+
+        const numericValue = Number(selection.durationMinutes)
+        return {
+          ...selection,
+          durationMinutes:
+            Number.isFinite(numericValue) && numericValue >= 1 ? String(numericValue) : '1',
+        }
+      })
+    )
+    setCustomActivities((current) =>
       current.map((selection) => {
         if (selection.key !== selectionKey) {
           return selection
@@ -231,8 +310,57 @@ export default function LessonActivityBankBuilder({
 
   const openBank = (categoryId: number) => {
     setActiveCategoryId(categoryId)
+    const categoryHasSuggestions = allActivities.some(
+      (activity) => activity.categoryId === categoryId && isSuggestedActivity(activity)
+    )
+    setBankMode(categoryHasSuggestions ? 'suggested' : 'all')
     setSearch('')
+    setCustomDraft({
+      name: '',
+      categoryId: String(categoryId),
+      description: '',
+      successCue: '',
+      durationMinutes: '5',
+      ledBy: '1',
+    })
+    setCustomFormOpened(false)
+    setCustomErrors({})
     setDrawerOpened(true)
+  }
+
+  const addCustomActivity = () => {
+    const nextErrors: typeof customErrors = {}
+    const categoryId = Number(customDraft.categoryId)
+    const category = activityBank.find((item) => item.id === categoryId)
+    if (!customDraft.name.trim()) nextErrors.name = 'This field is required'
+    if (!category) nextErrors.categoryId = 'Choose a category'
+    setCustomErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0 || !category) return
+
+    const duration = Number(customDraft.durationMinutes)
+    setCustomActivities((current) => [
+      ...current,
+      {
+        key: `custom-${nextSelectionNumber}`,
+        categoryId: category.id,
+        categoryName: category.name,
+        name: customDraft.name.trim(),
+        description: customDraft.description.trim(),
+        successCue: customDraft.successCue.trim(),
+        durationMinutes: Number.isFinite(duration) && duration >= 1 ? String(duration) : '1',
+        ledBy: customDraft.ledBy,
+      },
+    ])
+    setNextSelectionNumber((current) => current + 1)
+    setDrawerOpened(false)
+    setCustomFormOpened(false)
+    setCustomErrors({})
+  }
+
+  const closeBank = () => {
+    setDrawerOpened(false)
+    setCustomFormOpened(false)
+    setCustomErrors({})
   }
 
   return (
@@ -246,6 +374,32 @@ export default function LessonActivityBankBuilder({
             value={activityDuration(selection)}
           />
           <input type="hidden" name={`schoolActivityLedBys[${index}]`} value={selection.ledBy} />
+        </Fragment>
+      ))}
+      {customActivities.map((activity, index) => (
+        <Fragment key={`custom-activity-${activity.key}`}>
+          <input type="hidden" name={`customActivityNames[${index}]`} value={activity.name} />
+          <input
+            type="hidden"
+            name={`customActivityCategoryIds[${index}]`}
+            value={activity.categoryId}
+          />
+          <input
+            type="hidden"
+            name={`customActivityDescriptions[${index}]`}
+            value={activity.description}
+          />
+          <input
+            type="hidden"
+            name={`customActivitySuccessCues[${index}]`}
+            value={activity.successCue}
+          />
+          <input
+            type="hidden"
+            name={`customActivityDurations[${index}]`}
+            value={activityDuration(activity)}
+          />
+          <input type="hidden" name={`customActivityLedBys[${index}]`} value={activity.ledBy} />
         </Fragment>
       ))}
 
@@ -292,7 +446,8 @@ export default function LessonActivityBankBuilder({
                 {category.name}
               </Text>
               <Text size="xs" c="dimmed">
-                {category.activities.length} available
+                {suggestedCountForCategory(category)} suggested · {category.activities.length}{' '}
+                available
               </Text>
             </Group>
 
@@ -302,7 +457,7 @@ export default function LessonActivityBankBuilder({
               </Text>
             ) : (
               <Stack gap="xs" mb="xs">
-                {selectedForCategory.map(({ selection, activity }) => (
+                {selectedForCategory.map(({ source, selection, activity }) => (
                   <Group
                     key={selection.key}
                     justify="space-between"
@@ -310,16 +465,16 @@ export default function LessonActivityBankBuilder({
                     gap="sm"
                     wrap="nowrap"
                     p="xs"
-                    draggable
-                    onDragStart={() => setDraggedActivityKey(selection.key)}
+                    draggable={source === 'bank'}
+                    onDragStart={() => source === 'bank' && setDraggedActivityKey(selection.key)}
                     onDragEnd={() => setDraggedActivityKey(null)}
                     onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => moveActivityBefore(selection.key)}
+                    onDrop={() => source === 'bank' && moveActivityBefore(selection.key)}
                     style={{
                       border: '1px solid var(--mantine-color-gray-2)',
                       borderRadius: 8,
                       background: 'white',
-                      cursor: 'grab',
+                      cursor: source === 'bank' ? 'grab' : 'default',
                     }}
                   >
                     <IconGripVertical
@@ -413,7 +568,7 @@ export default function LessonActivityBankBuilder({
 
       <Drawer
         opened={drawerOpened}
-        onClose={() => setDrawerOpened(false)}
+        onClose={closeBank}
         position="right"
         size="lg"
         title={
@@ -432,6 +587,27 @@ export default function LessonActivityBankBuilder({
             leftSection={<IconSearch size={16} />}
           />
 
+          <Group gap="xs">
+            <Button
+              type="button"
+              size="xs"
+              variant={bankMode === 'suggested' ? 'filled' : 'default'}
+              color={bankMode === 'suggested' ? 'dark' : 'gray'}
+              onClick={() => setBankMode('suggested')}
+            >
+              Suggested ({suggestedActivitiesCount})
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant={bankMode === 'all' ? 'filled' : 'default'}
+              color={bankMode === 'all' ? 'dark' : 'gray'}
+              onClick={() => setBankMode('all')}
+            >
+              All bank ({allActivities.length})
+            </Button>
+          </Group>
+
           <Group gap="xs" wrap="nowrap" style={{ overflowX: 'auto' }}>
             <Button
               type="button"
@@ -449,19 +625,141 @@ export default function LessonActivityBankBuilder({
                 size="xs"
                 variant={activeCategoryId === category.id ? 'filled' : 'default'}
                 color={activeCategoryId === category.id ? 'dark' : 'gray'}
-                onClick={() => setActiveCategoryId(category.id)}
+                onClick={() => {
+                  setActiveCategoryId(category.id)
+                  setCustomDraft((current) => ({ ...current, categoryId: String(category.id) }))
+                }}
               >
                 {category.name}
               </Button>
             ))}
           </Group>
 
+          <Button
+            type="button"
+            variant="default"
+            size="xs"
+            leftSection={<IconPlus size={14} />}
+            onClick={() => setCustomFormOpened((current) => !current)}
+          >
+            {customFormOpened ? 'Hide custom activity' : 'Add custom activity'}
+          </Button>
+
+          {customFormOpened && (
+            <Box
+              p="sm"
+              style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: 8 }}
+            >
+              <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.05em" mb="xs">
+                Custom activity
+              </Text>
+              <Stack gap="xs">
+                <Group align="flex-start" gap="xs">
+                  <TextInput
+                    label="Activity name"
+                    size="xs"
+                    flex={1}
+                    value={customDraft.name}
+                    onChange={(event) =>
+                      setCustomDraft((current) => ({
+                        ...current,
+                        name: event.currentTarget.value,
+                      }))
+                    }
+                    error={customErrors.name}
+                  />
+                  <Select
+                    label="Category"
+                    size="xs"
+                    w={170}
+                    data={activityBank.map((category) => ({
+                      value: String(category.id),
+                      label: category.name,
+                    }))}
+                    value={customDraft.categoryId}
+                    onChange={(value) =>
+                      setCustomDraft((current) => ({ ...current, categoryId: value ?? '' }))
+                    }
+                    error={customErrors.categoryId}
+                    allowDeselect={false}
+                  />
+                </Group>
+                <Group align="flex-start" gap="xs">
+                  <TextInput
+                    aria-label="Custom activity duration minutes"
+                    label="Minutes"
+                    type="number"
+                    min={1}
+                    step={1}
+                    size="xs"
+                    w={110}
+                    value={customDraft.durationMinutes}
+                    onChange={(event) =>
+                      setCustomDraft((current) => ({
+                        ...current,
+                        durationMinutes: event.currentTarget.value,
+                      }))
+                    }
+                    onBlur={() => {
+                      const numericValue = Number(customDraft.durationMinutes)
+                      if (!Number.isFinite(numericValue) || numericValue < 1) {
+                        setCustomDraft((current) => ({ ...current, durationMinutes: '1' }))
+                      }
+                    }}
+                  />
+                  <SegmentedControl
+                    size="xs"
+                    aria-label="Custom activity leader"
+                    data={ACTIVITY_LEADERS}
+                    value={customDraft.ledBy}
+                    onChange={(value) =>
+                      setCustomDraft((current) => ({ ...current, ledBy: value }))
+                    }
+                    style={{ marginTop: 22 }}
+                  />
+                </Group>
+                <Textarea
+                  aria-label="Custom activity description"
+                  label="Description"
+                  size="xs"
+                  autosize
+                  minRows={2}
+                  value={customDraft.description}
+                  onChange={(event) =>
+                    setCustomDraft((current) => ({
+                      ...current,
+                      description: event.currentTarget.value,
+                    }))
+                  }
+                />
+                <TextInput
+                  aria-label="Custom activity success cue"
+                  label="Success cue"
+                  size="xs"
+                  value={customDraft.successCue}
+                  onChange={(event) =>
+                    setCustomDraft((current) => ({
+                      ...current,
+                      successCue: event.currentTarget.value,
+                    }))
+                  }
+                />
+                <Group justify="flex-end">
+                  <Button type="button" size="xs" onClick={addCustomActivity}>
+                    Add activity
+                  </Button>
+                </Group>
+              </Stack>
+            </Box>
+          )}
+
           <Group justify="space-between">
             <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.05em">
               {drawerActivities.length} of {allActivities.length} activities
             </Text>
             <Text size="xs" c="dimmed">
-              Adding to {activeCategory?.name ?? 'any category'}
+              {bankMode === 'suggested' ? 'Suggested for this class' : 'School bank'} · Adding to{' '}
+              {activeCategory?.name ?? 'any category'}
             </Text>
           </Group>
 
@@ -504,11 +802,17 @@ export default function LessonActivityBankBuilder({
                             {activity.categoryName}
                           </Badge>
                         )}
+                        {isSuggestedActivity(activity) && (
+                          <Badge variant="light" color="aqua" size="sm">
+                            Suggested
+                          </Badge>
+                        )}
                       </Group>
-                      <Text size="xs" c="dimmed" mt={2}>
-                        {activity.focusArea}
-                        {activity.successCue ? ` · ${activity.successCue}` : ''}
-                      </Text>
+                      {activity.successCue && (
+                        <Text size="xs" c="dimmed" mt={2}>
+                          {activity.successCue}
+                        </Text>
+                      )}
                       <Text size="xs" c="dimmed" mt={2}>
                         {activityLeaderLabel(activity.ledBy)}
                       </Text>

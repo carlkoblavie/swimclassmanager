@@ -7,6 +7,29 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class BankPackSchema extends BaseModel {
+  static $columns = ['createdAt', 'description', 'id', 'isActive', 'key', 'name', 'planTier', 'updatedAt', 'version'] as const
+  $columns = BankPackSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isActive: boolean
+  @column()
+  declare key: string
+  @column()
+  declare name: string
+  @column()
+  declare planTier: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+  @column()
+  declare version: string
+}
+
 export class ClassInstructorSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'invitationId', 'membershipId', 'role', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassInstructorSchema.$columns
@@ -323,6 +346,41 @@ export class OrganisationSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class PaymentTransactionSchema extends BaseModel {
+  static $columns = ['accessCode', 'amount', 'authorizationUrl', 'createdAt', 'currency', 'failedAt', 'id', 'paidAt', 'provider', 'providerPayload', 'providerReference', 'publicId', 'purchaseId', 'status', 'updatedAt'] as const
+  $columns = PaymentTransactionSchema.$columns
+  @column()
+  declare accessCode: string | null
+  @column()
+  declare amount: number
+  @column()
+  declare authorizationUrl: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column.dateTime()
+  declare failedAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare paidAt: DateTime | null
+  @column()
+  declare provider: string
+  @column()
+  declare providerPayload: string | null
+  @column()
+  declare providerReference: string
+  @column()
+  declare publicId: string
+  @column()
+  declare purchaseId: number
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class ProgramSchema extends BaseModel {
   static $columns = ['activatedAt', 'code', 'createdAt', 'description', 'id', 'name', 'publicId', 'updatedAt'] as const
   $columns = ProgramSchema.$columns
@@ -344,6 +402,62 @@ export class ProgramSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class PurchaseItemSchema extends BaseModel {
+  static $columns = ['amount', 'createdAt', 'currency', 'enrollmentId', 'id', 'learnerId', 'levelId', 'levelName', 'levelPublicId', 'purchaseId', 'updatedAt'] as const
+  $columns = PurchaseItemSchema.$columns
+  @column()
+  declare amount: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column()
+  declare enrollmentId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare learnerId: number
+  @column()
+  declare levelId: number
+  @column()
+  declare levelName: string
+  @column()
+  declare levelPublicId: string
+  @column()
+  declare purchaseId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class PurchaseSchema extends BaseModel {
+  static $columns = ['createdAt', 'currency', 'failedAt', 'id', 'paidAt', 'publicId', 'schoolId', 'signupId', 'status', 'swimYearId', 'totalAmount', 'updatedAt'] as const
+  $columns = PurchaseSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currency: string
+  @column.dateTime()
+  declare failedAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime()
+  declare paidAt: DateTime | null
+  @column()
+  declare publicId: string
+  @column()
+  declare schoolId: number
+  @column()
+  declare signupId: number
+  @column()
+  declare status: string
+  @column()
+  declare swimYearId: number
+  @column()
+  declare totalAmount: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class RoleSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'name', 'permissions', 'updatedAt'] as const
   $columns = RoleSchema.$columns
@@ -360,7 +474,7 @@ export class RoleSchema extends BaseModel {
 }
 
 export class SchoolActivitySchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'durationMinutes', 'equipment', 'focusArea', 'id', 'isActive', 'ledBy', 'name', 'position', 'progressionEasier', 'progressionHarder', 'safetyNotes', 'schoolActivityCategoryId', 'schoolId', 'successCue', 'updatedAt'] as const
+  static $columns = ['createdAt', 'description', 'durationMinutes', 'equipment', 'focusArea', 'id', 'isActive', 'ledBy', 'levelId', 'levelStageActivityId', 'levelStageId', 'levelStageSkillId', 'name', 'position', 'progressionEasier', 'progressionHarder', 'safetyNotes', 'schoolActivityCategoryId', 'schoolId', 'sourceKey', 'sourceType', 'sourceVersion', 'successCue', 'updatedAt'] as const
   $columns = SchoolActivitySchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -379,6 +493,14 @@ export class SchoolActivitySchema extends BaseModel {
   @column()
   declare ledBy: number
   @column()
+  declare levelId: number | null
+  @column()
+  declare levelStageActivityId: number | null
+  @column()
+  declare levelStageId: number | null
+  @column()
+  declare levelStageSkillId: number | null
+  @column()
   declare name: string
   @column()
   declare position: number
@@ -393,9 +515,26 @@ export class SchoolActivitySchema extends BaseModel {
   @column()
   declare schoolId: number
   @column()
+  declare sourceKey: string | null
+  @column()
+  declare sourceType: string
+  @column()
+  declare sourceVersion: string | null
+  @column()
   declare successCue: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+}
+
+export class SchoolActivityAgeGroupSchema extends BaseModel {
+  static $columns = ['id', 'schoolActivityId', 'schoolAgeGroupId'] as const
+  $columns = SchoolActivityAgeGroupSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare schoolActivityId: number
+  @column()
+  declare schoolAgeGroupId: number
 }
 
 export class SchoolActivityCategorySchema extends BaseModel {
@@ -419,6 +558,63 @@ export class SchoolActivityCategorySchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class SchoolActivitySkillBankSkillSchema extends BaseModel {
+  static $columns = ['id', 'schoolActivityId', 'skillBankSkillId'] as const
+  $columns = SchoolActivitySkillBankSkillSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare schoolActivityId: number
+  @column()
+  declare skillBankSkillId: number
+}
+
+export class SchoolAgeGroupSchema extends BaseModel {
+  static $columns = ['ageGroupKey', 'createdAt', 'displayName', 'id', 'isActive', 'maxAgeYear', 'minAgeYear', 'position', 'schoolId', 'updatedAt'] as const
+  $columns = SchoolAgeGroupSchema.$columns
+  @column()
+  declare ageGroupKey: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare displayName: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isActive: boolean
+  @column()
+  declare maxAgeYear: number | null
+  @column()
+  declare minAgeYear: number | null
+  @column()
+  declare position: number
+  @column()
+  declare schoolId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class SchoolBankPackSchema extends BaseModel {
+  static $columns = ['bankPackId', 'createdAt', 'enabledVersion', 'id', 'isEnabled', 'lastSyncedVersion', 'schoolId', 'updatedAt'] as const
+  $columns = SchoolBankPackSchema.$columns
+  @column()
+  declare bankPackId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare enabledVersion: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isEnabled: boolean
+  @column()
+  declare lastSyncedVersion: string | null
+  @column()
+  declare schoolId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class SchoolLevelSettingSchema extends BaseModel {
   static $columns = ['available', 'createdAt', 'fee', 'id', 'levelId', 'publicId', 'schoolId', 'updatedAt'] as const
   $columns = SchoolLevelSettingSchema.$columns
@@ -434,6 +630,27 @@ export class SchoolLevelSettingSchema extends BaseModel {
   declare levelId: number
   @column()
   declare publicId: string | null
+  @column()
+  declare schoolId: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class SchoolSkillBankFamilySchema extends BaseModel {
+  static $columns = ['createdAt', 'displayName', 'familyKey', 'id', 'isActive', 'position', 'schoolId', 'updatedAt'] as const
+  $columns = SchoolSkillBankFamilySchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare displayName: string
+  @column()
+  declare familyKey: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isActive: boolean
+  @column()
+  declare position: number
   @column()
   declare schoolId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -482,6 +699,39 @@ export class SignupSchema extends BaseModel {
   declare updatedAt: DateTime | null
   @column()
   declare whatsapp: string | null
+}
+
+export class SkillBankSkillSchema extends BaseModel {
+  static $columns = ['createdAt', 'createdByUserId', 'description', 'family', 'id', 'isActive', 'name', 'passCriteria', 'position', 'schoolId', 'sourceKey', 'sourceType', 'sourceVersion', 'updatedAt'] as const
+  $columns = SkillBankSkillSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdByUserId: number | null
+  @column()
+  declare description: string | null
+  @column()
+  declare family: string
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare isActive: boolean
+  @column()
+  declare name: string
+  @column()
+  declare passCriteria: string | null
+  @column()
+  declare position: number
+  @column()
+  declare schoolId: number | null
+  @column()
+  declare sourceKey: string | null
+  @column()
+  declare sourceType: string
+  @column()
+  declare sourceVersion: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class SwimYearSchema extends BaseModel {
@@ -537,7 +787,7 @@ export class SwimmingClassSchema extends BaseModel {
 }
 
 export class TermPaymentSchema extends BaseModel {
-  static $columns = ['amount', 'createdAt', 'currency', 'enrollmentId', 'id', 'paidAt', 'provider', 'providerReference', 'publicId', 'status', 'termId', 'updatedAt'] as const
+  static $columns = ['amount', 'createdAt', 'currency', 'enrollmentId', 'id', 'paidAt', 'paymentTransactionId', 'provider', 'providerReference', 'publicId', 'status', 'termId', 'updatedAt'] as const
   $columns = TermPaymentSchema.$columns
   @column()
   declare amount: number
@@ -551,6 +801,8 @@ export class TermPaymentSchema extends BaseModel {
   declare id: number
   @column.dateTime()
   declare paidAt: DateTime | null
+  @column()
+  declare paymentTransactionId: number | null
   @column()
   declare provider: string | null
   @column()

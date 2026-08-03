@@ -2,12 +2,15 @@ import { useState } from 'react'
 import {
   ActionIcon,
   Badge,
+  Box,
   Button,
   Card,
   Container,
   Divider,
   Group,
+  NumberInput,
   Stack,
+  Switch,
   Text,
   TextInput,
   ThemeIcon,
@@ -23,7 +26,17 @@ import { urlFor } from '~/client'
 
 type PageProps = InertiaProps<{
   swimYears: Data.SwimYear[]
+  ageGroups: AgeGroup[]
 }>
+
+type AgeGroup = {
+  id: number
+  displayName: string
+  minAgeYear: number | null
+  maxAgeYear: number | null
+  position: number
+  isActive: boolean
+}
 
 type TermDraft = {
   id?: number
@@ -46,6 +59,89 @@ function autoYearName(startsOn: string, endsOn: string): string {
     return '—'
   }
   return startYear === endYear ? String(startYear) : `${startYear}/${endYear}`
+}
+
+function ageRangeLabel(ageGroup: Pick<AgeGroup, 'minAgeYear' | 'maxAgeYear'>) {
+  if (ageGroup.minAgeYear === null && ageGroup.maxAgeYear === null) {
+    return 'All ages'
+  }
+
+  if (ageGroup.minAgeYear === null) {
+    return `${ageGroup.maxAgeYear} and below`
+  }
+
+  if (ageGroup.maxAgeYear === null) {
+    return `${ageGroup.minAgeYear}+`
+  }
+
+  return `${ageGroup.minAgeYear} to ${ageGroup.maxAgeYear}`
+}
+
+function AgeGroupForm({ ageGroup, onClose }: { ageGroup?: AgeGroup; onClose: () => void }) {
+  const [minAgeYear, setMinAgeYear] = useState<string | number>(ageGroup?.minAgeYear ?? '')
+  const [maxAgeYear, setMaxAgeYear] = useState<string | number>(ageGroup?.maxAgeYear ?? '')
+  const [isActive, setIsActive] = useState(ageGroup?.isActive ?? true)
+  const isEdit = Boolean(ageGroup)
+  const formProps = isEdit
+    ? ({ route: 'school_age_groups.update', routeParams: { id: ageGroup!.id } } as const)
+    : ({ route: 'school_age_groups.store' } as const)
+
+  return (
+    <Form {...formProps} onSuccess={onClose}>
+      {({ errors, processing }) => (
+        <Stack gap="sm">
+          <Group align="flex-start" gap="sm">
+            <TextInput
+              name="displayName"
+              label="Age group name"
+              placeholder="e.g. Water Teens"
+              defaultValue={ageGroup?.displayName ?? ''}
+              error={errors.displayName}
+              style={{ flex: '1 1 260px' }}
+              autoFocus
+            />
+            <NumberInput
+              label="Min age"
+              value={minAgeYear}
+              onChange={(value) => setMinAgeYear(value ?? '')}
+              min={0}
+              allowDecimal={false}
+              placeholder="None"
+              w={120}
+              error={errors.minAgeYear}
+            />
+            <NumberInput
+              label="Max age"
+              value={maxAgeYear}
+              onChange={(value) => setMaxAgeYear(value ?? '')}
+              min={0}
+              allowDecimal={false}
+              placeholder="None"
+              w={120}
+              error={errors.maxAgeYear}
+            />
+            <Switch
+              label="Active"
+              checked={isActive}
+              onChange={(event) => setIsActive(event.currentTarget.checked)}
+              mt={28}
+            />
+          </Group>
+          {minAgeYear !== '' && <input type="hidden" name="minAgeYear" value={minAgeYear} />}
+          {maxAgeYear !== '' && <input type="hidden" name="maxAgeYear" value={maxAgeYear} />}
+          <input type="hidden" name="isActive" value={String(isActive)} />
+          <Group justify="flex-end">
+            <Button type="button" variant="default" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={processing}>
+              {isEdit ? 'Save age group' : 'Create age group'}
+            </Button>
+          </Group>
+        </Stack>
+      )}
+    </Form>
+  )
 }
 
 function SwimYearForm({ swimYear, onClose }: { swimYear?: Data.SwimYear; onClose: () => void }) {
@@ -217,115 +313,259 @@ function SwimYearForm({ swimYear, onClose }: { swimYear?: Data.SwimYear; onClose
   )
 }
 
-export default function SwimYearsSettings({ swimYears }: PageProps) {
+export default function SwimYearsSettings({ swimYears, ageGroups }: PageProps) {
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [creatingAgeGroup, setCreatingAgeGroup] = useState(false)
+  const [editingAgeGroupId, setEditingAgeGroupId] = useState<number | null>(null)
 
   const editing = swimYears.find((swimYear) => swimYear.id === editingId)
 
   return (
-    <Container size="md" py="xl">
+    <Container size="lg" py="xl">
       <Stack gap="lg">
-        <Group justify="space-between" align="flex-start">
+        <Group justify="space-between" align="flex-start" wrap="wrap">
           <div>
             <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em">
               Settings
             </Text>
-            <Title order={1}>Swim years</Title>
+            <Title order={1}>School settings</Title>
             <Text c="dimmed" size="sm" maw="60ch">
-              A swim year runs from a start date to an end date and is named automatically after the
-              years it spans (e.g. 2025/2026). Each swim year contains one or more named terms.
+              Set the school calendar and the learner age groups used by activity bank filters.
             </Text>
           </div>
-          <Button
-            onClick={() => {
-              setCreating(true)
-              setEditingId(null)
-            }}
-          >
-            + Create new swim year
-          </Button>
         </Group>
 
-        {swimYears.length === 0 ? (
-          <Card>
-            <Text size="sm" c="dimmed">
-              No swim years yet. Create one to start tying classes to terms.
-            </Text>
-          </Card>
-        ) : (
+        <Stack gap="sm">
+          <Group justify="space-between" align="flex-start" wrap="wrap">
+            <div>
+              <Title order={2} fz="h3">
+                Swim years
+              </Title>
+              <Text c="dimmed" size="sm" maw="70ch">
+                A swim year runs from a start date to an end date and is named automatically after
+                the years it spans. Each swim year contains one or more named terms.
+              </Text>
+            </div>
+            <Button
+              onClick={() => {
+                setCreating(true)
+                setEditingId(null)
+              }}
+            >
+              + Create new swim year
+            </Button>
+          </Group>
+
+          {swimYears.length === 0 ? (
+            <Card>
+              <Text size="sm" c="dimmed">
+                No swim years yet. Create one to start tying classes to terms.
+              </Text>
+            </Card>
+          ) : (
+            <Card padding={0}>
+              <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em" p="md" px="lg">
+                Swim years
+              </Text>
+              {swimYears.map((swimYear) => {
+                const status = STATUS_PROPS[swimYear.status]
+                return (
+                  <div key={swimYear.id}>
+                    <Divider />
+                    <Group justify="space-between" p="md" px="lg" wrap="wrap">
+                      <div>
+                        <Group gap="xs">
+                          <Text fw={800}>{swimYear.name}</Text>
+                          <Badge variant="light" color={status.color} size="sm">
+                            {status.label}
+                          </Badge>
+                        </Group>
+                        <Group gap="md" mt={2}>
+                          <Text size="sm" c="dimmed">
+                            <Text span size="sm" fw={600} c="var(--mantine-color-text)">
+                              {swimYear.startsOn.formatted}
+                            </Text>{' '}
+                            –{' '}
+                            <Text span size="sm" fw={600} c="var(--mantine-color-text)">
+                              {swimYear.endsOn.formatted}
+                            </Text>
+                          </Text>
+                          <Text size="sm" c="dimmed">
+                            {swimYear.terms.length} {swimYear.terms.length === 1 ? 'term' : 'terms'}
+                          </Text>
+                          <Text size="sm" c="dimmed">
+                            {swimYear.classCount} {swimYear.classCount === 1 ? 'class' : 'classes'}
+                          </Text>
+                        </Group>
+                      </div>
+                      <Group gap="xs">
+                        <Button
+                          size="xs"
+                          variant="default"
+                          onClick={() => {
+                            setEditingId(swimYear.id)
+                            setCreating(false)
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        {swimYear.classCount === 0 && (
+                          <Tooltip label="Remove swim year">
+                            <ActionIcon
+                              variant="default"
+                              aria-label={`Remove swim year ${swimYear.name}`}
+                              size="lg"
+                              onClick={() =>
+                                router.delete(urlFor('swim_years.destroy', { id: swimYear.id }))
+                              }
+                            >
+                              <IconTrash size={14} color="var(--mantine-color-red-7)" />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                      </Group>
+                    </Group>
+                    {swimYear.terms.length > 0 && (
+                      <Stack gap={6} px="lg" pb="md">
+                        <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em">
+                          Terms
+                        </Text>
+                        <Stack gap={0}>
+                          {swimYear.terms.map((term) => (
+                            <Box
+                              key={term.id}
+                              bg="gray.0"
+                              px="sm"
+                              py={8}
+                              style={{
+                                borderTop: '1px solid var(--mantine-color-gray-2)',
+                              }}
+                            >
+                              <Group justify="space-between" gap="md" wrap="wrap">
+                                <div>
+                                  <Text fw={700} size="sm">
+                                    {term.name}
+                                  </Text>
+                                  <Text size="sm" c="dimmed">
+                                    {term.startsOn.formatted} – {term.endsOn.formatted}
+                                  </Text>
+                                </div>
+                                <Text size="sm" c="dimmed">
+                                  {term.classCount} {term.classCount === 1 ? 'class' : 'classes'}
+                                </Text>
+                              </Group>
+                            </Box>
+                          ))}
+                        </Stack>
+                      </Stack>
+                    )}
+                  </div>
+                )
+              })}
+            </Card>
+          )}
+
+          {creating && <SwimYearForm onClose={() => setCreating(false)} />}
+          {editing && (
+            <SwimYearForm key={editing.id} swimYear={editing} onClose={() => setEditingId(null)} />
+          )}
+        </Stack>
+
+        <Stack gap="sm">
+          <Group justify="space-between" align="flex-start" wrap="wrap">
+            <div>
+              <Title order={2} fz="h3">
+                Age groups
+              </Title>
+              <Text c="dimmed" size="sm" maw="70ch">
+                These groups scope activity-bank suggestions by learner age. Leave a bound empty for
+                open-ended ranges.
+              </Text>
+            </div>
+          </Group>
+
           <Card padding={0}>
             <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em" p="md" px="lg">
-              Swim years
+              Learner age setup
             </Text>
-            {swimYears.map((swimYear) => {
-              const status = STATUS_PROPS[swimYear.status]
-              return (
-                <div key={swimYear.id}>
-                  <Divider />
+            {ageGroups.map((ageGroup) => (
+              <div key={ageGroup.id}>
+                <Divider />
+                {editingAgeGroupId === ageGroup.id ? (
+                  <Stack p="md" px="lg">
+                    <AgeGroupForm ageGroup={ageGroup} onClose={() => setEditingAgeGroupId(null)} />
+                  </Stack>
+                ) : (
                   <Group justify="space-between" p="md" px="lg" wrap="wrap">
                     <div>
                       <Group gap="xs">
-                        <Text fw={800}>{swimYear.name}</Text>
-                        <Badge variant="light" color={status.color} size="sm">
-                          {status.label}
+                        <Text fw={800}>{ageGroup.displayName}</Text>
+                        <Badge variant="light" color={ageGroup.isActive ? 'green' : 'gray'}>
+                          {ageGroup.isActive ? 'Active' : 'Disabled'}
                         </Badge>
                       </Group>
-                      <Group gap="md" mt={2}>
-                        <Text size="sm" c="dimmed">
-                          <Text span size="sm" fw={600} c="var(--mantine-color-text)">
-                            {swimYear.startsOn.formatted}
-                          </Text>{' '}
-                          –{' '}
-                          <Text span size="sm" fw={600} c="var(--mantine-color-text)">
-                            {swimYear.endsOn.formatted}
-                          </Text>
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                          {swimYear.terms.length} {swimYear.terms.length === 1 ? 'term' : 'terms'}
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                          {swimYear.classCount} {swimYear.classCount === 1 ? 'class' : 'classes'}
-                        </Text>
-                      </Group>
+                      <Text size="sm" c="dimmed" mt={2}>
+                        {ageRangeLabel(ageGroup)}
+                      </Text>
                     </div>
                     <Group gap="xs">
                       <Button
                         size="xs"
                         variant="default"
+                        aria-label={`Edit age group ${ageGroup.displayName}`}
                         onClick={() => {
-                          setEditingId(swimYear.id)
-                          setCreating(false)
+                          setEditingAgeGroupId(ageGroup.id)
+                          setCreatingAgeGroup(false)
                         }}
                       >
                         Edit
                       </Button>
-                      {swimYear.classCount === 0 && (
-                        <Tooltip label="Remove swim year">
-                          <ActionIcon
-                            variant="default"
-                            aria-label={`Remove swim year ${swimYear.name}`}
-                            size="lg"
-                            onClick={() =>
-                              router.delete(urlFor('swim_years.destroy', { id: swimYear.id }))
-                            }
-                          >
-                            <IconTrash size={14} color="var(--mantine-color-red-7)" />
-                          </ActionIcon>
-                        </Tooltip>
+                      {ageGroup.isActive && (
+                        <Form route="school_age_groups.destroy" routeParams={{ id: ageGroup.id }}>
+                          {({ processing }) => (
+                            <Tooltip label="Disable age group">
+                              <ActionIcon
+                                type="submit"
+                                variant="default"
+                                aria-label={`Disable age group ${ageGroup.displayName}`}
+                                size="lg"
+                                loading={processing}
+                              >
+                                <IconTrash size={14} color="var(--mantine-color-red-7)" />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                        </Form>
                       )}
                     </Group>
                   </Group>
-                </div>
-              )
-            })}
+                )}
+              </div>
+            ))}
+            <Divider />
+            {creatingAgeGroup ? (
+              <Stack p="md" px="lg">
+                <AgeGroupForm onClose={() => setCreatingAgeGroup(false)} />
+              </Stack>
+            ) : (
+              <Button
+                fullWidth
+                variant="subtle"
+                justify="flex-start"
+                leftSection={<IconPlus size={16} />}
+                radius={0}
+                p="md"
+                onClick={() => {
+                  setCreatingAgeGroup(true)
+                  setEditingAgeGroupId(null)
+                }}
+              >
+                Add age group
+              </Button>
+            )}
           </Card>
-        )}
-
-        {creating && <SwimYearForm onClose={() => setCreating(false)} />}
-        {editing && (
-          <SwimYearForm key={editing.id} swimYear={editing} onClose={() => setEditingId(null)} />
-        )}
+        </Stack>
       </Stack>
     </Container>
   )

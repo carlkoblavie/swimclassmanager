@@ -22,16 +22,13 @@ import {
   IconTrash,
 } from '@tabler/icons-react'
 import LevelForm, { type LevelDraft } from '~/components/level_form'
-import StageBuilder, {
-  type StageActivityDraft,
-  type StageDraft,
-  type StageSkillDraft,
-} from '~/components/stage_builder'
-import StageTree from '~/components/stage_tree'
+import StageBuilder, { type StageDraft, type StageSkillDraft } from '~/components/stage_builder'
+import StageTree, { type SkillBankOption } from '~/components/stage_tree'
 
 type Props = {
   errors: Record<string, string>
   initial?: { name: string; description: string; levels: LevelDraft[] }
+  skillBankSkills?: SkillBankOption[]
 }
 
 type StageTarget = { levelIndex: number; stageIndex: number | null }
@@ -89,7 +86,7 @@ function classAllocation(level: LevelDraft) {
   }
 }
 
-export default function ProgramFormBody({ errors, initial }: Props) {
+export default function ProgramFormBody({ errors, initial, skillBankSkills = [] }: Props) {
   const [levels, setLevels] = useState<LevelDraft[]>(initial?.levels ?? [])
   // 'new' shows the inline add form; a number edits that level in place.
   const [levelFormTarget, setLevelFormTarget] = useState<'new' | number | null>(null)
@@ -179,55 +176,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
     updateStage(levelIndex, stageIndex, (stage) => ({
       ...stage,
       skills: stage.skills.filter((_, s) => s !== skillIndex),
-    }))
-
-  const addActivity = (
-    levelIndex: number,
-    stageIndex: number,
-    skillIndex: number,
-    activity: StageActivityDraft
-  ) =>
-    updateStage(levelIndex, stageIndex, (stage) => ({
-      ...stage,
-      skills: stage.skills.map((skill, s) =>
-        s === skillIndex ? { ...skill, activities: [...skill.activities, activity] } : skill
-      ),
-    }))
-
-  const updateActivity = (
-    levelIndex: number,
-    stageIndex: number,
-    skillIndex: number,
-    activityIndex: number,
-    activity: StageActivityDraft
-  ) =>
-    updateStage(levelIndex, stageIndex, (stage) => ({
-      ...stage,
-      skills: stage.skills.map((skill, s) =>
-        s === skillIndex
-          ? {
-              ...skill,
-              activities: skill.activities.map((existing, a) =>
-                a === activityIndex ? activity : existing
-              ),
-            }
-          : skill
-      ),
-    }))
-
-  const removeActivity = (
-    levelIndex: number,
-    stageIndex: number,
-    skillIndex: number,
-    activityIndex: number
-  ) =>
-    updateStage(levelIndex, stageIndex, (stage) => ({
-      ...stage,
-      skills: stage.skills.map((skill, s) =>
-        s === skillIndex
-          ? { ...skill, activities: skill.activities.filter((_, a) => a !== activityIndex) }
-          : skill
-      ),
     }))
 
   return (
@@ -366,6 +314,7 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                   {level.stages.length > 0 && (
                     <StageTree
                       stages={level.stages}
+                      skillOptions={skillBankSkills}
                       onEditStage={(stageIndex) => openStageForm({ levelIndex: index, stageIndex })}
                       onRemoveStage={(stageIndex) => removeStage(index, stageIndex)}
                       onAddSkill={(stageIndex, skill) => addSkill(index, stageIndex, skill)}
@@ -374,15 +323,6 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                       }
                       onRemoveSkill={(stageIndex, skillIndex) =>
                         removeSkill(index, stageIndex, skillIndex)
-                      }
-                      onAddActivity={(stageIndex, skillIndex, activity) =>
-                        addActivity(index, stageIndex, skillIndex, activity)
-                      }
-                      onUpdateActivity={(stageIndex, skillIndex, activityIndex, activity) =>
-                        updateActivity(index, stageIndex, skillIndex, activityIndex, activity)
-                      }
-                      onRemoveActivity={(stageIndex, skillIndex, activityIndex) =>
-                        removeActivity(index, stageIndex, skillIndex, activityIndex)
                       }
                     />
                   )}
@@ -465,6 +405,13 @@ export default function ProgramFormBody({ errors, initial }: Props) {
                           <input type="hidden" name={`${skillPrefix}[id]`} value={skill.id} />
                         )}
                         <input type="hidden" name={`${skillPrefix}[name]`} value={skill.name} />
+                        {skill.familyKey && (
+                          <input
+                            type="hidden"
+                            name={`${skillPrefix}[familyKey]`}
+                            value={skill.familyKey}
+                          />
+                        )}
                         <input
                           type="hidden"
                           name={`${skillPrefix}[passCriteria]`}

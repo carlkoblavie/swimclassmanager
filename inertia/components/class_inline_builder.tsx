@@ -48,9 +48,20 @@ type DayDraft = {
   skillIds: string[]
 }
 
-function autoName(baseName: string, levelName: string, weekday: string): string {
-  const base = baseName.trim() || levelName
-  return `${base} — ${weekdayLabel(weekday)}`
+function autoName(
+  baseName: string,
+  levelName: string,
+  stageName: string | undefined,
+  weekday: string
+): string {
+  const customBase = baseName.trim()
+  if (customBase) {
+    return `${customBase} - ${weekdayLabel(weekday)}`
+  }
+
+  const stage = stageName?.trim()
+  const base = stage ? `${levelName} - ${stage}` : levelName
+  return `${base} - ${weekdayLabel(weekday)}`
 }
 
 export default function ClassInlineBuilder({
@@ -110,17 +121,24 @@ export default function ClassInlineBuilder({
     style: { scrollMarginTop: 76 },
   }
 
-  const newDay = (baseName: string, weekday = '1'): DayDraft => ({
-    weekday,
-    startTime: '17:00',
-    durationMinutes: '45',
-    name: autoName(baseName, level.name, weekday),
-    nameTouched: false,
-    lessonDate: nextWeekdayDate(Number(weekday), lessonAnchor()),
-    dateTouched: false,
-    levelStageId: stages[0] ? String(stages[0].id) : '',
-    skillIds: [],
-  })
+  const stageName = (stageId: string): string | undefined =>
+    stages.find((stage) => String(stage.id) === stageId)?.name
+
+  const newDay = (baseName: string, weekday = '1'): DayDraft => {
+    const levelStageId = stages[0] ? String(stages[0].id) : ''
+
+    return {
+      weekday,
+      startTime: '17:00',
+      durationMinutes: '45',
+      name: autoName(baseName, level.name, stageName(levelStageId), weekday),
+      nameTouched: false,
+      lessonDate: nextWeekdayDate(Number(weekday), lessonAnchor()),
+      dateTouched: false,
+      levelStageId,
+      skillIds: [],
+    }
+  }
 
   const [baseName, setBaseName] = useState('')
   const [days, setDays] = useState<DayDraft[]>([newDay('')])
@@ -132,7 +150,9 @@ export default function ClassInlineBuilder({
     setBaseName(value)
     setDays((current) =>
       current.map((day) =>
-        day.nameTouched ? day : { ...day, name: autoName(value, level.name, day.weekday) }
+        day.nameTouched
+          ? day
+          : { ...day, name: autoName(value, level.name, stageName(day.levelStageId), day.weekday) }
       )
     )
   }
@@ -144,7 +164,9 @@ export default function ClassInlineBuilder({
           ? {
               ...day,
               weekday,
-              name: day.nameTouched ? day.name : autoName(baseName, level.name, weekday),
+              name: day.nameTouched
+                ? day.name
+                : autoName(baseName, level.name, stageName(day.levelStageId), weekday),
               lessonDate: day.dateTouched
                 ? day.lessonDate
                 : nextWeekdayDate(Number(weekday), lessonAnchor()),
@@ -307,6 +329,30 @@ export default function ClassInlineBuilder({
                         />
                       </Group>
 
+                      <NativeSelect
+                        label="Select stage"
+                        value={day.levelStageId}
+                        onChange={(event) => {
+                          const levelStageId = event.currentTarget.value
+                          setDay(index, {
+                            levelStageId,
+                            skillIds: [],
+                            name: day.nameTouched
+                              ? day.name
+                              : autoName(
+                                  baseName,
+                                  level.name,
+                                  stageName(levelStageId),
+                                  day.weekday
+                                ),
+                          })
+                        }}
+                        data={stages.map((candidate) => ({
+                          value: String(candidate.id),
+                          label: candidate.name,
+                        }))}
+                      />
+
                       <TextInput
                         label="Class name"
                         value={day.name}
@@ -314,18 +360,6 @@ export default function ClassInlineBuilder({
                           setDay(index, { name: event.currentTarget.value, nameTouched: true })
                         }
                         error={errors[`days.${index}.name`]}
-                      />
-
-                      <NativeSelect
-                        label="Select stage"
-                        value={day.levelStageId}
-                        onChange={(event) =>
-                          setDay(index, { levelStageId: event.currentTarget.value, skillIds: [] })
-                        }
-                        data={stages.map((candidate) => ({
-                          value: String(candidate.id),
-                          label: candidate.name,
-                        }))}
                       />
 
                       <MultiSelect

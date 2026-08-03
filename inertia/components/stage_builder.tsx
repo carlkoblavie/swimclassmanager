@@ -10,6 +10,8 @@ export type StageActivityDraft = {
 
 export type StageSkillDraft = {
   id?: number
+  familyKey?: string
+  familyName?: string
   name: string
   passCriteria: string
   description: string
@@ -78,7 +80,7 @@ export default function StageBuilder({ onCancel, onSave, nextPosition, initial }
         <div>
           <Text fw={700}>{initial ? 'Edit stage' : 'Create a stage'}</Text>
           <Text size="xs" c="dimmed">
-            Name the milestone; add its skills and activities from the stage list.
+            Name the milestone; add its skills from the stage list.
           </Text>
         </div>
 
