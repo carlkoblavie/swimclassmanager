@@ -13,12 +13,12 @@ import type LevelTransformer from '#transformers/level_transformer'
 import type MembershipTransformer from '#transformers/membership_transformer'
 import type OrganisationTransformer from '#transformers/organisation_transformer'
 import type ProgramTransformer from '#transformers/program_transformer'
-import type SchoolActivityCategoryTransformer from '#transformers/school_activity_category_transformer'
 import type SchoolTransformer from '#transformers/school_transformer'
 import type SignupTransformer from '#transformers/signup_transformer'
 import type SwimYearTransformer from '#transformers/swim_year_transformer'
 import type SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import type UserTransformer from '#transformers/user_transformer'
+import type SchoolActivityCategoryTransformer from '#transformers/school_activity_category_transformer'
 import type InertiaMiddleware from '#middleware/inertia_middleware'
 
 export namespace Data {
@@ -50,10 +50,6 @@ export namespace Data {
   export namespace Program {
     export type Variants = InferVariants<ProgramTransformer>
   }
-  export type SchoolActivityCategory = InferData<SchoolActivityCategoryTransformer>
-  export namespace SchoolActivityCategory {
-    export type Variants = InferVariants<SchoolActivityCategoryTransformer>
-  }
   export type School = InferData<SchoolTransformer>
   export namespace School {
     export type Variants = InferVariants<SchoolTransformer>
@@ -73,6 +69,10 @@ export namespace Data {
   export type User = InferData<UserTransformer>
   export namespace User {
     export type Variants = InferVariants<UserTransformer>
+  }
+  export type SchoolActivityCategory = InferData<SchoolActivityCategoryTransformer>
+  export namespace SchoolActivityCategory {
+    export type Variants = InferVariants<SchoolActivityCategoryTransformer>
   }
   export type SharedProps = InferSharedProps<InertiaMiddleware>
 }
