@@ -40,6 +40,12 @@ test.group('Customer plans API', (group) => {
       startsOn: DateTime.now().minus({ months: 1 }),
       endsOn: DateTime.now().plus({ months: 2 }),
     })
+    await swimYear.related('terms').create({
+      name: 'Term 2',
+      position: 2,
+      startsOn: DateTime.now().plus({ months: 2 }),
+      endsOn: DateTime.now().plus({ months: 6 }),
+    })
 
     const response = await client.get('/api/register/seaside-swim/seaside-main/plans')
 
@@ -48,6 +54,7 @@ test.group('Customer plans API', (group) => {
     assert.equal(body.school.slug, 'seaside-main')
     assert.equal(body.swimYear.name, '2026')
     assert.lengthOf(body.swimYear.terms, 1)
+    assert.equal(body.swimYear.terms[0].name, 'Term 1')
     assert.lengthOf(body.programs, 1)
     assert.equal(body.programs[0].publicId, program.publicId)
     const card = body.programs[0].levels.find(

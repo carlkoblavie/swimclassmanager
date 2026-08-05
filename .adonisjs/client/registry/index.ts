@@ -138,6 +138,18 @@ const routes = {
     tokens: [{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":0,"val":"api","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":0,"val":"register","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":1,"val":"organisationSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":1,"val":"schoolSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/plans","type":0,"val":"plans","end":""}],
     types: placeholder as Registry['customer_plans.index']['types'],
   },
+  'customer_purchases.store': {
+    methods: ["POST"],
+    pattern: '/api/register/:organisationSlug/:schoolSlug/purchases',
+    tokens: [{"old":"/api/register/:organisationSlug/:schoolSlug/purchases","type":0,"val":"api","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases","type":0,"val":"register","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases","type":1,"val":"organisationSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases","type":1,"val":"schoolSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases","type":0,"val":"purchases","end":""}],
+    types: placeholder as Registry['customer_purchases.store']['types'],
+  },
+  'customer_purchases.verify': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/register/:organisationSlug/:schoolSlug/purchases/verify',
+    tokens: [{"old":"/api/register/:organisationSlug/:schoolSlug/purchases/verify","type":0,"val":"api","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases/verify","type":0,"val":"register","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases/verify","type":1,"val":"organisationSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases/verify","type":1,"val":"schoolSlug","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases/verify","type":0,"val":"purchases","end":""},{"old":"/api/register/:organisationSlug/:schoolSlug/purchases/verify","type":0,"val":"verify","end":""}],
+    types: placeholder as Registry['customer_purchases.verify']['types'],
+  },
   'customer_plans.show': {
     methods: ["GET","HEAD"],
     pattern: '/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels',
@@ -150,11 +162,23 @@ const routes = {
     tokens: [{"old":"/api/accounts","type":0,"val":"api","end":""},{"old":"/api/accounts","type":0,"val":"accounts","end":""}],
     types: placeholder as Registry['api.accounts.store']['types'],
   },
+  'paystack_webhooks.store': {
+    methods: ["POST"],
+    pattern: '/api/paystack/webhook',
+    tokens: [{"old":"/api/paystack/webhook","type":0,"val":"api","end":""},{"old":"/api/paystack/webhook","type":0,"val":"paystack","end":""},{"old":"/api/paystack/webhook","type":0,"val":"webhook","end":""}],
+    types: placeholder as Registry['paystack_webhooks.store']['types'],
+  },
   'signups.index': {
     methods: ["GET","HEAD"],
     pattern: '/signups',
     tokens: [{"old":"/signups","type":0,"val":"signups","end":""}],
     types: placeholder as Registry['signups.index']['types'],
+  },
+  'signups.update': {
+    methods: ["PATCH"],
+    pattern: '/signups/:id',
+    tokens: [{"old":"/signups/:id","type":0,"val":"signups","end":""},{"old":"/signups/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['signups.update']['types'],
   },
   'programs.index': {
     methods: ["GET","HEAD"],
@@ -329,6 +353,18 @@ const routes = {
     pattern: '/activity-bank/:id',
     tokens: [{"old":"/activity-bank/:id","type":0,"val":"activity-bank","end":""},{"old":"/activity-bank/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['activity_bank.destroy']['types'],
+  },
+  'activity_bank_categories.update': {
+    methods: ["PUT","PATCH"],
+    pattern: '/activity-bank-categories/:id',
+    tokens: [{"old":"/activity-bank-categories/:id","type":0,"val":"activity-bank-categories","end":""},{"old":"/activity-bank-categories/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['activity_bank_categories.update']['types'],
+  },
+  'activity_bank_categories.destroy': {
+    methods: ["DELETE"],
+    pattern: '/activity-bank-categories/:id',
+    tokens: [{"old":"/activity-bank-categories/:id","type":0,"val":"activity-bank-categories","end":""},{"old":"/activity-bank-categories/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['activity_bank_categories.destroy']['types'],
   },
   'swimming_classes.index': {
     methods: ["GET","HEAD"],

@@ -15,11 +15,22 @@ export type LearnerDraft = {
   lastName: string
   dateOfBirth: string
   gender: string
+  relation: string
   nationality: string
   residentialLocation: string
   medicalInfo: string
   swimmingExperience: string
 }
+
+const RELATIONS = [
+  { value: '', label: 'Select relationship' },
+  { value: 'mother', label: 'Mother' },
+  { value: 'father', label: 'Father' },
+  { value: 'guardian', label: 'Guardian' },
+  { value: 'grandparent', label: 'Grandparent' },
+  { value: 'sibling', label: 'Sibling' },
+  { value: 'self', label: 'Self (I am the learner)' },
+]
 
 type Props = {
   opened: boolean
@@ -34,6 +45,7 @@ const REQUIRED: (keyof LearnerDraft)[] = [
   'lastName',
   'dateOfBirth',
   'gender',
+  'relation',
   'nationality',
   'residentialLocation',
   'medicalInfo',
@@ -45,6 +57,7 @@ function emptyDraft(genders: string[]): LearnerDraft {
     lastName: '',
     dateOfBirth: '',
     gender: genders[0] ?? '',
+    relation: '',
     nationality: '',
     residentialLocation: '',
     medicalInfo: '',
@@ -140,6 +153,15 @@ function LearnerForm({ initial, genders, submitLabel, onCancel, onSubmit }: Form
           error={errors.gender}
         />
       </SimpleGrid>
+
+      <NativeSelect
+        label="Relationship to registrant"
+        description="How the person registering relates to this learner"
+        data={RELATIONS}
+        value={draft.relation}
+        onChange={set('relation')}
+        error={errors.relation}
+      />
 
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <TextInput

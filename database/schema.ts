@@ -148,7 +148,7 @@ export class InvitationSchema extends BaseModel {
 }
 
 export class LearnerSchema extends BaseModel {
-  static $columns = ['createdAt', 'dateOfBirth', 'firstName', 'gender', 'id', 'lastName', 'medicalInfo', 'nationality', 'residentialLocation', 'signupId', 'swimmingExperience', 'updatedAt'] as const
+  static $columns = ['createdAt', 'dateOfBirth', 'firstName', 'gender', 'id', 'lastName', 'medicalInfo', 'nationality', 'relation', 'residentialLocation', 'signupId', 'swimmingExperience', 'updatedAt'] as const
   $columns = LearnerSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -166,6 +166,8 @@ export class LearnerSchema extends BaseModel {
   declare medicalInfo: string
   @column()
   declare nationality: string
+  @column()
+  declare relation: string | null
   @column()
   declare residentialLocation: string
   @column()
@@ -430,7 +432,7 @@ export class PurchaseItemSchema extends BaseModel {
 }
 
 export class PurchaseSchema extends BaseModel {
-  static $columns = ['createdAt', 'currency', 'failedAt', 'id', 'paidAt', 'publicId', 'schoolId', 'signupId', 'status', 'swimYearId', 'totalAmount', 'updatedAt'] as const
+  static $columns = ['createdAt', 'currency', 'failedAt', 'id', 'invoiceSentAt', 'paidAt', 'publicId', 'schoolId', 'signupId', 'status', 'swimYearId', 'totalAmount', 'updatedAt'] as const
   $columns = PurchaseSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -440,6 +442,8 @@ export class PurchaseSchema extends BaseModel {
   declare failedAt: DateTime | null
   @column({ isPrimary: true })
   declare id: number
+  @column.dateTime()
+  declare invoiceSentAt: DateTime | null
   @column.dateTime()
   declare paidAt: DateTime | null
   @column()
@@ -679,8 +683,10 @@ export class SchoolSchema extends BaseModel {
 }
 
 export class SignupSchema extends BaseModel {
-  static $columns = ['contactEmail', 'contactName', 'contactPhone', 'createdAt', 'id', 'message', 'schoolId', 'updatedAt', 'whatsapp'] as const
+  static $columns = ['closedAt', 'contactEmail', 'contactName', 'contactPhone', 'createdAt', 'id', 'message', 'registrantRole', 'schoolId', 'updatedAt', 'whatsapp'] as const
   $columns = SignupSchema.$columns
+  @column.dateTime()
+  declare closedAt: DateTime | null
   @column()
   declare contactEmail: string
   @column()
@@ -693,6 +699,8 @@ export class SignupSchema extends BaseModel {
   declare id: number
   @column()
   declare message: string | null
+  @column()
+  declare registrantRole: string | null
   @column()
   declare schoolId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })

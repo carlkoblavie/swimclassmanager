@@ -44,6 +44,9 @@ test.group('Class lessons', (group) => {
     await browserContext.loginAs(user)
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
+    await page.assertVisible('text=Stage skills')
+    await page.assertVisible('text=Hip rotation')
+    await page.assertVisible('text=Pass: Smooth circles both directions')
     await page.getByLabel('Lesson objectives').fill('Practise a calm float and safe recovery.')
     await page.getByRole('button', { name: 'Add to Warm Up' }).click()
     await page.getByRole('button', { name: 'Add', exact: true }).first().click()
@@ -65,6 +68,42 @@ test.group('Class lessons', (group) => {
       led_by: LessonActivityLeader.MIXED,
     })
     await db.assertCount('lesson_activities', 2)
+  })
+
+  test('a manager plans from stage skills when a class has no explicit skill selection', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const user = await UserFactory.apply('completed').create()
+    const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
+    await joinSchool(user, school, RoleName.ADMINISTRATOR)
+    const { level, stage } = await seedCurriculum()
+    const swimmingClass = await SwimmingClassFactory.merge({
+      schoolId: school.id,
+      levelId: level.id,
+      levelStageId: stage.id,
+    }).create()
+    await browserContext.loginAs(user)
+
+    const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
+    await page.assertVisible('text=Stage skills')
+    await page.assertVisible('text=Hip rotation')
+    await page.getByLabel('Lesson objectives').fill('Plan from the selected stage skills.')
+    await page.getByRole('button', { name: 'Add to Core Skills' }).click()
+    await page.getByRole('button', { name: 'Add', exact: true }).first().click()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Plan next lesson' }).click()
+
+    await page.assertVisible('text=Lesson planned.')
+    await db.assertHas('class_lessons', {
+      swimming_class_id: swimmingClass.id,
+      objectives: 'Plan from the selected stage skills.',
+    })
+    await db.assertHas('lesson_activities', {
+      activity_name: 'Standing twists',
+    })
   })
 
   test('a manager creates a custom activity from the lesson drawer', async ({
@@ -143,6 +182,9 @@ test.group('Class lessons', (group) => {
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
     await page.getByRole('button', { name: 'Edit lesson Monday 13 Jul 2026' }).click()
+    await page.assertVisible(page.getByText('Stage skills').first())
+    await page.assertNotExists(page.getByRole('button', { name: 'Plan next lesson' }))
+    await page.assertVisible(page.getByText('Hip rotation').first())
     await page.getByLabel('Lesson objectives').first().fill('Recover to the wall after floating.')
     await page.getByRole('button', { name: 'Add to Warm Up' }).first().click()
     await page.getByRole('button', { name: 'Add', exact: true }).first().click()

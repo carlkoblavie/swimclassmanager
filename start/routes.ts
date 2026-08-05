@@ -99,6 +99,18 @@ router
       'index',
     ])
     router
+      .post('api/register/:organisationSlug/:schoolSlug/purchases', [
+        controllers.CustomerPurchases,
+        'store',
+      ])
+      .as('customer_purchases.store')
+    router
+      .get('api/register/:organisationSlug/:schoolSlug/purchases/verify', [
+        controllers.CustomerPurchases,
+        'verify',
+      ])
+      .as('customer_purchases.verify')
+    router
       .get('api/register/:organisationSlug/:schoolSlug/programs/:programId/levels', [
         controllers.CustomerPlans,
         'show',
@@ -111,10 +123,19 @@ router
 // Programmatic account creation (JSON) — public self-serve, same flow as the
 // web signup. CSRF-exempt via the /api prefix in config/shield.ts.
 router.post('api/accounts', [controllers.AccountRegistrations, 'storeApi']).as('api.accounts.store')
+router
+  .post('api/paystack/webhook', [controllers.PaystackWebhooks, 'store'])
+  .as('paystack_webhooks.store')
 
 // Admin sign-ups list — active-school scoped, permission-gated.
 router
-  .get('signups', [controllers.Signups, 'index'])
+  .group(() => {
+    router.get('signups', [controllers.Signups, 'index'])
+    router
+      .patch('signups/:id', [controllers.Signups, 'update'])
+      .where('id', router.matchers.number())
+      .as('signups.update')
+  })
   .use(middleware.auth())
   .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())

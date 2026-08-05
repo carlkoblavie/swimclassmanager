@@ -25,6 +25,7 @@ import type { Infer } from '@vinejs/vine/types'
 import type { initializeCustomerPurchaseValidator } from '#validators/customer_purchase'
 
 const RESERVATION_MINUTES = 30
+const BILLABLE_TERMS_COUNT = 1
 
 type CheckoutInput = Infer<typeof initializeCustomerPurchaseValidator>
 
@@ -32,20 +33,148 @@ type CheckoutInput = Infer<typeof initializeCustomerPurchaseValidator>
 export default class CustomerPurchaseService {
   constructor(protected paystack: PaystackClient) {}
 
-  async initialize(
-    school: School,
-    input: CheckoutInput,
-    context: { organisationSlug: string; schoolSlug: string }
-  ) {
+  async captureInquiry(school: School, input: CheckoutInput): Promise<Signup> {
+    return Signup.create({
+      schoolId: school.id,
+      contactName: input.contactName,
+      contactEmail: input.contactEmail,
+      contactPhone: input.contactPhone,
+      whatsapp: input.whatsapp,
+      registrantRole: input.registrantRole ?? null,
+      message: input.message ?? null,
+    })
+  }
+
+  async captureRegistration(school: School, input: CheckoutInput): Promise<Signup> {
+    const learnerInputs = input.learners ?? []
+    if (learnerInputs.length === 0) {
+      throw new CustomerPurchaseException('Add at least one learner to continue.')
+    }
+
     const swimYear = await this.loadSwimYear(school)
     const terms = (swimYear.$preloaded as { terms?: Term[] }).terms ?? []
     if (terms.length === 0) {
       throw new CustomerPurchaseException('No terms are set up for this swim year.')
     }
+    const billableTerms = terms.slice(0, BILLABLE_TERMS_COUNT)
 
     const levels = await this.loadLevels(
       school,
-      input.learners.map((learner) => learner.levelPublicId)
+      learnerInputs.map((learner) => learner.levelPublicId)
+    )
+
+    // A registration is a manual-invoice purchase: it is created PENDING (no
+    // Paystack transaction) so it enters the invoice pipeline and the school can
+    // mark it invoice-sent, then paid, from the sign-ups screen.
+    const signup = await db.transaction(async (trx) => {
+      const created = await Signup.create(
+        {
+          schoolId: school.id,
+          contactName: input.contactName,
+          contactEmail: input.contactEmail,
+          contactPhone: input.contactPhone,
+          whatsapp: input.whatsapp,
+          registrantRole: input.registrantRole ?? null,
+          message: input.message ?? null,
+        },
+        { client: trx }
+      )
+
+      const purchase = await Purchase.create(
+        {
+          schoolId: school.id,
+          signupId: created.id,
+          swimYearId: swimYear.id,
+          status: PurchaseStatus.PENDING,
+          totalAmount: 0,
+          currency: 'GHS',
+        },
+        { client: trx }
+      )
+
+      let totalAmount = 0
+
+      for (const learnerInput of learnerInputs) {
+        const level = levels.get(learnerInput.levelPublicId)
+        if (!level) {
+          throw new CustomerPurchaseException('One or more selected levels are not available.')
+        }
+
+        const price = this.effectiveLevelFee(level)
+        const itemAmount = price * billableTerms.length
+        totalAmount += itemAmount
+
+        await this.assertCapacityAvailable(level, swimYear.id, trx)
+
+        const { levelPublicId: _levelPublicId, ...learnerData } = learnerInput
+        const learner = await created.related('learners').create(learnerData)
+        learner.useTransaction(trx)
+
+        const enrollment = await Enrollment.create(
+          {
+            schoolId: school.id,
+            levelId: level.id,
+            swimYearId: swimYear.id,
+            learnerId: learner.id,
+            status: EnrollmentStatus.PENDING,
+            price,
+            currency: 'GHS',
+            reservedUntil: null,
+          },
+          { client: trx }
+        )
+
+        await enrollment.related('termPayments').createMany(
+          billableTerms.map((term) => ({
+            termId: term.id,
+            amount: price,
+            currency: 'GHS',
+            status: PaymentStatus.PENDING,
+          }))
+        )
+
+        await purchase.related('items').create({
+          enrollmentId: enrollment.id,
+          learnerId: learner.id,
+          levelId: level.id,
+          levelPublicId: level.publicId!,
+          levelName: level.name,
+          amount: itemAmount,
+          currency: 'GHS',
+        })
+      }
+
+      purchase.useTransaction(trx)
+      purchase.merge({ totalAmount })
+      await purchase.save()
+
+      return created
+    })
+
+    await signup.load('learners')
+    return signup
+  }
+
+  async initialize(
+    school: School,
+    input: CheckoutInput,
+    context: { organisationSlug: string; schoolSlug: string }
+  ) {
+    const learnerInputs = input.learners ?? []
+    if (learnerInputs.length === 0) {
+      throw new CustomerPurchaseException('Add at least one learner to continue.')
+    }
+
+    const swimYear = await this.loadSwimYear(school)
+    const terms = (swimYear.$preloaded as { terms?: Term[] }).terms ?? []
+    if (terms.length === 0) {
+      throw new CustomerPurchaseException('No terms are set up for this swim year.')
+    }
+    const billableTerms = terms.slice(0, BILLABLE_TERMS_COUNT)
+
+    const levels = await this.loadLevels(
+      school,
+      learnerInputs.map((learner) => learner.levelPublicId)
     )
     const reference = this.makeReference()
 
@@ -57,6 +186,7 @@ export default class CustomerPurchaseService {
           contactEmail: input.contactEmail,
           contactPhone: input.contactPhone,
           whatsapp: input.whatsapp ?? null,
+          registrantRole: input.registrantRole ?? null,
           message: input.message ?? null,
         },
         { client: trx }
@@ -77,14 +207,14 @@ export default class CustomerPurchaseService {
       let totalAmount = 0
       const purchasedLevels: Array<{ publicId: string; name: string }> = []
 
-      for (const learnerInput of input.learners) {
+      for (const learnerInput of learnerInputs) {
         const level = levels.get(learnerInput.levelPublicId)
         if (!level) {
           throw new CustomerPurchaseException('One or more selected levels are not available.')
         }
 
         const price = this.effectiveLevelFee(level)
-        const itemAmount = price * terms.length
+        const itemAmount = price * billableTerms.length
         totalAmount += itemAmount
         purchasedLevels.push({ publicId: level.publicId!, name: level.name })
 
@@ -109,7 +239,7 @@ export default class CustomerPurchaseService {
         )
 
         await enrollment.related('termPayments').createMany(
-          terms.map((term) => ({
+          billableTerms.map((term) => ({
             termId: term.id,
             amount: price,
             currency: 'GHS',

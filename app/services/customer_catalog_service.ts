@@ -25,10 +25,12 @@ function dateOut(value: DateTime) {
   }
 }
 
+const BILLABLE_TERMS_COUNT = 1
+
 /**
  * Read model for the public customer purchase page: a school's available
  * levels (plans) grouped by program, priced with the school's effective fee,
- * alongside the current/upcoming swim year and its terms (billing is per term).
+ * alongside the current/upcoming swim year and its billable term.
  */
 export default class CustomerCatalogService {
   /** All active programs that have at least one available level for the school. */
@@ -122,7 +124,7 @@ export default class CustomerCatalogService {
   }
 
   // The swim year the customer buys into: the ongoing one, else the next
-  // upcoming. Terms are returned so the page can show per-term pricing.
+  // upcoming. Customer checkout currently bills exactly one term.
   private async currentSwimYear(school: School) {
     const today = DateTime.now().toISODate()!
     const swimYears = await SwimYear.query()
@@ -137,12 +139,13 @@ export default class CustomerCatalogService {
     }
 
     const preloaded = swimYear.$preloaded as { terms?: Term[] }
+    const billableTerms = (preloaded.terms ?? []).slice(0, BILLABLE_TERMS_COUNT)
     return {
       name: swimYear.name,
       status: swimYear.status,
       startsOn: dateOut(swimYear.startsOn),
       endsOn: dateOut(swimYear.endsOn),
-      terms: (preloaded.terms ?? []).map((term) => ({
+      terms: billableTerms.map((term) => ({
         id: term.id,
         name: term.name,
         startsOn: dateOut(term.startsOn),

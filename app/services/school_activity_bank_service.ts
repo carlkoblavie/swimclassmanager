@@ -1,5 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 import type ClassSkill from '#models/class_skill'
+import type LevelStageSkill from '#models/level_stage_skill'
 import LevelStageActivity from '#models/level_stage_activity'
 import SchoolActivity from '#models/school_activity'
 import SchoolActivityCategory from '#models/school_activity_category'
@@ -315,18 +316,27 @@ export default class SchoolActivityBankService {
     levelStageId: number | null,
     classSkills: ClassSkill[]
   ): ActivityBankScope {
-    const levelStageSkillIds = classSkills.flatMap((classSkill) =>
-      classSkill.levelStageSkillId ? [classSkill.levelStageSkillId] : []
+    return this.scopeFromCurriculumSkills(
+      levelId,
+      levelStageId,
+      classSkills.flatMap((classSkill) =>
+        classSkill.levelStageSkill ? [classSkill.levelStageSkill] : []
+      )
     )
-    const levelStageActivityIds = classSkills.flatMap((classSkill) =>
-      (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
-    )
+  }
 
+  scopeFromCurriculumSkills(
+    levelId: number,
+    levelStageId: number | null,
+    skills: LevelStageSkill[]
+  ): ActivityBankScope {
     return {
       levelId,
       levelStageId,
-      levelStageSkillIds,
-      levelStageActivityIds,
+      levelStageSkillIds: skills.map((skill) => skill.id),
+      levelStageActivityIds: skills.flatMap((skill) =>
+        (skill.activities ?? []).map((activity) => activity.id)
+      ),
     }
   }
 

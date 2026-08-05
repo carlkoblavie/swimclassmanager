@@ -27,6 +27,7 @@ export default class SignupCaptureService {
           contactEmail: data.contactEmail,
           contactPhone: data.contactPhone,
           whatsapp: data.whatsapp ?? null,
+          registrantRole: data.registrantRole ?? null,
           message: data.message ?? null,
         },
         { client: trx }

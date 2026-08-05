@@ -45,15 +45,23 @@ export interface ApiDefinition {
     create: typeof routes['signups.create']
     store: typeof routes['signups.store']
     index: typeof routes['signups.index']
+    update: typeof routes['signups.update']
   }
   customerPlans: {
     index: typeof routes['customer_plans.index']
     show: typeof routes['customer_plans.show']
   }
+  customerPurchases: {
+    store: typeof routes['customer_purchases.store']
+    verify: typeof routes['customer_purchases.verify']
+  }
   api: {
     accounts: {
       store: typeof routes['api.accounts.store']
     }
+  }
+  paystackWebhooks: {
+    store: typeof routes['paystack_webhooks.store']
   }
   programs: {
     index: typeof routes['programs.index']
@@ -101,6 +109,10 @@ export interface ApiDefinition {
     store: typeof routes['activity_bank.store']
     update: typeof routes['activity_bank.update']
     destroy: typeof routes['activity_bank.destroy']
+  }
+  activityBankCategories: {
+    update: typeof routes['activity_bank_categories.update']
+    destroy: typeof routes['activity_bank_categories.destroy']
   }
   swimmingClasses: {
     index: typeof routes['swimming_classes.index']

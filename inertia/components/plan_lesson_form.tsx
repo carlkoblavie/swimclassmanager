@@ -3,6 +3,7 @@ import { Form } from '@adonisjs/inertia/react'
 import { Button, Card, Group, Stack, Text, Textarea } from '@mantine/core'
 import type { Data } from '@generated/data'
 import LessonActivityBankBuilder from '~/components/lesson_activity_bank_builder'
+import LessonStageSkills from '~/components/lesson_stage_skills'
 
 /** The next date falling on `weekday` (1=Monday) strictly after `after`. */
 export function nextWeekdayDate(weekday: number, after: Date): string {
@@ -19,6 +20,7 @@ export default function PlanLessonForm({
   weekday,
   weekdayName,
   existingDates,
+  skills,
   activityBank,
   durationMinutes,
 }: {
@@ -26,6 +28,7 @@ export default function PlanLessonForm({
   weekday: number
   weekdayName: string
   existingDates: string[]
+  skills: Data.SwimmingClass['skills']
   activityBank: Data.SchoolActivityCategory[]
   durationMinutes: number
 }) {
@@ -57,6 +60,7 @@ export default function PlanLessonForm({
                 Lessons follow the class day: next up is {weekdayName} {nextDate}.
               </Text>
             </div>
+            <LessonStageSkills skills={skills} />
             <Textarea
               label="Lesson objectives"
               name="objectives"

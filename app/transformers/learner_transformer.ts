@@ -9,6 +9,7 @@ export default class LearnerTransformer extends BaseTransformer<Learner> {
         'firstName',
         'lastName',
         'gender',
+        'relation',
         'nationality',
         'residentialLocation',
         'medicalInfo',

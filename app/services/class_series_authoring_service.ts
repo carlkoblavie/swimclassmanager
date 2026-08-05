@@ -9,6 +9,7 @@ import Invitation from '#models/invitation'
 import Level from '#models/level'
 import type LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
+import LevelStageSkill from '#models/level_stage_skill'
 import Membership from '#models/membership'
 import Role from '#models/role'
 import SchoolActivity from '#models/school_activity'
@@ -219,7 +220,7 @@ export default class ClassSeriesAuthoringService {
   ): Promise<ClassLesson> {
     return db.transaction(async (trx) => {
       const legacyActivityIds = await this.resolveLessonActivities(
-        swimmingClass.id,
+        swimmingClass,
         data.activityIds ?? [],
         trx
       )
@@ -298,7 +299,7 @@ export default class ClassSeriesAuthoringService {
     return db.transaction(async (trx) => {
       const swimmingClass = await SwimmingClass.findOrFail(lesson.swimmingClassId, { client: trx })
       const legacyActivityIds = await this.resolveLessonActivities(
-        lesson.swimmingClassId,
+        swimmingClass,
         data.activityIds ?? [],
         trx
       )
@@ -344,18 +345,14 @@ export default class ClassSeriesAuthoringService {
   }
 
   protected async resolveLessonActivities(
-    swimmingClassId: number,
+    swimmingClass: SwimmingClass,
     requested: number[],
     trx: TransactionClientContract
   ): Promise<number[]> {
-    const classSkills = await ClassSkill.query({ client: trx })
-      .where('swimmingClassId', swimmingClassId)
-      .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+    const curriculumSkills = await this.lessonCurriculumSkills(swimmingClass, trx)
 
     const allowedActivityIds = new Set(
-      classSkills.flatMap((classSkill) =>
-        (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
-      )
+      curriculumSkills.flatMap((skill) => (skill.activities ?? []).map((activity) => activity.id))
     )
     const activityIds = uniqueNumbers(requested)
     for (const activityId of activityIds) {
@@ -379,18 +376,10 @@ export default class ClassSeriesAuthoringService {
       return []
     }
     const activityIds = uniqueNumbers(requested)
-    const classSkills = await ClassSkill.query({ client: trx })
-      .where('swimmingClassId', swimmingClass.id)
-      .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
-    const allowedSkillIds = new Set(
-      classSkills.flatMap((classSkill) =>
-        classSkill.levelStageSkillId ? [classSkill.levelStageSkillId] : []
-      )
-    )
+    const curriculumSkills = await this.lessonCurriculumSkills(swimmingClass, trx)
+    const allowedSkillIds = new Set(curriculumSkills.map((skill) => skill.id))
     const allowedLegacyActivityIds = new Set(
-      classSkills.flatMap((classSkill) =>
-        (classSkill.levelStageSkill?.activities ?? []).map((activity) => activity.id)
-      )
+      curriculumSkills.flatMap((skill) => (skill.activities ?? []).map((activity) => activity.id))
     )
 
     const activities = await SchoolActivity.query({ client: trx })
@@ -430,6 +419,28 @@ export default class ClassSeriesAuthoringService {
           ]
         : []
     })
+  }
+
+  protected async lessonCurriculumSkills(
+    swimmingClass: SwimmingClass,
+    trx: TransactionClientContract
+  ): Promise<LevelStageSkill[]> {
+    const classSkills = await ClassSkill.query({ client: trx })
+      .where('swimmingClassId', swimmingClass.id)
+      .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+    if (classSkills.length > 0) {
+      return classSkills.flatMap((classSkill) =>
+        classSkill.levelStageSkill ? [classSkill.levelStageSkill] : []
+      )
+    }
+
+    if (swimmingClass.levelStageId === null) {
+      return []
+    }
+
+    return LevelStageSkill.query({ client: trx })
+      .where('levelStageId', swimmingClass.levelStageId)
+      .preload('activities')
   }
 
   protected async resolveCustomSchoolActivities(

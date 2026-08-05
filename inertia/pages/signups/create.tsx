@@ -8,6 +8,7 @@ import {
   Card,
   Divider,
   Group,
+  NativeSelect,
   SimpleGrid,
   Stack,
   Text,
@@ -105,13 +106,23 @@ function RegisterLearner({ school, organisationSlug, schoolSlug, genders }: Page
                   />
                   <TextInput
                     label="WhatsApp number"
-                    description="Optional"
                     name="whatsapp"
                     placeholder="+233 20 000 0000"
                     leftSection={<IconMessageCircle size={18} stroke={1.7} />}
                     error={errors.whatsapp}
+                    required
                   />
                 </SimpleGrid>
+                <NativeSelect
+                  label="Who is registering?"
+                  name="registrantRole"
+                  defaultValue="guardian"
+                  data={[
+                    { value: 'guardian', label: 'Parent / Guardian (registering someone else)' },
+                    { value: 'adult_learner', label: 'Adult learner (registering myself)' },
+                  ]}
+                  error={errors.registrantRole}
+                />
               </Stack>
 
               <Divider />
@@ -200,6 +211,11 @@ function RegisterLearner({ school, organisationSlug, schoolSlug, genders }: Page
                       type="hidden"
                       name={`learners[${index}][gender]`}
                       value={learner.gender}
+                    />
+                    <input
+                      type="hidden"
+                      name={`learners[${index}][relation]`}
+                      value={learner.relation}
                     />
                     <input
                       type="hidden"

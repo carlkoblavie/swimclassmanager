@@ -951,3 +951,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Sign-ups table rows */
+.signup-row {
+  transition: background 0.12s ease;
+}
+
+.signup-row:hover {
+  background: var(--mantine-color-gray-0);
+}
+
+.signup-row:last-of-type {
+  border-bottom: 0 !important;
+}

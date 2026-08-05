@@ -3,16 +3,19 @@ import { Form } from '@adonisjs/inertia/react'
 import { Button, Checkbox, Group, Stack, Textarea } from '@mantine/core'
 import type { Data } from '@generated/data'
 import LessonActivityBankBuilder from '~/components/lesson_activity_bank_builder'
+import LessonStageSkills from '~/components/lesson_stage_skills'
 
 type Lesson = Data.SwimmingClass['lessons'][number]
 
 export default function EditLessonForm({
   lesson,
+  skills,
   activityBank,
   durationMinutes,
   onCancel,
 }: {
   lesson: Lesson
+  skills: Data.SwimmingClass['skills']
   activityBank: Data.SchoolActivityCategory[]
   durationMinutes: number
   onCancel: () => void
@@ -23,6 +26,7 @@ export default function EditLessonForm({
     <Form route="class_lessons.update" routeParams={{ id: lesson.id }}>
       {({ processing }) => (
         <Stack gap="sm">
+          <LessonStageSkills skills={skills} />
           <Textarea
             label="Lesson objectives"
             name="objectives"

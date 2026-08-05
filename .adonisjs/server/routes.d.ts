@@ -26,9 +26,13 @@ export type ScannedRoutes = {
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'signups.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.index': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_purchases.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_purchases.verify': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'api.accounts.store': { paramsTuple?: []; params?: {} }
+    'paystack_webhooks.store': { paramsTuple?: []; params?: {} }
     'signups.index': { paramsTuple?: []; params?: {} }
+    'signups.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
@@ -82,6 +86,7 @@ export type ScannedRoutes = {
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.index': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_purchases.verify': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
@@ -110,6 +115,7 @@ export type ScannedRoutes = {
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.index': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_purchases.verify': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
@@ -133,7 +139,9 @@ export type ScannedRoutes = {
     'schools.store': { paramsTuple?: []; params?: {} }
     'invitations.store': { paramsTuple?: []; params?: {} }
     'signups.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
+    'customer_purchases.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'api.accounts.store': { paramsTuple?: []; params?: {} }
+    'paystack_webhooks.store': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
     'swim_years.store': { paramsTuple?: []; params?: {} }
     'school_age_groups.store': { paramsTuple?: []; params?: {} }
@@ -147,6 +155,7 @@ export type ScannedRoutes = {
     'accounts.update': { paramsTuple?: []; params?: {} }
     'account_passwords.update': { paramsTuple?: []; params?: {} }
     'active_schools.update': { paramsTuple?: []; params?: {} }
+    'signups.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'level_settings.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swim_years.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

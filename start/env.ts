@@ -34,4 +34,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   MAIL_FROM_NAME: Env.schema.string(),
   MAIL_FROM_ADDRESS: Env.schema.string(),
   RESEND_API_KEY: Env.schema.string(),
+
+  // Payments
+  PAYSTACK_SECRET_KEY: Env.schema.string.optional(),
 })

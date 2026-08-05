@@ -91,8 +91,15 @@ function lessonActivityLeaderLabel(value: number | null) {
   return value === 1 ? 'Instructor-led' : null
 }
 
+function lessonSkills(swimmingClass: Data.SwimmingClass): Data.SwimmingClass['skills'] {
+  return swimmingClass.skills.length > 0
+    ? swimmingClass.skills
+    : (swimmingClass.stage?.skills ?? [])
+}
+
 export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
   const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
+  const skillsForLessons = lessonSkills(swimmingClass)
 
   const plannedCount = swimmingClass.lessons.filter(
     (lesson) => lesson.activities.length > 0 || Boolean(lesson.objectives)
@@ -267,7 +274,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
         )}
 
         {swimmingClass.lessons.map((lesson, index) => {
-          const focus = skillFocus(lesson, swimmingClass.skills)
+          const focus = skillFocus(lesson, skillsForLessons)
           const isPlanned = lesson.activities.length > 0 || Boolean(lesson.objectives)
           const plannedMinutes = lessonPlannedMinutes(lesson)
 
@@ -358,7 +365,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                       </Text>
                     )}
                     <Stack gap="md">
-                      {lessonActivityGroups(lesson, swimmingClass.skills).map((group) => (
+                      {lessonActivityGroups(lesson, skillsForLessons).map((group) => (
                         <Stack key={group.name} gap="xs">
                           <Text size="sm" fw={700} c="aqua.8">
                             {group.name}
@@ -476,6 +483,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                 {editingLessonId === lesson.id && (
                   <EditLessonForm
                     lesson={lesson}
+                    skills={skillsForLessons}
                     activityBank={activityBank}
                     durationMinutes={swimmingClass.durationMinutes}
                     onCancel={() => setEditingLessonId(null)}
@@ -486,7 +494,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
           )
         })}
 
-        {!swimmingClass.isCancelled && (
+        {!swimmingClass.isCancelled && editingLessonId === null && (
           <Guard for="class.manage">
             {swimmingClass.lessonAllowance &&
             swimmingClass.lessons.length >= swimmingClass.lessonAllowance ? (
@@ -501,6 +509,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                 weekday={swimmingClass.weekday}
                 weekdayName={swimmingClass.weekdayName}
                 existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
+                skills={skillsForLessons}
                 activityBank={activityBank}
                 durationMinutes={swimmingClass.durationMinutes}
               />

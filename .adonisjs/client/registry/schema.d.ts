@@ -271,6 +271,30 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/customer_plans_controller').default['index']>>>
     }
   }
+  'customer_purchases.store': {
+    methods: ["POST"]
+    pattern: '/api/register/:organisationSlug/:schoolSlug/purchases'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/customer_purchase').initializeCustomerPurchaseValidator)>>
+      paramsTuple: [ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/customer_purchase').initializeCustomerPurchaseValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/customer_purchases_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/customer_purchases_controller').default['store']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'customer_purchases.verify': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/register/:organisationSlug/:schoolSlug/purchases/verify'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue, ParamValue]
+      params: { organisationSlug: ParamValue; schoolSlug: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/customer_purchases_controller').default['verify']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/customer_purchases_controller').default['verify']>>>
+    }
+  }
   'customer_plans.show': {
     methods: ["GET","HEAD"]
     pattern: '/api/register/:organisationSlug/:schoolSlug/programs/:programId/levels'
@@ -295,6 +319,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/account_registrations_controller').default['storeApi']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
+  'paystack_webhooks.store': {
+    methods: ["POST"]
+    pattern: '/api/paystack/webhook'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/paystack_webhooks_controller').default['store']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/paystack_webhooks_controller').default['store']>>>
+    }
+  }
   'signups.index': {
     methods: ["GET","HEAD"]
     pattern: '/signups'
@@ -305,6 +341,18 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['index']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['index']>>>
+    }
+  }
+  'signups.update': {
+    methods: ["PATCH"]
+    pattern: '/signups/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/signup').updateSignupValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/signup').updateSignupValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/signups_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'programs.index': {
@@ -653,6 +701,30 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_bank_activities_controller').default['destroy']>>>
+    }
+  }
+  'activity_bank_categories.update': {
+    methods: ["PUT","PATCH"]
+    pattern: '/activity-bank-categories/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/bank').updateSchoolActivityCategoryValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/bank').updateSchoolActivityCategoryValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_bank_categories_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_bank_categories_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'activity_bank_categories.destroy': {
+    methods: ["DELETE"]
+    pattern: '/activity-bank-categories/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/activity_bank_categories_controller').default['destroy']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/activity_bank_categories_controller').default['destroy']>>>
     }
   }
   'swimming_classes.index': {

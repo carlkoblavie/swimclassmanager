@@ -129,7 +129,22 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         : undefined,
       // The level's curriculum length caps how many lessons a class may plan.
       lessonAllowance: level?.classesCount ?? null,
-      stage: stage ? { id: stage.id, code: stage.code, name: stage.name } : undefined,
+      stage: stage
+        ? {
+            id: stage.id,
+            code: stage.code,
+            name: stage.name,
+            skills: (stage.skills ?? []).map((skill) => ({
+              id: skill.id,
+              name: skill.name,
+              passCriteria: skill.passCriteria,
+              activities: (skill.activities ?? []).map((activity) => ({
+                id: activity.id,
+                name: activity.name,
+              })),
+            })),
+          }
+        : undefined,
       term: (() => {
         const term = preloaded.term
         if (!term) {

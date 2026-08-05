@@ -7,6 +7,7 @@ import Enrollment from '#models/enrollment'
 import PaymentTransaction from '#models/payment_transaction'
 import Purchase from '#models/purchase'
 import PurchaseItem from '#models/purchase_item'
+import Signup from '#models/signup'
 import TermPayment from '#models/term_payment'
 import SwimYear from '#models/swim_year'
 import PaystackClient from '#services/paystack_client'
@@ -134,30 +135,72 @@ test.group('Customer purchases API', (group) => {
     response.assertStatus(201)
     const body = response.body()
     ctx.assert.equal(body.purchase.status, 'pending')
-    ctx.assert.equal(body.purchase.amount, level.defaultFee * 2)
+    ctx.assert.equal(body.purchase.amount, level.defaultFee)
     ctx.assert.match(body.transaction.authorizationUrl, /^https:\/\/checkout\.paystack\.com\/sag_/)
 
     const purchase = await Purchase.query().preload('items').firstOrFail()
-    ctx.assert.equal(purchase.totalAmount, level.defaultFee * 2)
+    ctx.assert.equal(purchase.totalAmount, level.defaultFee)
     ctx.assert.lengthOf(purchase.items, 1)
 
     const item = await PurchaseItem.firstOrFail()
     ctx.assert.equal(item.levelPublicId, level.publicId)
     ctx.assert.equal(item.levelName, level.name)
-    ctx.assert.equal(item.amount, level.defaultFee * 2)
+    ctx.assert.equal(item.amount, level.defaultFee)
 
     const enrollment = await Enrollment.findOrFail(item.enrollmentId)
     ctx.assert.equal(enrollment.status, 'pending')
     ctx.assert.equal(enrollment.levelId, level.id)
 
     const payments = await TermPayment.query().where('enrollmentId', enrollment.id)
-    ctx.assert.lengthOf(payments, 2)
+    ctx.assert.lengthOf(payments, 1)
     ctx.assert.isTrue(payments.every((payment) => payment.status === 'pending'))
 
     const transaction = await PaymentTransaction.firstOrFail()
     ctx.assert.equal(transaction.status, 'pending')
-    ctx.assert.equal(fakePaystack.initialized[0].amount, level.defaultFee * 2)
+    ctx.assert.equal(fakePaystack.initialized[0].amount, level.defaultFee)
     ctx.assert.deepEqual(fakePaystack.initialized[0].metadata.levelPublicIds, [level.publicId])
+  })
+
+  test('captures a tryout inquiry without learner details or checkout', async (ctx) => {
+    const { school } = await publishedSchool()
+    const response = await ctx.client.post('/api/register/seaside-swim/seaside-main/purchases').json({
+      intent: 'tryout',
+      contactName: 'Ama Mensah',
+      contactEmail: 'ama@example.com',
+      contactPhone: '0555000111',
+      whatsapp: '0555000111',
+      message: 'Tryout request for African Sharks Swim Team.',
+    })
+
+    response.assertStatus(201)
+    response.assertBodyContains({ status: 'received' })
+
+    const signup = await Signup.firstOrFail()
+    ctx.assert.equal(signup.schoolId, school.id)
+    ctx.assert.equal(signup.contactName, 'Ama Mensah')
+    ctx.assert.equal(signup.message, 'Tryout request for African Sharks Swim Team.')
+    ctx.assert.equal(await Purchase.query().count('* as total').first().then((row) => Number(row!.$extras.total)), 0)
+  })
+
+  test('captures a registration submission without checkout', async (ctx) => {
+    const { school, level } = await seedPurchasableContext()
+    const response = await ctx.client
+      .post('/api/register/seaside-swim/seaside-main/purchases')
+      .json({
+        ...checkoutPayload(level.publicId!),
+        intent: 'registration',
+      })
+
+    response.assertStatus(201)
+    response.assertBodyContains({ status: 'received' })
+
+    const signup = await Signup.query().preload('learners').firstOrFail()
+    ctx.assert.equal(signup.schoolId, school.id)
+    ctx.assert.equal(signup.contactName, 'Ama Mensah')
+    ctx.assert.lengthOf(signup.learners, 1)
+    ctx.assert.equal(signup.learners[0].firstName, 'Kofi')
+    ctx.assert.equal(await Purchase.query().count('* as total').first().then((row) => Number(row!.$extras.total)), 0)
+    ctx.assert.equal(await PaymentTransaction.query().count('* as total').first().then((row) => Number(row!.$extras.total)), 0)
   })
 
   test('verifies a successful Paystack transaction and activates enrollments', async (ctx) => {

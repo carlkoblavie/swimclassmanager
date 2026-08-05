@@ -10,6 +10,26 @@ export default class CustomerPurchasesController {
     const school = await this.resolveSchool(params.organisationSlug, params.schoolSlug)
     const payload = await request.validateUsing(initializeCustomerPurchaseValidator)
 
+    if (payload.intent === 'tryout') {
+      const signup = await purchases.captureInquiry(school, payload)
+      return response.created({
+        status: 'received',
+        signup: {
+          id: signup.id,
+        },
+      })
+    }
+
+    if (payload.intent === 'registration') {
+      const signup = await purchases.captureRegistration(school, payload)
+      return response.created({
+        status: 'received',
+        signup: {
+          id: signup.id,
+        },
+      })
+    }
+
     const checkout = await purchases.initialize(school, payload, {
       organisationSlug: params.organisationSlug,
       schoolSlug: school.slug,

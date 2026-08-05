@@ -79,7 +79,9 @@ export default class SwimmingClassesController {
       .where('schoolId', schoolId)
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
-      .preload('levelStage')
+      .preload('levelStage', (stageQuery) =>
+        stageQuery.preload('skills', (skillQuery) => skillQuery.preload('activities'))
+      )
       .preload('classInstructors', (instructorsQuery) =>
         instructorsQuery
           .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
@@ -99,12 +101,18 @@ export default class SwimmingClassesController {
           .orderBy('date')
       )
       .firstOrFail()
+    const curriculumSkills =
+      swimmingClass.classSkills.length > 0
+        ? swimmingClass.classSkills.flatMap((classSkill) =>
+            classSkill.levelStageSkill ? [classSkill.levelStageSkill] : []
+          )
+        : (swimmingClass.levelStage?.skills ?? [])
     const bank = await activityBank.forSchool(
       schoolId,
-      activityBank.scopeFromClassSkills(
+      activityBank.scopeFromCurriculumSkills(
         swimmingClass.levelId,
         swimmingClass.levelStageId,
-        swimmingClass.classSkills
+        curriculumSkills
       )
     )
 
