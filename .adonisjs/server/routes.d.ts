@@ -69,6 +69,7 @@ export type ScannedRoutes = {
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'swimming_classes.duplicate': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -149,6 +150,7 @@ export type ScannedRoutes = {
     'skill_bank_families.store': { paramsTuple?: []; params?: {} }
     'activity_bank.store': { paramsTuple?: []; params?: {} }
     'swimming_classes.store': { paramsTuple?: []; params?: {} }
+    'swimming_classes.duplicate': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PATCH: {

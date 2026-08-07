@@ -120,6 +120,7 @@ export interface ApiDefinition {
     show: typeof routes['swimming_classes.show']
     edit: typeof routes['swimming_classes.edit']
     update: typeof routes['swimming_classes.update']
+    duplicate: typeof routes['swimming_classes.duplicate']
   }
   classLessons: {
     store: typeof routes['class_lessons.store']

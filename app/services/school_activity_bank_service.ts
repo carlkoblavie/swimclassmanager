@@ -30,6 +30,7 @@ type StarterCategory = {
 type ActivityBankScope = {
   levelId: number
   levelStageId: number | null
+  skillBankSkillIds: number[]
   levelStageSkillIds: number[]
   levelStageActivityIds: number[]
 }
@@ -316,13 +317,15 @@ export default class SchoolActivityBankService {
     levelStageId: number | null,
     classSkills: ClassSkill[]
   ): ActivityBankScope {
-    return this.scopeFromCurriculumSkills(
-      levelId,
-      levelStageId,
-      classSkills.flatMap((classSkill) =>
-        classSkill.levelStageSkill ? [classSkill.levelStageSkill] : []
-      )
+    const curriculumSkills = classSkills.flatMap((classSkill) =>
+      classSkill.levelStageSkill ? [classSkill.levelStageSkill] : []
     )
+    return {
+      ...this.scopeFromCurriculumSkills(levelId, levelStageId, curriculumSkills),
+      skillBankSkillIds: classSkills.flatMap((classSkill) =>
+        classSkill.skillBankSkillId ? [classSkill.skillBankSkillId] : []
+      ),
+    }
   }
 
   scopeFromCurriculumSkills(
@@ -333,6 +336,7 @@ export default class SchoolActivityBankService {
     return {
       levelId,
       levelStageId,
+      skillBankSkillIds: [],
       levelStageSkillIds: skills.map((skill) => skill.id),
       levelStageActivityIds: skills.flatMap((skill) =>
         (skill.activities ?? []).map((activity) => activity.id)
@@ -364,6 +368,32 @@ export default class SchoolActivityBankService {
         query.whereNull('levelStageActivityId')
         if (scope.levelStageActivityIds.length > 0) {
           query.orWhereIn('levelStageActivityId', scope.levelStageActivityIds)
+        }
+      })
+      .where((query) => {
+        query.whereNotExists((tagQuery) => {
+          tagQuery
+            .from('school_activity_skill_bank_skills')
+            .whereColumn(
+              'school_activity_skill_bank_skills.school_activity_id',
+              'school_activities.id'
+            )
+            .select('school_activity_skill_bank_skills.id')
+        })
+        if (scope.skillBankSkillIds.length > 0) {
+          query.orWhereExists((tagQuery) => {
+            tagQuery
+              .from('school_activity_skill_bank_skills')
+              .whereColumn(
+                'school_activity_skill_bank_skills.school_activity_id',
+                'school_activities.id'
+              )
+              .whereIn(
+                'school_activity_skill_bank_skills.skill_bank_skill_id',
+                scope.skillBankSkillIds
+              )
+              .select('school_activity_skill_bank_skills.id')
+          })
         }
       })
   }

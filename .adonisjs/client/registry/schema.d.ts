@@ -787,6 +787,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
+  'swimming_classes.duplicate': {
+    methods: ["POST"]
+    pattern: '/classes/:id/duplicate'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['duplicate']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/swimming_classes_controller').default['duplicate']>>>
+    }
+  }
   'class_lessons.store': {
     methods: ["POST"]
     pattern: '/classes/:id/lessons'

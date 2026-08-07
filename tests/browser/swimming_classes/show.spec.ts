@@ -10,7 +10,7 @@ import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
 import Role from '#models/role'
-import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { seedRoles, joinSchool, seedCurriculum, seedBankSkill } from '#tests/helpers'
 import { ClassInstructorRole } from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
 
@@ -30,6 +30,7 @@ test.group('Swimming classes show', (group) => {
     const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
     await joinSchool(user, school, RoleName.PARENT)
     const { level, stage, skill, activity } = await seedCurriculum()
+    const bankSkill = await seedBankSkill(school.id, skill)
     const swimmingClass = await SwimmingClassFactory.merge({
       schoolId: school.id,
       levelId: level.id,
@@ -40,7 +41,11 @@ test.group('Swimming classes show', (group) => {
       startTime: '17:00',
       durationMinutes: 45,
     }).create()
-    await ClassSkill.create({ swimmingClassId: swimmingClass.id, levelStageSkillId: skill.id })
+    await ClassSkill.create({
+      swimmingClassId: swimmingClass.id,
+      skillBankSkillId: bankSkill.id,
+      levelStageSkillId: skill.id,
+    })
     const lesson = await ClassLesson.create({
       swimmingClassId: swimmingClass.id,
       date: DateTime.fromISO('2026-07-13'),

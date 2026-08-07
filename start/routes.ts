@@ -234,6 +234,12 @@ router
       .use(['store', 'edit', 'update'], middleware.authorize('class.manage'))
 
     router
+      .post('classes/:id/duplicate', [controllers.SwimmingClasses, 'duplicate'])
+      .as('swimming_classes.duplicate')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('class.manage'))
+
+    router
       .post('classes/:id/lessons', [controllers.ClassLessons, 'store'])
       .as('class_lessons.store')
       .where('id', router.matchers.number())

@@ -7,8 +7,11 @@ import Membership from '#models/membership'
 import School from '#models/school'
 import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
+import BankPackService from '#services/bank_pack_service'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
 import SchoolActivityBankService from '#services/school_activity_bank_service'
+import SkillBankFamilyService from '#services/skill_bank_family_service'
+import SkillBankService from '#services/skill_bank_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
 import LevelTransformer from '#transformers/level_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
@@ -20,6 +23,32 @@ import {
   updateSwimmingClassValidator,
 } from '#validators/swimming_class'
 import { RoleName } from '#values/role'
+
+async function classSkillOptions(
+  schoolId: number,
+  bank: SkillBankService,
+  families: SkillBankFamilyService,
+  packs: BankPackService
+) {
+  await packs.syncEnabledPacks(schoolId)
+  const [skills, schoolFamilies] = await Promise.all([
+    bank.forSchool(schoolId),
+    families.forSchool(schoolId),
+  ])
+  const familyNames = new Map(
+    schoolFamilies.map((family) => [family.familyKey, family.displayName])
+  )
+
+  return skills.map((skill) => ({
+    id: skill.id,
+    sourceKey: skill.sourceKey,
+    familyKey: skill.family,
+    familyName: familyNames.get(skill.family) ?? skill.family,
+    name: skill.name,
+    description: skill.description,
+    passCriteria: skill.passCriteria,
+  }))
+}
 
 export default class SwimmingClassesController {
   /**
@@ -37,10 +66,12 @@ export default class SwimmingClassesController {
           .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
           .preload('invitation')
       )
-      .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
+      .preload('classSkills', (skillsQuery) =>
+        skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
+      )
       .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
-      .orderBy('weekday')
-      .orderBy('startTime')
+      .orderBy('levelStageId')
+      .orderBy('name')
 
     return inertia.render('classes/index', {
       classes: SwimmingClassTransformer.transform(classes),
@@ -59,13 +90,16 @@ export default class SwimmingClassesController {
     const school = await School.findOrFail(user.activeSchoolId!)
     const payload = await request.validateUsing(storeSwimmingClassesValidator)
 
-    const classes = await authoring.createMany(school, payload)
+    const swimmingClass = await authoring.createOne(school, payload)
 
     session.flash(
       'success',
-      classes.length === 1 ? 'Class created.' : `${classes.length} classes created.`
+      payload.inviteTeacherEmail ? 'Class created. Teacher invited.' : 'Class created.'
     )
-    return response.redirect().toRoute('programs.index')
+    if (payload.redirectTo === 'back') {
+      return response.redirect().back()
+    }
+    return response.redirect().toRoute('levels.show', { id: swimmingClass.levelId })
   }
 
   /**
@@ -88,7 +122,9 @@ export default class SwimmingClassesController {
           .preload('invitation')
       )
       .preload('classSkills', (skillsQuery) =>
-        skillsQuery.preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
+        skillsQuery
+          .preload('skillBankSkill')
+          .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
       )
       .preload('lessons', (lessonsQuery) =>
         lessonsQuery
@@ -101,19 +137,19 @@ export default class SwimmingClassesController {
           .orderBy('date')
       )
       .firstOrFail()
-    const curriculumSkills =
-      swimmingClass.classSkills.length > 0
-        ? swimmingClass.classSkills.flatMap((classSkill) =>
-            classSkill.levelStageSkill ? [classSkill.levelStageSkill] : []
-          )
-        : (swimmingClass.levelStage?.skills ?? [])
     const bank = await activityBank.forSchool(
       schoolId,
-      activityBank.scopeFromCurriculumSkills(
-        swimmingClass.levelId,
-        swimmingClass.levelStageId,
-        curriculumSkills
-      )
+      swimmingClass.classSkills.length > 0
+        ? activityBank.scopeFromClassSkills(
+            swimmingClass.levelId,
+            swimmingClass.levelStageId,
+            swimmingClass.classSkills
+          )
+        : activityBank.scopeFromCurriculumSkills(
+            swimmingClass.levelId,
+            swimmingClass.levelStageId,
+            swimmingClass.levelStage?.skills ?? []
+          )
     )
 
     return inertia.render('classes/show', {
@@ -125,7 +161,13 @@ export default class SwimmingClassesController {
   /**
    * Edit a class: schedule, name, location, and instructor
    */
-  async edit({ auth, inertia, params }: HttpContext) {
+  @inject()
+  async edit(
+    { auth, inertia, params }: HttpContext,
+    bank: SkillBankService,
+    families: SkillBankFamilyService,
+    packs: BankPackService
+  ) {
     const schoolId = auth.getUserOrFail().activeSchoolId!
     const swimmingClass = await SwimmingClass.query()
       .where('id', params.id)
@@ -138,7 +180,9 @@ export default class SwimmingClassesController {
           .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
           .preload('invitation')
       )
-      .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
+      .preload('classSkills', (skillsQuery) =>
+        skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
+      )
       .firstOrFail()
 
     // Stage and skill pickers need the level's curriculum tree.
@@ -188,6 +232,7 @@ export default class SwimmingClassesController {
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),
       termOptions: SwimYearTransformer.transform(termYears),
+      skillBankSkills: await classSkillOptions(schoolId, bank, families, packs),
     })
   }
 
@@ -209,7 +254,10 @@ export default class SwimmingClassesController {
     if (request.input('intent') === 'cancel') {
       await authoring.cancel(swimmingClass)
       session.flash('success', 'Class cancelled.')
-      return response.redirect().toRoute('swimming_classes.show', { id: swimmingClass.id })
+      if (request.input('redirectTo') === 'back') {
+        return response.redirect().back()
+      }
+      return response.redirect().toRoute('levels.show', { id: swimmingClass.levelId })
     }
 
     const payload = await request.validateUsing(updateSwimmingClassValidator)
@@ -219,6 +267,29 @@ export default class SwimmingClassesController {
       'success',
       payload.inviteTeacherEmail ? 'Class updated. Teacher invited.' : 'Class updated.'
     )
-    return response.redirect().toRoute('swimming_classes.show', { id: swimmingClass.id })
+    if (payload.redirectTo === 'back') {
+      return response.redirect().back()
+    }
+    return response.redirect().toRoute('levels.show', { id: swimmingClass.levelId })
+  }
+
+  /**
+   * Duplicate a class into the same stage
+   */
+  @inject()
+  async duplicate(
+    { auth, response, params, session }: HttpContext,
+    authoring: ClassSeriesAuthoringService
+  ) {
+    const user = auth.getUserOrFail()
+    const school = await School.findOrFail(user.activeSchoolId!)
+    const swimmingClass = await SwimmingClass.query()
+      .where('id', params.id)
+      .where('schoolId', school.id)
+      .firstOrFail()
+
+    const copy = await authoring.duplicate(swimmingClass, school)
+    session.flash('success', 'Class duplicated.')
+    return response.redirect().toRoute('levels.show', { id: copy.levelId })
   }
 }

@@ -59,11 +59,6 @@ function SectionHeading({
   )
 }
 
-function parseCount(value: string): number {
-  const count = Number(value)
-  return Number.isFinite(count) ? count : 0
-}
-
 function formatDraftAmount(value: string): string {
   const trimmed = value.trim()
   if (!trimmed) {
@@ -73,17 +68,6 @@ function formatDraftAmount(value: string): string {
   const [whole, decimal] = trimmed.split('.')
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   return decimal === undefined ? grouped : `${grouped}.${decimal}`
-}
-
-function classAllocation(level: LevelDraft) {
-  const total = parseCount(level.classesCount)
-  const used = level.stages.reduce((sum, stage) => sum + parseCount(stage.classesCount), 0)
-  return {
-    total,
-    used,
-    remaining: total - used,
-    balanced: level.stages.length === 0 || used === total,
-  }
 }
 
 export default function ProgramFormBody({ errors, initial, skillBankSkills = [] }: Props) {
@@ -226,7 +210,6 @@ export default function ProgramFormBody({ errors, initial, skillBankSkills = [] 
           </Card>
         ) : (
           levels.map((level, index) => {
-            const allocation = classAllocation(level)
             return (
               <Card key={index}>
                 <Stack gap="sm">
@@ -283,22 +266,6 @@ export default function ProgramFormBody({ errors, initial, skillBankSkills = [] 
                       <Badge variant="light" color="gray" size="sm">
                         {level.stages.length}
                       </Badge>
-                      {level.stages.length > 0 && (
-                        <Badge
-                          variant="light"
-                          color={allocation.balanced ? 'green' : 'red'}
-                          size="sm"
-                        >
-                          {allocation.used}/{allocation.total} classes
-                        </Badge>
-                      )}
-                      {level.stages.length > 0 && !allocation.balanced && (
-                        <Text c="red" size="xs" fw={600}>
-                          {allocation.remaining > 0
-                            ? `${allocation.remaining} unassigned`
-                            : `${Math.abs(allocation.remaining)} over`}
-                        </Text>
-                      )}
                     </Group>
                     <Button
                       type="button"

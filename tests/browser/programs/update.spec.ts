@@ -221,6 +221,36 @@ test.group('Programs update', (group) => {
     await db.assertCount('levels', 2)
   })
 
+  test('adds a level inline from the program show page', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    await browserContext.loginAs(await manager())
+    const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
+    await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
+
+    const page = await visit(route('programs.show', { id: program.id }))
+    await page.getByRole('button', { name: 'Add level' }).click()
+    await page.getByLabel('Level name').fill('Intermediate')
+    await page.getByLabel('From age').selectOption('8')
+    await page.getByLabel('To age').selectOption('12')
+    await page.getByLabel('Lessons required to complete this Level').fill('8')
+    await page.getByLabel('Fee (GHS)').fill('70')
+    await page.getByLabel('Level description').fill('Next level.')
+    await page.getByRole('button', { name: 'Save level' }).click()
+
+    await page.assertPath(route('programs.show', { id: program.id }))
+    await page.assertVisible('text=Program updated.')
+    await page.assertVisible(page.getByText('Intermediate'))
+    await db.assertHas('levels', {
+      program_id: program.id,
+      name: 'Intermediate',
+      default_fee: 7000,
+    })
+  })
+
   test('removes a level from a program', async ({ visit, route, browserContext, db }) => {
     await browserContext.loginAs(await manager())
     const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()

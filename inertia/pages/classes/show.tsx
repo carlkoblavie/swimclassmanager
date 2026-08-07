@@ -133,10 +133,10 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                 }}
               >
                 <Text fw={800} fz="md" lh={1}>
-                  {swimmingClass.weekdayName.slice(0, 3)}
+                  {(swimmingClass.weekdayName ?? 'TBD').slice(0, 3)}
                 </Text>
                 <Text fz={10} fw={700} tt="uppercase" lh={1} mt={3}>
-                  {swimmingClass.startTime.formatted}
+                  {swimmingClass.startTime?.formatted ?? '—'}
                 </Text>
               </Box>
               <div>
@@ -211,7 +211,9 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
             items={[
               {
                 label: 'Day & time',
-                value: `${swimmingClass.weekdayName} · ${swimmingClass.startTime.formatted}`,
+                value: swimmingClass.startTime
+                  ? `${swimmingClass.weekdayName} · ${swimmingClass.startTime.formatted}`
+                  : 'Not scheduled',
               },
               { label: 'Duration', value: `${swimmingClass.durationMinutes} min` },
               {
@@ -291,7 +293,8 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                     {lesson.date.formatted}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    {swimmingClass.startTime.formatted} · {swimmingClass.durationMinutes} min ·{' '}
+                    {swimmingClass.startTime ? `${swimmingClass.startTime.formatted} · ` : ''}
+                    {swimmingClass.durationMinutes} min ·{' '}
                     {plannedMinutes} planned
                   </Text>
                 </div>
@@ -506,8 +509,8 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
             ) : (
               <PlanLessonForm
                 classId={swimmingClass.id}
-                weekday={swimmingClass.weekday}
-                weekdayName={swimmingClass.weekdayName}
+                weekday={swimmingClass.weekday ?? 1}
+                weekdayName={swimmingClass.weekdayName ?? ''}
                 existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
                 skills={skillsForLessons}
                 activityBank={activityBank}

@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { Anchor, Badge, Button, Card, Container, Group, Stack, Text, Title } from '@mantine/core'
+import { IconPlus } from '@tabler/icons-react'
 import { Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
 import ClassCard from '~/components/class_card'
+import ProgramLevelAddForm from '~/components/program_level_add_form'
 
 type PageProps = InertiaProps<{
   program: Data.Program
@@ -14,6 +17,7 @@ type PageProps = InertiaProps<{
 
 export default function ProgramsShow({ program, classes }: PageProps) {
   const levels = program.levels ?? []
+  const [addingLevel, setAddingLevel] = useState(false)
 
   return (
     <Container size="lg" py="xl">
@@ -56,6 +60,36 @@ export default function ProgramsShow({ program, classes }: PageProps) {
             </Guard>
           </Group>
         </Stack>
+
+        <Group justify="space-between" align="center">
+          <Group gap="xs">
+            <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em">
+              Levels
+            </Text>
+            <Badge variant="light" color="gray" size="xs">
+              {levels.length}
+            </Badge>
+          </Group>
+          <Guard for="program.manage">
+            <Button
+              type="button"
+              variant="default"
+              size="xs"
+              leftSection={<IconPlus size={14} />}
+              onClick={() => setAddingLevel((current) => !current)}
+            >
+              {addingLevel ? 'Close form' : 'Add level'}
+            </Button>
+          </Guard>
+        </Group>
+
+        {addingLevel && (
+          <ProgramLevelAddForm
+            program={program}
+            onCancel={() => setAddingLevel(false)}
+            onSuccess={() => setAddingLevel(false)}
+          />
+        )}
 
         {levels.length === 0 ? (
           <Text c="dimmed">This program has no levels yet.</Text>

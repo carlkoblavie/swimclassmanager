@@ -39,12 +39,39 @@ async function stageSkillOptions(
     .filter((skill) => familyNames.has(skill.family))
     .map((skill) => ({
       id: skill.id,
+      sourceKey: skill.sourceKey,
       familyKey: skill.family,
       familyName: familyNames.get(skill.family)!,
       name: skill.name,
       description: skill.description,
       passCriteria: skill.passCriteria,
     }))
+}
+
+async function classSkillOptions(
+  schoolId: number,
+  bank: SkillBankService,
+  families: SkillBankFamilyService,
+  packs: BankPackService
+) {
+  await packs.syncEnabledPacks(schoolId)
+  const [skills, schoolFamilies] = await Promise.all([
+    bank.forSchool(schoolId),
+    families.forSchool(schoolId),
+  ])
+  const familyNames = new Map(
+    schoolFamilies.map((family) => [family.familyKey, family.displayName])
+  )
+
+  return skills.map((skill) => ({
+    id: skill.id,
+    sourceKey: skill.sourceKey,
+    familyKey: skill.family,
+    familyName: familyNames.get(skill.family) ?? skill.family,
+    name: skill.name,
+    description: skill.description,
+    passCriteria: skill.passCriteria,
+  }))
 }
 
 export default class ProgramsController {
@@ -66,6 +93,7 @@ export default class ProgramsController {
       .first()
     const access = membership ? await permissions.createAccessFor(membership) : undefined
     const canManage = access?.allows('program.manage') ?? false
+    const canViewClasses = access?.allows('class.view') ?? false
 
     const programs = await Program.query()
       .if(!canManage, (query) => query.withScopes((scopes) => scopes.active()))
@@ -82,6 +110,28 @@ export default class ProgramsController {
           .orderBy('id')
       )
       .orderBy('name')
+
+    const programIds = programs.map((program) => program.id)
+    const classes =
+      canViewClasses && programIds.length > 0
+        ? await SwimmingClass.query()
+            .where('schoolId', schoolId)
+            .whereHas('level', (levelQuery) => levelQuery.whereIn('programId', programIds))
+            .preload('level', (levelQuery) => levelQuery.preload('program'))
+            .preload('term', (termQuery) => termQuery.preload('swimYear'))
+            .preload('levelStage')
+            .preload('classInstructors', (instructorsQuery) =>
+              instructorsQuery
+                .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
+                .preload('invitation')
+            )
+            .preload('classSkills', (skillsQuery) =>
+              skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
+            )
+            .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
+            .orderBy('levelStageId')
+            .orderBy('name')
+        : []
 
     // Ongoing and upcoming swim years feed the class builder's term picker.
     const termYears = await SwimYear.query()
@@ -109,10 +159,11 @@ export default class ProgramsController {
 
     return inertia.render('programs/index', {
       programs: ProgramTransformer.transform(programs, schoolId),
+      classes: SwimmingClassTransformer.transform(classes),
       termOptions: SwimYearTransformer.transform(termYears),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),
-      skillBankSkills: await stageSkillOptions(schoolId, bank, families, packs),
+      skillBankSkills: await classSkillOptions(schoolId, bank, families, packs),
     })
   }
 
@@ -172,7 +223,9 @@ export default class ProgramsController {
               .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
               .preload('invitation')
           )
-          .preload('classSkills', (skillsQuery) => skillsQuery.preload('levelStageSkill'))
+          .preload('classSkills', (skillsQuery) =>
+            skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
+          )
           .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
           .orderBy('weekday')
           .orderBy('startTime')
@@ -260,6 +313,9 @@ export default class ProgramsController {
     await authoring.update(program, payload, user.activeSchoolId!)
 
     session.flash('success', 'Program updated.')
+    if (request.input('redirectTo') === 'back') {
+      return response.redirect().back()
+    }
     return response.redirect().toRoute('programs.index')
   }
 

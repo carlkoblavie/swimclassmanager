@@ -1,24 +1,15 @@
 import vine from '@vinejs/vine'
 import { LESSON_ACTIVITY_LEADER_VALUES } from '#values/lesson_activity_leader'
 
-const timeRule = () =>
-  vine
-    .string()
-    .trim()
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-
+// A class is now stage + skills + duration + instructors. It no longer carries
+// a weekday or start time — those are set later, when the class is scheduled.
 const classCurriculumFields = {
   levelStageId: vine.number().withoutDecimals().positive(),
   skillIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
 }
 
-const dayObject = {
-  weekday: vine.number().withoutDecimals().in([1, 2, 3, 4, 5, 6, 7]),
-  startTime: timeRule(),
-  durationMinutes: vine.number().withoutDecimals().positive(),
-  name: vine.string().trim().minLength(1).maxLength(120),
-  lessonDate: vine.date({ formats: ['YYYY-MM-DD'] }),
-  ...classCurriculumFields,
+const redirectFields = {
+  redirectTo: vine.enum(['back']).optional(),
 }
 
 const instructorFields = {
@@ -53,12 +44,16 @@ const instructorFields = {
     .optional(),
 }
 
+// Create a single class. Name is optional — a name is generated from the level
+// and stage when left blank.
 export const storeSwimmingClassesValidator = vine.create({
   levelId: vine.number().withoutDecimals().positive().exists({ table: 'levels', column: 'id' }),
   termId: vine.number().withoutDecimals().positive().exists({ table: 'terms', column: 'id' }),
-  // One instructor selection applies to every class created in the batch.
+  name: vine.string().trim().minLength(1).maxLength(120).optional(),
+  durationMinutes: vine.number().withoutDecimals().positive(),
+  ...classCurriculumFields,
   ...instructorFields,
-  days: vine.array(vine.object(dayObject)).notEmpty(),
+  ...redirectFields,
 })
 
 export const updateSwimmingClassValidator = vine.create({
@@ -69,13 +64,12 @@ export const updateSwimmingClassValidator = vine.create({
     .positive()
     .exists({ table: 'terms', column: 'id' })
     .optional(),
-  weekday: vine.number().withoutDecimals().in([1, 2, 3, 4, 5, 6, 7]),
-  startTime: timeRule(),
+  name: vine.string().trim().minLength(1).maxLength(120).optional(),
   durationMinutes: vine.number().withoutDecimals().positive(),
-  name: vine.string().trim().minLength(1).maxLength(120),
   location: vine.string().trim().maxLength(255).nullable().optional(),
-  ...instructorFields,
   ...classCurriculumFields,
+  ...instructorFields,
+  ...redirectFields,
 })
 
 export const storeClassLessonValidator = vine.create({

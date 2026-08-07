@@ -6,7 +6,7 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
-import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { seedRoles, joinSchool, seedCurriculum, seedBankSkill } from '#tests/helpers'
 import { LessonActivityLeader } from '#values/lesson_activity_leader'
 import { RoleName } from '#values/role'
 
@@ -15,6 +15,7 @@ async function setupClass() {
   const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
   await joinSchool(user, school, RoleName.ADMINISTRATOR)
   const curriculum = await seedCurriculum()
+  const bankSkill = await seedBankSkill(school.id, curriculum.skill)
   const swimmingClass = await SwimmingClassFactory.merge({
     schoolId: school.id,
     levelId: curriculum.level.id,
@@ -22,6 +23,7 @@ async function setupClass() {
   }).create()
   await ClassSkill.create({
     swimmingClassId: swimmingClass.id,
+    skillBankSkillId: bankSkill.id,
     levelStageSkillId: curriculum.skill.id,
   })
   return { user, school, swimmingClass, ...curriculum }

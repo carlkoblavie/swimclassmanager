@@ -4,7 +4,7 @@ import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import ClassSkill from '#models/class_skill'
-import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
+import { seedRoles, joinSchool, seedCurriculum, seedBankSkill } from '#tests/helpers'
 import { RoleName } from '#values/role'
 
 test.group('Swimming classes edit', (group) => {
@@ -24,6 +24,7 @@ test.group('Swimming classes edit', (group) => {
     const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
     await joinSchool(user, school, RoleName.ADMINISTRATOR)
     const { level, stage, skill } = await seedCurriculum()
+    const bankSkill = await seedBankSkill(school.id, skill)
     const swimmingClass = await SwimmingClassFactory.merge({
       schoolId: school.id,
       levelId: level.id,
@@ -35,7 +36,11 @@ test.group('Swimming classes edit', (group) => {
       durationMinutes: 45,
       location: 'Main Pool',
     }).create()
-    await ClassSkill.create({ swimmingClassId: swimmingClass.id, levelStageSkillId: skill.id })
+    await ClassSkill.create({
+      swimmingClassId: swimmingClass.id,
+      skillBankSkillId: bankSkill.id,
+      levelStageSkillId: skill.id,
+    })
     await browserContext.loginAs(user)
 
     const page = await visit(route('swimming_classes.edit', { id: swimmingClass.id }))

@@ -6,18 +6,20 @@ import type { InertiaProps } from '~/types'
 import { Guard } from '~/utils/permissions'
 import ProgramTable from '~/components/program_table'
 import StatCard from '~/components/stat_card'
-import type { SkillBankOption } from '~/components/stage_tree'
+import type { ClassSkillOption } from '~/components/class_form'
 
 type PageProps = InertiaProps<{
   programs: Data.Program[]
+  classes: Data.SwimmingClass[]
   termOptions: Data.SwimYear[]
   instructorOptions: Data.Membership[]
   pendingInstructorOptions: Data.Invitation[]
-  skillBankSkills: SkillBankOption[]
+  skillBankSkills: ClassSkillOption[]
 }>
 
 export default function ProgramsIndex({
   programs,
+  classes,
   termOptions,
   instructorOptions,
   pendingInstructorOptions,
@@ -67,10 +69,11 @@ export default function ProgramsIndex({
         ) : (
           <ProgramTable
             programs={programs}
-            skillOptions={skillBankSkills}
+            classes={classes}
             termOptions={termOptions}
             instructorOptions={instructorOptions}
             pendingInstructorOptions={pendingInstructorOptions}
+            skillOptions={skillBankSkills}
           />
         )}
       </Stack>

@@ -121,7 +121,7 @@ test.group('Programs store', (group) => {
     })
   })
 
-  test('rejects stage class allocations that do not match the level total', async ({
+  test('allows stage class totals to differ from the level class definition', async ({
     visit,
     route,
     browserContext,
@@ -154,9 +154,9 @@ test.group('Programs store', (group) => {
 
     await page.getByRole('button', { name: 'Save as draft' }).click()
 
-    await page.assertVisible('text=Stage classes for "Beginners" must add up to 10.')
-    await db.assertCount('programs', 0)
-    await db.assertCount('level_stages', 0)
+    await page.assertPath(route('programs.index'))
+    await db.assertHas('programs', { name: 'Learn to Swim' })
+    await db.assertCount('level_stages', 2)
   })
 
   test('rejects duplicate skill names within a stage', async ({ visit, route, browserContext }) => {

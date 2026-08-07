@@ -10,8 +10,10 @@ import type User from '#models/user'
 import LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import LevelStageSkill from '#models/level_stage_skill'
+import SkillBankSkill from '#models/skill_bank_skill'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { LevelFactory } from '#database/factories/level_factory'
+import { SkillBankFamilyKey } from '#values/skill_bank_family'
 
 /**
  * Idempotently ensure the default role catalog exists with each role's
@@ -118,4 +120,24 @@ export async function seedCurriculum(
   })
 
   return { program, level, stage, skill, activity }
+}
+
+export async function seedBankSkill(
+  schoolId: number,
+  skill: LevelStageSkill,
+  position = 1
+): Promise<SkillBankSkill> {
+  return SkillBankSkill.create({
+    schoolId,
+    sourceType: 'legacy',
+    sourceKey: `level_stage_skill:${skill.id}`,
+    sourceVersion: null,
+    family: SkillBankFamilyKey.WATER_COMFORT_ORIENTATION,
+    name: skill.name,
+    description: skill.description,
+    passCriteria: skill.passCriteria,
+    position,
+    isActive: true,
+    createdByUserId: null,
+  })
 }

@@ -396,6 +396,12 @@ const routes = {
     tokens: [{"old":"/classes/:id","type":0,"val":"classes","end":""},{"old":"/classes/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['swimming_classes.update']['types'],
   },
+  'swimming_classes.duplicate': {
+    methods: ["POST"],
+    pattern: '/classes/:id/duplicate',
+    tokens: [{"old":"/classes/:id/duplicate","type":0,"val":"classes","end":""},{"old":"/classes/:id/duplicate","type":1,"val":"id","end":""},{"old":"/classes/:id/duplicate","type":0,"val":"duplicate","end":""}],
+    types: placeholder as Registry['swimming_classes.duplicate']['types'],
+  },
   'class_lessons.store': {
     methods: ["POST"],
     pattern: '/classes/:id/lessons',

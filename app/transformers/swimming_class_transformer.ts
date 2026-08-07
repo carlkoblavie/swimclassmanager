@@ -112,11 +112,15 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         'weekday',
         'durationMinutes',
       ]),
-      weekdayName: WEEKDAY_NAMES[this.resource.weekday] ?? String(this.resource.weekday),
-      startTime: {
-        raw: this.resource.startTime,
-        formatted: formatTime(this.resource.startTime),
-      },
+      weekdayName: this.resource.weekday
+        ? (WEEKDAY_NAMES[this.resource.weekday] ?? String(this.resource.weekday))
+        : null,
+      startTime: this.resource.startTime
+        ? {
+            raw: this.resource.startTime,
+            formatted: formatTime(this.resource.startTime),
+          }
+        : null,
       isCancelled: this.resource.isCancelled,
       level: level
         ? {
@@ -169,7 +173,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       leadInstructor,
       supportingInstructors,
       skills: classSkills.flatMap((classSkill) => {
-        const skill = classSkill.levelStageSkill
+        const skill = classSkill.skillBankSkill ?? classSkill.levelStageSkill
         if (!skill) {
           return []
         }
@@ -178,10 +182,13 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             id: skill.id,
             name: skill.name,
             passCriteria: skill.passCriteria,
-            activities: (skill.activities ?? []).map((activity) => ({
-              id: activity.id,
-              name: activity.name,
-            })),
+            activities:
+              'activities' in skill && Array.isArray(skill.activities)
+                ? skill.activities.map((activity) => ({
+                    id: activity.id,
+                    name: activity.name,
+                  }))
+                : [],
           },
         ]
       }),

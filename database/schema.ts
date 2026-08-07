@@ -73,14 +73,16 @@ export class ClassLessonSchema extends BaseModel {
 }
 
 export class ClassSkillSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'levelStageSkillId', 'swimmingClassId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'id', 'levelStageSkillId', 'skillBankSkillId', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassSkillSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare levelStageSkillId: number
+  declare levelStageSkillId: number | null
+  @column()
+  declare skillBankSkillId: number
   @column()
   declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -785,13 +787,13 @@ export class SwimmingClassSchema extends BaseModel {
   @column()
   declare schoolId: number
   @column()
-  declare startTime: string
+  declare startTime: string | null
   @column()
   declare termId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
   @column()
-  declare weekday: number
+  declare weekday: number | null
 }
 
 export class TermPaymentSchema extends BaseModel {

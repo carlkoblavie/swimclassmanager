@@ -1,9 +1,12 @@
+import { useEffect, useRef, useState } from 'react'
 import {
+  ActionIcon,
   Anchor,
   Badge,
   Box,
   Button,
   Card,
+  Collapse,
   Container,
   Divider,
   Group,
@@ -11,18 +14,27 @@ import {
   Text,
   ThemeIcon,
   Title,
+  Tooltip,
 } from '@mantine/core'
-import { Link } from '@adonisjs/inertia/react'
+import { Form, Link } from '@adonisjs/inertia/react'
+import { IconChevronDown, IconCopy, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
-import ClassCard from '~/components/class_card'
+import ClassDuplicateForm from '~/components/class_duplicate_form'
+import ClassForm from '~/components/class_form'
+import type { ClassSkillOption } from '~/components/class_form'
 import MetaStrip from '~/components/meta_strip'
 
 type PageProps = InertiaProps<{
   level: Data.Level.Variants['forClassOption']
   classes: Data.SwimmingClass[]
+  canManageClasses: boolean
+  termOptions: Data.SwimYear[]
+  instructorOptions: Data.Membership[]
+  pendingInstructorOptions: Data.Invitation[]
+  skillBankSkills: ClassSkillOption[]
 }>
 
 const SKILL_DOT_COLORS = [
@@ -32,8 +44,55 @@ const SKILL_DOT_COLORS = [
   'var(--mantine-color-orange-5)',
 ]
 
-export default function LevelsShow({ level, classes }: PageProps) {
+function stripStageSuffix(name: string, stageName: string): string {
+  const suffix = ` · ${stageName}`
+  return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name
+}
+
+export default function LevelsShow({
+  level,
+  classes,
+  termOptions,
+  instructorOptions,
+  pendingInstructorOptions,
+  skillBankSkills,
+}: PageProps) {
   const skillCount = level.stages.reduce((total, stage) => total + stage.skills.length, 0)
+
+  // Group active classes by stage.
+  const activeClasses = classes.filter((swimmingClass) => !swimmingClass.isCancelled)
+  const classesByStage = new Map<number, Data.SwimmingClass[]>()
+  for (const swimmingClass of activeClasses) {
+    const list = classesByStage.get(swimmingClass.levelStageId) ?? []
+    list.push(swimmingClass)
+    classesByStage.set(swimmingClass.levelStageId, list)
+  }
+
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
+  const toggleStage = (stageId: number) =>
+    setCollapsed((current) => {
+      const next = new Set(current)
+      if (next.has(stageId)) next.delete(stageId)
+      else next.add(stageId)
+      return next
+    })
+
+  const [addStageId, setAddStageId] = useState<number | null>(null)
+  const [duplicateClassId, setDuplicateClassId] = useState<number | null>(null)
+  const addFormRef = useRef<HTMLDivElement>(null)
+  const duplicateFormRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (addStageId !== null) {
+      addFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [addStageId])
+
+  useEffect(() => {
+    if (duplicateClassId !== null) {
+      duplicateFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [duplicateClassId])
 
   return (
     <Container size="lg" py="xl">
@@ -107,7 +166,7 @@ export default function LevelsShow({ level, classes }: PageProps) {
               },
               { label: 'Your fee', value: level.fee.formatted },
               {
-                label: 'Classes to complete',
+                label: 'Total lessons',
                 value: typeof level.classesCount === 'number' ? level.classesCount : '—',
               },
               { label: 'Stages', value: level.stages.length },
@@ -116,101 +175,215 @@ export default function LevelsShow({ level, classes }: PageProps) {
           />
         </Card>
 
-        {/* Curriculum: skill cards grouped per stage */}
-        <Group justify="space-between" align="center">
-          <Title order={2} fz="lg">
-            Skills
-          </Title>
-          <Text size="sm" c="dimmed">
-            {skillCount} {skillCount === 1 ? 'skill' : 'skills'}
+        {/* Stages, each listing its classes */}
+        <Guard for="class.view">
+          <Text size="xs" tt="uppercase" c="dimmed" fw={700} mt="sm">
+            Stages
           </Text>
-        </Group>
 
-        {level.stages.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            No stages yet.
-          </Text>
-        ) : (
-          level.stages.map((stage) => (
-            <Stack key={stage.id} gap="sm">
-              <Group gap="sm">
-                <ThemeIcon variant="light" radius="xl" size="md">
-                  <Text size="xs" fw={700}>
-                    {stage.position}
-                  </Text>
-                </ThemeIcon>
-                <Box style={{ minWidth: 0, flex: 1 }}>
-                  <Text fw={700}>{stage.name}</Text>
-                  {stage.description && (
-                    <Text size="sm" c="dimmed">
-                      {stage.description}
-                    </Text>
-                  )}
-                </Box>
-                <Badge variant="light" color="gray" size="sm">
-                  {stage.code}
-                </Badge>
-                {typeof stage.classesCount === 'number' && (
-                  <Badge variant="light" color="blue" size="sm">
-                    {stage.classesCount} classes
-                  </Badge>
-                )}
-              </Group>
+          {level.stages.length === 0 ? (
+            <Text size="sm" c="dimmed">
+              No stages yet — add curriculum to the program first.
+            </Text>
+          ) : (
+            level.stages.map((stage) => {
+              const stageClasses = classesByStage.get(stage.id) ?? []
+              const isOpen = !collapsed.has(stage.id)
 
-              {stage.skills.length === 0 ? (
-                <Text size="sm" c="dimmed" pl={40}>
-                  No skills in this stage yet.
-                </Text>
-              ) : (
-                stage.skills.map((skill, skillIndex) => (
-                  <Card key={skill.id} padding={0}>
-                    <Stack gap={4} p="lg" pb="md">
-                      <Group gap="sm" wrap="wrap">
-                        <Box
-                          w={10}
-                          h={10}
+              return (
+                <Card key={stage.id} padding={0} withBorder>
+                  <Group justify="space-between" wrap="nowrap" p="md">
+                    <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                      <ThemeIcon variant="light" radius="xl" size="md">
+                        <Text size="xs" fw={700}>
+                          {stage.position}
+                        </Text>
+                      </ThemeIcon>
+                      <Box style={{ minWidth: 0 }}>
+                        <Text fw={700}>{stage.name}</Text>
+                        {stage.description && (
+                          <Text size="sm" c="dimmed">
+                            {stage.description}
+                          </Text>
+                        )}
+                      </Box>
+                    </Group>
+                    <Group gap="xs" wrap="nowrap">
+                      <Text size="xs" fw={700} c="dimmed">
+                        {stageClasses.length} {stageClasses.length === 1 ? 'CLASS' : 'CLASSES'}
+                      </Text>
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        aria-label={isOpen ? 'Collapse stage' : 'Expand stage'}
+                        onClick={() => toggleStage(stage.id)}
+                      >
+                        <IconChevronDown
+                          size={18}
                           style={{
-                            borderRadius: '50%',
-                            background: SKILL_DOT_COLORS[skillIndex % SKILL_DOT_COLORS.length],
-                            flexShrink: 0,
+                            transform: isOpen ? 'rotate(180deg)' : 'none',
+                            transition: 'transform 150ms ease',
                           }}
                         />
-                        <Text fw={800} c="aqua.8">
-                          {skill.name}
-                        </Text>
-                        <Badge variant="light" size="sm" ml="auto">
-                          Pass: {skill.passCriteria}
-                        </Badge>
-                      </Group>
-                      {skill.description && (
-                        <Text size="sm" c="dimmed" pl={22}>
-                          {skill.description}
+                      </ActionIcon>
+                    </Group>
+                  </Group>
+
+                  <Collapse expanded={isOpen}>
+                    <Divider />
+                    <Stack gap="sm" p="md">
+                      {stageClasses.length === 0 && addStageId !== stage.id && (
+                        <Text size="sm" c="dimmed">
+                          No classes in this stage yet.
                         </Text>
                       )}
-                    </Stack>
-                  </Card>
-                ))
-              )}
-            </Stack>
-          ))
-        )}
 
-        {/* Classes running this level */}
-        <Guard for="class.view">
-          <Stack gap="sm">
-            <Title order={2} fz="lg">
-              Classes
-            </Title>
-            {classes.length === 0 ? (
-              <Text size="sm" c="dimmed">
-                No classes for this level yet.
-              </Text>
-            ) : (
-              classes.map((swimmingClass) => (
-                <ClassCard key={swimmingClass.id} swimmingClass={swimmingClass} showLessons />
-              ))
-            )}
-          </Stack>
+                      {stageClasses.map((swimmingClass) => (
+                        <Stack key={swimmingClass.id} gap="sm">
+                          <Card withBorder shadow="none" padding="md">
+                            <Group justify="space-between" wrap="nowrap" align="flex-start">
+                              <Stack gap={8} style={{ minWidth: 0, flex: 1 }}>
+                                <Group gap="xs" wrap="wrap">
+                                  <Text fw={700}>
+                                    {stripStageSuffix(swimmingClass.name, stage.name)}
+                                  </Text>
+                                  <Badge variant="light" color="gray" size="sm">
+                                    {typeof swimmingClass.durationMinutes === 'number'
+                                      ? `${swimmingClass.durationMinutes} min`
+                                      : 'No duration'}
+                                  </Badge>
+                                </Group>
+                                {swimmingClass.skills.length > 0 && (
+                                  <Group gap="md" wrap="wrap">
+                                    {swimmingClass.skills.map((skill, skillIndex) => (
+                                      <Group key={skill.id} gap={6} wrap="nowrap">
+                                        <Box
+                                          w={8}
+                                          h={8}
+                                          style={{
+                                            borderRadius: '50%',
+                                            background:
+                                              SKILL_DOT_COLORS[
+                                                skillIndex % SKILL_DOT_COLORS.length
+                                              ],
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                        <Text size="sm">{skill.name}</Text>
+                                      </Group>
+                                    ))}
+                                  </Group>
+                                )}
+                              </Stack>
+                              <Guard for="class.manage">
+                                <Group gap={4} wrap="nowrap">
+                                  <Tooltip label="Edit">
+                                    <ActionIcon
+                                      component={Link}
+                                      href={urlFor('swimming_classes.edit', {
+                                        id: swimmingClass.id,
+                                      })}
+                                      variant="subtle"
+                                      color="gray"
+                                      aria-label="Edit class"
+                                    >
+                                      <IconPencil size={16} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                  <Tooltip label="Duplicate">
+                                    <ActionIcon
+                                      type="button"
+                                      variant="subtle"
+                                      color="gray"
+                                      aria-label="Duplicate class"
+                                      onClick={() => {
+                                        setAddStageId(null)
+                                        setDuplicateClassId((current) =>
+                                          current === swimmingClass.id ? null : swimmingClass.id
+                                        )
+                                      }}
+                                    >
+                                      <IconCopy size={16} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                  <Form
+                                    route="swimming_classes.update"
+                                    routeParams={{ id: swimmingClass.id }}
+                                  >
+                                    {({ processing }) => (
+                                      <>
+                                        <input type="hidden" name="intent" value="cancel" />
+                                        <input type="hidden" name="redirectTo" value="back" />
+                                        <Tooltip label="Cancel class">
+                                          <ActionIcon
+                                            type="submit"
+                                            loading={processing}
+                                            variant="subtle"
+                                            color="red"
+                                            aria-label="Cancel class"
+                                          >
+                                            <IconTrash size={16} />
+                                          </ActionIcon>
+                                        </Tooltip>
+                                      </>
+                                    )}
+                                  </Form>
+                                </Group>
+                              </Guard>
+                            </Group>
+                          </Card>
+                          {duplicateClassId === swimmingClass.id && (
+                            <Box ref={duplicateFormRef} style={{ scrollMarginTop: 84 }}>
+                              <ClassDuplicateForm
+                                sourceClass={swimmingClass}
+                                levels={[level]}
+                                termOptions={termOptions}
+                                instructorOptions={instructorOptions}
+                                pendingInstructorOptions={pendingInstructorOptions}
+                                skillOptions={skillBankSkills}
+                                redirectBack
+                                onCancel={() => setDuplicateClassId(null)}
+                                onSuccess={() => setDuplicateClassId(null)}
+                              />
+                            </Box>
+                          )}
+                        </Stack>
+                      ))}
+
+                      <Guard for="class.manage">
+                        {addStageId === stage.id ? (
+                          <Box ref={addFormRef} style={{ scrollMarginTop: 84 }}>
+                            <ClassForm
+                              key={stage.id}
+                              level={level}
+                              initialStageId={stage.id}
+                              termOptions={termOptions}
+                              instructorOptions={instructorOptions}
+                              pendingInstructorOptions={pendingInstructorOptions}
+                              skillOptions={skillBankSkills}
+                              onClose={() => setAddStageId(null)}
+                            />
+                          </Box>
+                        ) : (
+                          <Button
+                            variant="light"
+                            leftSection={<IconPlus size={14} />}
+                            onClick={() => {
+                              setDuplicateClassId(null)
+                              setAddStageId(stage.id)
+                            }}
+                            style={{ alignSelf: 'flex-start' }}
+                          >
+                            Add class
+                          </Button>
+                        )}
+                      </Guard>
+                    </Stack>
+                  </Collapse>
+                </Card>
+              )
+            })
+          )}
         </Guard>
       </Stack>
     </Container>

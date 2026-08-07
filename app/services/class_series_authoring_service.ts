@@ -14,6 +14,7 @@ import Membership from '#models/membership'
 import Role from '#models/role'
 import SchoolActivity from '#models/school_activity'
 import SchoolActivityCategory from '#models/school_activity_category'
+import SkillBankSkill from '#models/skill_bank_skill'
 import type School from '#models/school'
 import SwimmingClass from '#models/swimming_class'
 import ClassInstructor from '#models/class_instructor'
@@ -44,8 +45,6 @@ function uniqueNumbers(values: number[]): number[] {
   return [...new Set(values)]
 }
 
-type DayInput = StoreSwimmingClassesInput['days'][number]
-
 type InstructorSelection = Pick<
   UpdateSwimmingClassInput,
   | 'leadInstructorMembershipId'
@@ -75,6 +74,10 @@ type ResolvedInstructors = {
 type CurriculumSelection = {
   stage: LevelStage
   skillIds: number[]
+  skills: {
+    skillBankSkillId: number
+    levelStageSkillId: number | null
+  }[]
 }
 
 type SchoolLessonActivitySelection = {
@@ -91,62 +94,130 @@ type CustomSchoolActivitySelection = {
 
 export default class ClassSeriesAuthoringService {
   /**
-   * Create one class per submitted day under an available level. Each class
-   * carries its stage and skills; its first dated lesson is created empty of
-   * activities, which are planned lesson by lesson.
+   * Create a single class under an available level. The class carries its
+   * stage, skills, and a lesson duration; scheduling (days, times, and the
+   * dated lessons) happens later, separately.
    */
-  async createMany(school: School, data: StoreSwimmingClassesInput): Promise<SwimmingClass[]> {
+  async createOne(school: School, data: StoreSwimmingClassesInput): Promise<SwimmingClass> {
     return db.transaction(async (trx) => {
       const level = await this.loadAvailableLevel(school, data.levelId, trx)
       const term = await this.loadTerm(school, data.termId, trx)
       const instructors = await this.resolveInstructors(school, data, trx)
 
-      this.assertUniqueWithinPayload(data.days)
-      for (const day of data.days) {
-        await this.assertNameAvailable(school, day.name, trx)
-      }
+      const selection = await this.resolveClassCurriculum(school, level, data, trx)
+      const name = data.name?.trim() || this.generatedClassName(level, selection.stage)
+      await this.assertNameAvailable(school, name, trx)
 
       const existingCodes = (await SwimmingClass.query({ client: trx }).select('code')).map(
         (row) => row.code
       )
+      const code = classCode(selection.stage.code, nextTierNumber(existingCodes, 'class'))
 
-      const classes: SwimmingClass[] = []
-      for (const day of data.days) {
-        if (day.lessonDate.weekday !== day.weekday) {
-          throw new ClassAuthoringException('The first lesson must fall on the class day.')
-        }
-        this.assertDateWithinTerm(day.lessonDate, term)
-        const selection = this.resolveClassCurriculum(level, day)
-        const code = classCode(selection.stage.code, nextTierNumber(existingCodes, 'class'))
-        existingCodes.push(code)
-
-        const swimmingClass = new SwimmingClass()
-        swimmingClass.useTransaction(trx)
-        swimmingClass.merge({
-          schoolId: school.id,
-          levelId: level.id,
-          levelStageId: selection.stage.id,
-          termId: term.id,
-          name: day.name,
-          code,
-          weekday: day.weekday,
-          startTime: day.startTime,
-          durationMinutes: day.durationMinutes,
-          location: null,
-        })
-        await swimmingClass.save()
-        await this.syncInstructors(swimmingClass, instructors, trx)
-        await swimmingClass
-          .related('classSkills')
-          .createMany(selection.skillIds.map((levelStageSkillId) => ({ levelStageSkillId })))
-        await swimmingClass.related('lessons').create({ date: day.lessonDate })
-        classes.push(swimmingClass)
-      }
+      const swimmingClass = new SwimmingClass()
+      swimmingClass.useTransaction(trx)
+      swimmingClass.merge({
+        schoolId: school.id,
+        levelId: level.id,
+        levelStageId: selection.stage.id,
+        termId: term.id,
+        name,
+        code,
+        durationMinutes: data.durationMinutes,
+        location: null,
+      })
+      await swimmingClass.save()
+      await this.syncInstructors(swimmingClass, instructors, trx)
+      await swimmingClass.related('classSkills').createMany(selection.skills)
 
       this.queueInvitationMail(instructors, school, trx)
 
-      return classes
+      return swimmingClass
     })
+  }
+
+  /**
+   * Duplicate a class into the same stage, copying its skills and instructors.
+   * The copy gets its own code and a distinct name.
+   */
+  async duplicate(swimmingClass: SwimmingClass, school: School): Promise<SwimmingClass> {
+    return db.transaction(async (trx) => {
+      const level = await this.loadAvailableLevel(school, swimmingClass.levelId, trx)
+      const stage = level.stages.find((candidate) => candidate.id === swimmingClass.levelStageId)
+      if (!stage) {
+        throw new ClassAuthoringException('This class’s stage no longer exists.')
+      }
+
+      const sourceSkills = await ClassSkill.query({ client: trx }).where(
+        'swimmingClassId',
+        swimmingClass.id
+      )
+      const sourceInstructors = await ClassInstructor.query({ client: trx }).where(
+        'swimmingClassId',
+        swimmingClass.id
+      )
+
+      const name = await this.availableCopyName(school, `${swimmingClass.name} (copy)`, trx)
+      const existingCodes = (await SwimmingClass.query({ client: trx }).select('code')).map(
+        (row) => row.code
+      )
+      const code = classCode(stage.code, nextTierNumber(existingCodes, 'class'))
+
+      const copy = new SwimmingClass()
+      copy.useTransaction(trx)
+      copy.merge({
+        schoolId: school.id,
+        levelId: swimmingClass.levelId,
+        levelStageId: swimmingClass.levelStageId,
+        termId: swimmingClass.termId,
+        name,
+        code,
+        durationMinutes: swimmingClass.durationMinutes,
+        location: swimmingClass.location,
+      })
+      await copy.save()
+
+      if (sourceSkills.length > 0) {
+        await copy.related('classSkills').createMany(
+          sourceSkills.map((skill) => ({
+            skillBankSkillId: skill.skillBankSkillId,
+            levelStageSkillId: skill.levelStageSkillId,
+          }))
+        )
+      }
+      if (sourceInstructors.length > 0) {
+        await copy.related('classInstructors').createMany(
+          sourceInstructors.map((instructor) => ({
+            role: instructor.role,
+            membershipId: instructor.membershipId,
+            invitationId: instructor.invitationId,
+          }))
+        )
+      }
+
+      return copy
+    })
+  }
+
+  protected generatedClassName(level: Level, stage: LevelStage): string {
+    return `${level.name} · ${stage.name}`
+  }
+
+  protected async availableCopyName(
+    school: School,
+    base: string,
+    trx: TransactionClientContract
+  ): Promise<string> {
+    let name = base
+    let suffix = 2
+    while (
+      await SwimmingClass.query({ client: trx })
+        .where('schoolId', school.id)
+        .whereRaw('lower(name) = ?', [name.trim().toLowerCase()])
+        .first()
+    ) {
+      name = `${base} ${suffix++}`
+    }
+    return name
   }
 
   /**
@@ -162,8 +233,9 @@ export default class ClassSeriesAuthoringService {
     return db.transaction(async (trx) => {
       const level = await this.loadAvailableLevel(school, swimmingClass.levelId, trx)
 
-      await this.assertNameAvailable(school, data.name, trx, swimmingClass.id)
-      const selection = this.resolveClassCurriculum(level, data)
+      const selection = await this.resolveClassCurriculum(school, level, data, trx)
+      const name = data.name?.trim() || this.generatedClassName(level, selection.stage)
+      await this.assertNameAvailable(school, name, trx, swimmingClass.id)
       const instructors = await this.resolveInstructors(school, data, trx)
 
       let termId = swimmingClass.termId
@@ -187,10 +259,8 @@ export default class ClassSeriesAuthoringService {
       swimmingClass.merge({
         levelStageId: selection.stage.id,
         termId,
-        name: data.name,
+        name,
         code,
-        weekday: data.weekday,
-        startTime: data.startTime,
         durationMinutes: data.durationMinutes,
         location: data.location ?? null,
       })
@@ -199,9 +269,7 @@ export default class ClassSeriesAuthoringService {
       await this.syncInstructors(swimmingClass, instructors, trx)
 
       await ClassSkill.query({ client: trx }).where('swimmingClassId', swimmingClass.id).delete()
-      await swimmingClass
-        .related('classSkills')
-        .createMany(selection.skillIds.map((levelStageSkillId) => ({ levelStageSkillId })))
+      await swimmingClass.related('classSkills').createMany(selection.skills)
 
       this.queueInvitationMail(instructors, school, trx)
 
@@ -260,7 +328,11 @@ export default class ClassSeriesAuthoringService {
         .where('swimmingClassId', swimmingClass.id)
         .orderBy('date', 'desc')
         .first()
-      const date = this.nextLessonDate(swimmingClass.weekday, latest?.date ?? null)
+      const weekday = swimmingClass.weekday
+      if (weekday === null) {
+        throw new ClassAuthoringException('Set this class’s schedule before planning lessons.')
+      }
+      const date = this.nextLessonDate(weekday, latest?.date ?? null)
 
       if (swimmingClass.termId) {
         const term = await Term.findOrFail(swimmingClass.termId, { client: trx })
@@ -624,24 +696,55 @@ export default class ClassSeriesAuthoringService {
     return level
   }
 
-  protected resolveClassCurriculum(
+  protected async resolveClassCurriculum(
+    school: School,
     level: Level,
-    selection: Pick<DayInput, 'levelStageId' | 'skillIds'>
-  ): CurriculumSelection {
+    selection: { levelStageId: number; skillIds?: number[] },
+    trx: TransactionClientContract
+  ): Promise<CurriculumSelection> {
     const stage = level.stages.find((candidate) => candidate.id === selection.levelStageId)
     if (!stage) {
       throw new ClassAuthoringException('Choose a stage from this level.')
     }
 
-    const stageSkillIds = new Set(stage.skills.map((skill) => skill.id))
     const skillIds = uniqueNumbers(selection.skillIds ?? [])
-    for (const skillId of skillIds) {
-      if (!stageSkillIds.has(skillId)) {
-        throw new ClassAuthoringException('A selected skill does not belong to this stage.')
-      }
+    if (skillIds.length === 0) {
+      return { stage, skillIds, skills: [] }
     }
 
-    return { stage, skillIds }
+    const bankSkills = await SkillBankSkill.query({ client: trx })
+      .whereIn('id', skillIds)
+      .where('isActive', true)
+      .where((query) => query.whereNull('schoolId').orWhere('schoolId', school.id))
+
+    if (bankSkills.length !== skillIds.length) {
+      throw new ClassAuthoringException('A selected skill is not available in the skill bank.')
+    }
+
+    const stageSkillIds = new Set(stage.skills.map((skill) => skill.id))
+    const stageSkillByName = new Map(
+      stage.skills.map((skill) => [skill.name.trim().toLowerCase(), skill.id])
+    )
+
+    return {
+      stage,
+      skillIds,
+      skills: skillIds.map((skillId) => {
+        const skill = bankSkills.find((candidate) => candidate.id === skillId)!
+        const sourceStageSkillId = skill.sourceKey?.startsWith('level_stage_skill:')
+          ? Number(skill.sourceKey.split(':')[1])
+          : null
+        const matchedStageSkillId =
+          sourceStageSkillId && stageSkillIds.has(sourceStageSkillId)
+            ? sourceStageSkillId
+            : (stageSkillByName.get(skill.name.trim().toLowerCase()) ?? null)
+
+        return {
+          skillBankSkillId: skill.id,
+          levelStageSkillId: matchedStageSkillId,
+        }
+      }),
+    }
   }
 
   protected async assertLessonActivitiesCovered(
@@ -661,21 +764,18 @@ export default class ClassSeriesAuthoringService {
       return
     }
 
+    const selectedLegacySkillIds = selection.skills.flatMap((skill) =>
+      skill.levelStageSkillId ? [skill.levelStageSkillId] : []
+    )
+
     const allowed = await LevelStageActivity.query({ client: trx })
       .whereIn('id', uniqueNumbers(usedActivityIds))
-      .whereIn('levelStageSkillId', selection.skillIds)
+      .whereIn('levelStageSkillId', selectedLegacySkillIds)
 
     if (allowed.length !== uniqueNumbers(usedActivityIds).length) {
       throw new ClassAuthoringException(
         'Lessons use activities outside the selected skills; adjust the lessons first.'
       )
-    }
-  }
-
-  protected assertUniqueWithinPayload(days: DayInput[]): void {
-    const names = days.map((day) => day.name.trim().toLowerCase())
-    if (new Set(names).size !== names.length) {
-      throw new ClassAuthoringException('A class with this name already exists.')
     }
   }
 

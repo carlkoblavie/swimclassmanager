@@ -29,8 +29,9 @@ export default function ClassCard({
             )}
           </Group>
           <Text size="sm">
-            {swimmingClass.weekdayName} · {swimmingClass.startTime.formatted} ·{' '}
-            {swimmingClass.durationMinutes} min
+            {typeof swimmingClass.durationMinutes === 'number'
+              ? `${swimmingClass.durationMinutes} min`
+              : 'Duration not set'}
           </Text>
           <Text size="sm" c="dimmed">
             {swimmingClass.level?.programName} — {swimmingClass.level?.name}
