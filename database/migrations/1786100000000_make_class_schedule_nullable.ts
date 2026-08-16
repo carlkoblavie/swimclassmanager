@@ -7,20 +7,15 @@ export default class extends BaseSchema {
   // skills + stage + duration. Scheduling (days/times) happens later, per lesson.
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.setNullable('start_time')
-      table.setNullable('weekday')
+      table.string('start_time').nullable().alter()
+      table.integer('weekday').nullable().alter()
     })
   }
 
   async down() {
-    this.defer(async (db) => {
-      await db.from(this.tableName).whereNull('start_time').update({ start_time: '09:00' })
-      await db.from(this.tableName).whereNull('weekday').update({ weekday: 1 })
-    })
-
     this.schema.alterTable(this.tableName, (table) => {
-      table.dropNullable('start_time')
-      table.dropNullable('weekday')
+      table.string('start_time').notNullable().alter()
+      table.integer('weekday').notNullable().defaultTo(1).alter()
     })
   }
 }
