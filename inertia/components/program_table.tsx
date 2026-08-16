@@ -454,7 +454,7 @@ function LevelCard({
         {typeof level.classesCount === 'number' && (
           <Text span size="sm" fw={600} c="dimmed">
             {' '}
-            · {level.classesCount} classes
+            · {level.classesCount} Lessons
           </Text>
         )}
       </Text>
