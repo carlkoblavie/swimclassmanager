@@ -5,6 +5,8 @@ import Membership from '#models/membership'
 import School from '#models/school'
 import type Invitation from '#models/invitation'
 
+const INVITED_USER_DEFAULT_PASSWORD = 'Password123'
+
 export default class InvitationAcceptanceService {
   /**
    * Accept an invitation: find-or-create the user by email, join them to the
@@ -13,7 +15,34 @@ export default class InvitationAcceptanceService {
    */
   async accept(invitation: Invitation): Promise<User> {
     return db.transaction(async (trx) => {
-      const user = await User.firstOrCreate({ email: invitation.email }, {}, { client: trx })
+      const user = await User.firstOrCreate(
+        { email: invitation.email },
+        {
+          fullName: invitation.inviteeFullName,
+          phone: invitation.inviteePhone,
+          password: INVITED_USER_DEFAULT_PASSWORD,
+          mustChangePassword: true,
+        },
+        { client: trx }
+      )
+
+      if (!user.isProfileComplete) {
+        let profileChanged = false
+
+        if (!user.fullName && invitation.inviteeFullName) {
+          user.fullName = invitation.inviteeFullName
+          profileChanged = true
+        }
+        if (!user.phone && invitation.inviteePhone) {
+          user.phone = invitation.inviteePhone
+          profileChanged = true
+        }
+
+        if (profileChanged) {
+          user.useTransaction(trx)
+          await user.save()
+        }
+      }
 
       const membership = await Membership.firstOrCreate(
         { schoolId: invitation.schoolId, userId: user.id },

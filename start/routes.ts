@@ -22,8 +22,7 @@ router
   .as('landing')
 
 router
-  .on('/dashboard')
-  .renderInertia('home', {})
+  .get('/dashboard', [controllers.Home, 'index'])
   .use(middleware.auth())
   .use(middleware.forcePasswordChange())
   .use(middleware.completeProfile())
@@ -69,6 +68,7 @@ router
 
 router
   .group(() => {
+    router.get('members', [controllers.Members, 'index']).as('members.index')
     router.get('invitations/create', [controllers.Invitations, 'create'])
     router.post('invitations', [controllers.Invitations, 'store'])
   })
@@ -141,6 +141,29 @@ router
   .use(middleware.completeProfile())
   .use(middleware.activeSchool())
   .use(middleware.authorize('signup.view'))
+
+// Learner placement into active classes.
+router
+  .group(() => {
+    router.get('enrolment', [controllers.Enrolments, 'index']).as('enrolment.index')
+    router
+      .get('learners/:id', [controllers.Learners, 'show'])
+      .as('learners.show')
+      .where('id', router.matchers.number())
+    router
+      .post('enrolment/place', [controllers.Enrolments, 'place'])
+      .as('enrolment.place')
+      .use(middleware.authorize('enrolment.place'))
+    router
+      .post('enrolment/withdraw', [controllers.Enrolments, 'withdraw'])
+      .as('enrolment.withdraw')
+      .use(middleware.authorize('enrolment.withdraw'))
+  })
+  .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
+  .use(middleware.completeProfile())
+  .use(middleware.activeSchool())
+  .use(middleware.authorize('enrolment.view'))
 
 // Swim programs — shared catalog (all members view; Admin/Head Coach manage)
 // plus each school's per-level fee/availability settings.
@@ -243,13 +266,49 @@ router
       .post('classes/:id/lessons', [controllers.ClassLessons, 'store'])
       .as('class_lessons.store')
       .where('id', router.matchers.number())
-      .use(middleware.authorize('class.manage'))
+      .use(middleware.authorize('lesson.generate'))
+
+    router
+      .get('lessons', [controllers.LessonSchedules, 'index'])
+      .as('lessons.index')
+      .use(middleware.authorize('class.view'))
+
+    router
+      .post('lessons', [controllers.LessonSchedules, 'store'])
+      .as('lessons.store')
+      .use(middleware.authorize('lesson.generate'))
 
     router
       .patch('class-lessons/:id', [controllers.ClassLessons, 'update'])
       .as('class_lessons.update')
       .where('id', router.matchers.number())
-      .use(middleware.authorize('class.manage'))
+      .use(middleware.authorize('lesson.edit'))
+
+    router
+      .patch('class-lessons/:id/activities', [controllers.ClassLessons, 'updateActivities'])
+      .as('class_lessons.activities_update')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('lesson.activities.manage'))
+
+    router
+      .post('class-lessons/:id/copy-activities', [controllers.ClassLessons, 'copyActivities'])
+      .as('class_lessons.copy_activities')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('lesson.activities.manage'))
+
+    router
+      .patch('class-lessons/:id/instructors', [controllers.ClassLessons, 'assignInstructors'])
+      .as('class_lessons.assign_instructors')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('lesson.instructors.manage'))
+
+    router
+      .post('class-lessons/bulk-assign-instructors', [
+        controllers.ClassLessons,
+        'bulkAssignInstructors',
+      ])
+      .as('class_lessons.bulk_assign_instructors')
+      .use(middleware.authorize('lesson.instructors.bulk_manage'))
 
     router
       .delete('class-lessons/:id', [controllers.ClassLessons, 'destroy'])

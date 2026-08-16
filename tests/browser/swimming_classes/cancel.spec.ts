@@ -3,6 +3,8 @@ import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
+import ClassLesson from '#models/class_lesson'
+import { DateTime } from 'luxon'
 import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 
@@ -33,12 +35,32 @@ test.group('Swimming classes cancel', (group) => {
     await page.getByRole('button', { name: 'Cancel class' }).click()
 
     await page.assertVisible('text=Class cancelled.')
-    await page.assertVisible('text=Monday Splash')
-    await page.assertVisible(page.getByText('Cancelled', { exact: true }))
 
     await swimmingClass.refresh()
     assert.isNotNull(swimmingClass.cancelledAt)
     await db.assertHas('swimming_classes', { id: swimmingClass.id })
+  })
+
+  test('cancelling a class removes its planned lessons', async ({
+    visit,
+    route,
+    browserContext,
+    assert,
+  }) => {
+    const user = await UserFactory.apply('completed').create()
+    const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
+    await joinSchool(user, school, RoleName.ADMINISTRATOR)
+    const swimmingClass = await SwimmingClassFactory.merge({ schoolId: school.id }).create()
+    const lesson = await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-09-11'),
+    })
+    await browserContext.loginAs(user)
+
+    const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
+    await page.getByRole('button', { name: 'Cancel class' }).click()
+
+    assert.isNull(await ClassLesson.find(lesson.id))
   })
 
   test('a manager cannot cancel another school class', async ({

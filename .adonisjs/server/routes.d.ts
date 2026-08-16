@@ -20,6 +20,7 @@ export type ScannedRoutes = {
     'schools.create': { paramsTuple?: []; params?: {} }
     'schools.store': { paramsTuple?: []; params?: {} }
     'active_schools.update': { paramsTuple?: []; params?: {} }
+    'members.index': { paramsTuple?: []; params?: {} }
     'invitations.create': { paramsTuple?: []; params?: {} }
     'invitations.store': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
@@ -33,6 +34,10 @@ export type ScannedRoutes = {
     'paystack_webhooks.store': { paramsTuple?: []; params?: {} }
     'signups.index': { paramsTuple?: []; params?: {} }
     'signups.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'enrolment.index': { paramsTuple?: []; params?: {} }
+    'learners.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'enrolment.place': { paramsTuple?: []; params?: {} }
+    'enrolment.withdraw': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
@@ -71,7 +76,13 @@ export type ScannedRoutes = {
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.duplicate': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'lessons.index': { paramsTuple?: []; params?: {} }
+    'lessons.store': { paramsTuple?: []; params?: {} }
     'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.activities_update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.copy_activities': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.assign_instructors': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.bulk_assign_instructors': { paramsTuple?: []; params?: {} }
     'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
@@ -83,6 +94,7 @@ export type ScannedRoutes = {
     'accounts.edit': { paramsTuple?: []; params?: {} }
     'account_passwords.edit': { paramsTuple?: []; params?: {} }
     'schools.create': { paramsTuple?: []; params?: {} }
+    'members.index': { paramsTuple?: []; params?: {} }
     'invitations.create': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
@@ -90,6 +102,8 @@ export type ScannedRoutes = {
     'customer_purchases.verify': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
+    'enrolment.index': { paramsTuple?: []; params?: {} }
+    'learners.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -102,6 +116,7 @@ export type ScannedRoutes = {
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'lessons.index': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
     'landing': { paramsTuple?: []; params?: {} }
@@ -112,6 +127,7 @@ export type ScannedRoutes = {
     'accounts.edit': { paramsTuple?: []; params?: {} }
     'account_passwords.edit': { paramsTuple?: []; params?: {} }
     'schools.create': { paramsTuple?: []; params?: {} }
+    'members.index': { paramsTuple?: []; params?: {} }
     'invitations.create': { paramsTuple?: []; params?: {} }
     'memberships.store': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'signups.create': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
@@ -119,6 +135,8 @@ export type ScannedRoutes = {
     'customer_purchases.verify': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'customer_plans.show': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue,'programId': ParamValue} }
     'signups.index': { paramsTuple?: []; params?: {} }
+    'enrolment.index': { paramsTuple?: []; params?: {} }
+    'learners.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -131,6 +149,7 @@ export type ScannedRoutes = {
     'swimming_classes.index': { paramsTuple?: []; params?: {} }
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'lessons.index': { paramsTuple?: []; params?: {} }
   }
   POST: {
     'sessions.store': { paramsTuple?: []; params?: {} }
@@ -143,6 +162,8 @@ export type ScannedRoutes = {
     'customer_purchases.store': { paramsTuple: [ParamValue,ParamValue]; params: {'organisationSlug': ParamValue,'schoolSlug': ParamValue} }
     'api.accounts.store': { paramsTuple?: []; params?: {} }
     'paystack_webhooks.store': { paramsTuple?: []; params?: {} }
+    'enrolment.place': { paramsTuple?: []; params?: {} }
+    'enrolment.withdraw': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
     'swim_years.store': { paramsTuple?: []; params?: {} }
     'school_age_groups.store': { paramsTuple?: []; params?: {} }
@@ -152,6 +173,9 @@ export type ScannedRoutes = {
     'swimming_classes.store': { paramsTuple?: []; params?: {} }
     'swimming_classes.duplicate': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'lessons.store': { paramsTuple?: []; params?: {} }
+    'class_lessons.copy_activities': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.bulk_assign_instructors': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }
@@ -169,6 +193,8 @@ export type ScannedRoutes = {
     'activity_bank_categories.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.activities_update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.assign_instructors': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PUT: {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

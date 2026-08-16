@@ -6,6 +6,7 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
+import LessonActivity from '#models/lesson_activity'
 import { seedRoles, joinSchool, seedCurriculum, seedBankSkill } from '#tests/helpers'
 import { LessonActivityLeader } from '#values/lesson_activity_leader'
 import { RoleName } from '#values/role'
@@ -36,6 +37,68 @@ test.group('Class lessons', (group) => {
     return truncate
   })
 
+  test('copies activities into selected empty lessons', async ({
+    visit,
+    route,
+    browserContext,
+    db,
+  }) => {
+    const { user, swimmingClass, activity } = await setupClass()
+    const sourceLesson = await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-07-13'),
+    })
+    const emptyLesson = await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-07-20'),
+    })
+    const occupiedLesson = await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-07-27'),
+    })
+    await LessonActivity.create({
+      classLessonId: sourceLesson.id,
+      levelStageActivityId: activity.id,
+      activityName: activity.name,
+      categoryName: 'Core Skills',
+      activityDescription: 'Rotate smoothly through the movement.',
+      successCue: 'Smooth circles both directions',
+      durationMinutes: 12,
+      ledBy: LessonActivityLeader.MIXED,
+      position: 1,
+    })
+    await LessonActivity.create({
+      classLessonId: occupiedLesson.id,
+      levelStageActivityId: activity.id,
+      position: 1,
+    })
+    await browserContext.loginAs(user)
+
+    const page = await visit(`${route('lessons.index')}?classId=${swimmingClass.id}`)
+
+    await page.getByRole('button', { name: 'Copy activities from Monday 13 Jul 2026' }).click()
+    await page.assertVisible('text=Copy 1 activity into other lessons')
+    await page.assertVisible(page.getByText('Empty', { exact: true }))
+    await page.assertNotExists('text=Monday 27 Jul 2026')
+    await page.assertElementsCount('input[type="checkbox"]', 1)
+    await page.getByRole('checkbox').first().check()
+    await page.getByRole('button', { name: 'Copy activities', exact: true }).click()
+
+    await page.assertVisible('text=Activities copied into 1 lesson.')
+    await page.assertNotExists('text=Copy 1 activity into other lessons')
+    await db.assertHas('lesson_activities', {
+      class_lesson_id: emptyLesson.id,
+      level_stage_activity_id: activity.id,
+      activity_name: activity.name,
+      category_name: 'Core Skills',
+      activity_description: 'Rotate smoothly through the movement.',
+      success_cue: 'Smooth circles both directions',
+      duration_minutes: 12,
+      led_by: LessonActivityLeader.MIXED,
+      position: 1,
+    })
+  })
+
   test('a manager plans a lesson with its activities', async ({
     visit,
     route,
@@ -59,6 +122,12 @@ test.group('Class lessons', (group) => {
     await page.getByRole('button', { name: 'Plan next lesson' }).click()
 
     await page.assertVisible('text=Lesson planned.')
+    const plannedLesson = await ClassLesson.query()
+      .where('swimmingClassId', swimmingClass.id)
+      .orderBy('id', 'desc')
+      .firstOrFail()
+    await page.assertPath(route('swimming_classes.show', { id: swimmingClass.id }))
+    await page.assertQueryString({ lessonId: String(plannedLesson.id) })
     await page.assertVisible('text=Focus on slow, relaxed rotation.')
     await db.assertHas('class_lessons', {
       swimming_class_id: swimmingClass.id,
@@ -168,6 +237,84 @@ test.group('Class lessons', (group) => {
     assert.equal(lessons[1].date.toISODate(), anchor.plus({ days: 7 }).toISODate())
   })
 
+  test('lesson numbers continue across month groups', async ({ visit, route, browserContext }) => {
+    const { user, swimmingClass } = await setupClass()
+    await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-06-29'),
+    })
+    await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-07-06'),
+    })
+    await browserContext.loginAs(user)
+
+    const page = await visit(`${route('lessons.index')}?classId=${swimmingClass.id}`)
+
+    await page.assertVisible(page.getByText('02', { exact: true }))
+  })
+
+  test('keeps planned lessons available from the lessons page', async ({
+    visit,
+    route,
+    browserContext,
+  }) => {
+    const { user, swimmingClass, activity } = await setupClass()
+    const lesson = await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-07-13'),
+    })
+    await LessonActivity.create({ classLessonId: lesson.id, levelStageActivityId: activity.id })
+    await browserContext.loginAs(user)
+
+    const page = await visit(`${route('lessons.index')}?classId=${swimmingClass.id}`)
+
+    await page.assertVisible(page.getByRole('button', { name: 'View lesson', exact: true }))
+    await page.assertNotExists('text=1 activity')
+  })
+
+  test('applies date and activity filters to the lesson list', async ({
+    visit,
+    route,
+    browserContext,
+  }) => {
+    const { user, swimmingClass, activity } = await setupClass()
+    const plannedLesson = await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-07-13'),
+    })
+    await LessonActivity.create({
+      classLessonId: plannedLesson.id,
+      levelStageActivityId: activity.id,
+    })
+    await ClassLesson.create({
+      swimmingClassId: swimmingClass.id,
+      date: DateTime.fromISO('2026-08-10'),
+    })
+    await browserContext.loginAs(user)
+
+    const page = await visit(route('lessons.index'))
+    await page.assertVisible('text=Monday 10 Aug')
+    await page.assertNotExists(page.getByRole('button', { name: 'Generate lessons' }))
+    await page.getByLabel('From date').fill('2026-08-01')
+    await page.getByLabel('To date').fill('2026-08-31')
+    await page.getByLabel('Activity status').selectOption('without-activities')
+    await page.getByRole('button', { name: 'Apply filters' }).click()
+
+    await page.assertVisible('text=Monday 10 Aug')
+    await page.assertNotExists('text=Monday 13 Jul')
+  })
+
+  test('opens lesson generation from a class context', async ({ visit, route, browserContext }) => {
+    const { user, swimmingClass } = await setupClass()
+    await browserContext.loginAs(user)
+
+    const page = await visit(`${route('lessons.index')}?classId=${swimmingClass.id}&generate=1`)
+
+    await page.assertVisible(page.getByText('Date range', { exact: true }))
+    await page.assertVisible(page.getByRole('button', { name: 'Generate lessons' }))
+  })
+
   test('a manager edits a lesson to add activities and notes', async ({
     visit,
     route,
@@ -184,9 +331,12 @@ test.group('Class lessons', (group) => {
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
     await page.getByRole('button', { name: 'Edit lesson Monday 13 Jul 2026' }).click()
+    await page.assertVisible(page.getByText('#1', { exact: true }))
     await page.assertVisible(page.getByText('Stage skills').first())
     await page.assertNotExists(page.getByRole('button', { name: 'Plan next lesson' }))
     await page.assertVisible(page.getByText('Hip rotation').first())
+    await page.assertVisible('text=Pass')
+    await page.assertVisible('text=Smooth circles both directions')
     await page.getByLabel('Lesson objectives').first().fill('Recover to the wall after floating.')
     await page.getByRole('button', { name: 'Add to Warm Up' }).first().click()
     await page.getByRole('button', { name: 'Add', exact: true }).first().click()

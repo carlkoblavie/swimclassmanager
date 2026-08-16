@@ -1,6 +1,5 @@
 import { Form } from '@adonisjs/inertia/react'
 import {
-  Avatar,
   Badge,
   Box,
   Button,
@@ -10,10 +9,14 @@ import {
   Drawer,
   Group,
   Indicator,
+  Modal,
   NativeSelect,
+  NumberInput,
+  Select,
   SegmentedControl,
   SimpleGrid,
   Stack,
+  ScrollArea,
   Text,
   TextInput,
   Title,
@@ -45,26 +48,16 @@ const STATUS_OPTIONS = [
   { value: 'pending_invoice', label: 'Invoice pending' },
   { value: 'invoice_sent', label: 'Invoice sent' },
   { value: 'paid', label: 'Paid' },
+  { value: 'part_paid', label: 'Part paid' },
   { value: 'closed', label: 'Closed' },
 ]
-
-function initials(first: string, last: string) {
-  return `${first.slice(0, 1)}${last.slice(0, 1)}`.toUpperCase()
-}
-
-function nameInitials(name: string) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
 
 function statusMeta(status: BillingStatus): { color: string; label: string } {
   switch (status) {
     case 'paid':
       return { color: 'green', label: 'Paid' }
+    case 'part_paid':
+      return { color: 'yellow', label: 'Part paid' }
     case 'invoice_sent':
       return { color: 'blue', label: 'Invoice sent' }
     case 'pending_invoice':
@@ -122,8 +115,7 @@ function parseMessage(message: string | null) {
     program: grab(/program\s*:\s*(.+)/i),
     level: grab(/level\s*:\s*(.+)/i),
     terms: grab(/terms?\s*:\s*(\d+)/i),
-    total:
-      grab(/estimated checkout total\s*:\s*(.+)/i) ?? grab(/fee per learner[^:]*:\s*(.+)/i),
+    total: grab(/estimated checkout total\s*:\s*(.+)/i) ?? grab(/fee per learner[^:]*:\s*(.+)/i),
   }
 }
 
@@ -254,9 +246,7 @@ function programAndLevel(learner: Learner | null, parsed: ParsedMessage) {
 
 function totalLine(signup: Signup, parsed: ParsedMessage) {
   const total = signup.billing.totalAmount?.formatted ?? parsed.total ?? '—'
-  const terms = parsed.terms
-    ? `${parsed.terms} term${parsed.terms === '1' ? '' : 's'}`
-    : null
+  const terms = parsed.terms ? `${parsed.terms} term${parsed.terms === '1' ? '' : 's'}` : null
   return { total, sub: terms ?? signup.billing.invoiceReference ?? 'No invoice yet' }
 }
 
@@ -329,6 +319,15 @@ function SignupAction({
   )
 }
 
+function paymentOptions(signup: Signup) {
+  return signup.learners
+    .filter((learner) => learner.termPayments.some((payment) => payment.balance.raw > 0))
+    .map((learner) => ({
+      value: String(learner.id),
+      label: `${learner.firstName} ${learner.lastName}`,
+    }))
+}
+
 function DetailField({ label, value }: { label: string; value: string | null }) {
   return (
     <Box
@@ -362,193 +361,341 @@ function SignupDrawer({
   const display = signup ? deriveDisplay(signup) : null
   const programme = signup ? programAndLevel(primaryLearner ?? null, display!.parsed) : null
   const totals = signup ? totalLine(signup, display!.parsed) : null
+  const [partPaymentOpened, setPartPaymentOpened] = useState(false)
+  const [paymentLearnerId, setPaymentLearnerId] = useState<string | null>(null)
+  const [paymentTermId, setPaymentTermId] = useState<string | null>(null)
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>('')
+
+  const paymentLearner = signup?.learners.find((learner) => String(learner.id) === paymentLearnerId)
+  const paymentEligibleLearners =
+    signup?.learners.filter((learner) =>
+      learner.termPayments.some((payment) => payment.balance.raw > 0)
+    ) ?? []
+  const paymentTerms =
+    paymentLearner?.termPayments.filter((payment) => payment.balance.raw > 0) ?? []
+  const selectedTermPayment = paymentTerms.find(
+    (payment) => String(payment.termId) === paymentTermId
+  )
+
+  function openPartPayment() {
+    if (!signup) {
+      return
+    }
+
+    const learner =
+      paymentEligibleLearners[0] ??
+      signup.learners.find((candidate) => candidate.termPayments.length > 0) ??
+      signup.learners[0]
+    if (!learner) {
+      setPartPaymentOpened(true)
+      return
+    }
+    const termPayment =
+      learner.termPayments.find((payment) => payment.balance.raw > 0) ?? learner.termPayments[0]
+    setPaymentLearnerId(String(learner.id))
+    setPaymentTermId(termPayment ? String(termPayment.termId) : null)
+    setPaymentAmount('')
+    setPartPaymentOpened(true)
+  }
 
   return (
-    <Drawer opened={opened} onClose={onClose} position="right" size={520} padding="lg" title={null}>
-      {signup && display && (
-        <Stack gap="lg">
-          <Stack gap={4}>
-            <Group gap="xs">
-              <StatusPill status={signup.billing.status} />
-              {signup.billing.invoiceReference && (
+    <>
+      <Drawer
+        opened={opened}
+        onClose={onClose}
+        position="right"
+        size={520}
+        padding="lg"
+        title={null}
+        scrollAreaComponent={ScrollArea.Autosize}
+      >
+        {signup && display && (
+          <Stack gap="lg">
+            <Stack gap={4}>
+              <Group gap="xs">
+                <StatusPill status={signup.billing.status} />
+                {signup.billing.invoiceReference && (
+                  <Text size="xs" c="dimmed">
+                    {signup.billing.invoiceReference}
+                  </Text>
+                )}
                 <Text size="xs" c="dimmed">
-                  {signup.billing.invoiceReference}
+                  {signupReference(signup)}
                 </Text>
-              )}
-              <Text size="xs" c="dimmed">
-                {signupReference(signup)}
+              </Group>
+              <Title order={2} fz="h3">
+                {primaryLearner
+                  ? `${primaryLearner.firstName} ${primaryLearner.lastName}`
+                  : display.contactName}
+              </Title>
+              <Text size="sm" c="dimmed">
+                Submitted {signup.createdAt.formatted}
+                {signup.billing.invoiceSentAt
+                  ? ` · invoice sent ${signup.billing.invoiceSentAt.formatted}`
+                  : ''}
+                {signup.billing.paidAt ? ` · paid ${signup.billing.paidAt.formatted}` : ''}
+                {signup.billing.closedAt ? ` · closed ${signup.billing.closedAt.formatted}` : ''}
               </Text>
-            </Group>
-            <Title order={2} fz="h3">
-              {primaryLearner
-                ? `${primaryLearner.firstName} ${primaryLearner.lastName}`
-                : display.contactName}
-            </Title>
-            <Text size="sm" c="dimmed">
-              Submitted {signup.createdAt.formatted}
-              {signup.billing.invoiceSentAt
-                ? ` · invoice sent ${signup.billing.invoiceSentAt.formatted}`
-                : ''}
-              {signup.billing.paidAt ? ` · paid ${signup.billing.paidAt.formatted}` : ''}
-              {signup.billing.closedAt ? ` · closed ${signup.billing.closedAt.formatted}` : ''}
-            </Text>
-          </Stack>
+            </Stack>
 
-          <Card withBorder radius="md" padding="md" bg="aqua.0">
-            <Stack gap="sm">
-              <Group justify="space-between" align="flex-start">
-                <div>
-                  <Text fw={800}>{programme?.program}</Text>
-                  <Group gap="xs" mt={4}>
-                    {programme?.level && (
-                      <Badge variant="light" color="aqua" radius="sm">
-                        {programme.level}
-                      </Badge>
-                    )}
+            <Card withBorder radius="md" padding="md" bg="aqua.0">
+              <Stack gap="sm">
+                <Group justify="space-between" align="flex-start">
+                  <div>
+                    <Text fw={800}>{programme?.program}</Text>
+                    <Group gap="xs" mt={4}>
+                      {programme?.level && (
+                        <Badge variant="light" color="aqua" radius="sm">
+                          {programme.level}
+                        </Badge>
+                      )}
+                      <Text size="sm" c="dimmed">
+                        {signup.learners.length}{' '}
+                        {signup.learners.length === 1 ? 'learner' : 'learners'}
+                        {display.parsed.terms
+                          ? ` · ${display.parsed.terms} term${display.parsed.terms === '1' ? '' : 's'}`
+                          : ''}
+                      </Text>
+                    </Group>
+                  </div>
+                  <Text fw={800}>{totals?.total}</Text>
+                </Group>
+
+                {signup.billing.items.map((item) => (
+                  <Group key={item.id} justify="space-between">
                     <Text size="sm" c="dimmed">
-                      {signup.learners.length}{' '}
-                      {signup.learners.length === 1 ? 'learner' : 'learners'}
-                      {display.parsed.terms
-                        ? ` · ${display.parsed.terms} term${display.parsed.terms === '1' ? '' : 's'}`
-                        : ''}
+                      {item.levelName}
+                    </Text>
+                    <Text size="sm" fw={700}>
+                      {item.amount.formatted}
                     </Text>
                   </Group>
-                </div>
-                <Text fw={800}>{totals?.total}</Text>
-              </Group>
+                ))}
 
-              {signup.billing.items.map((item) => (
-                <Group key={item.id} justify="space-between">
-                  <Text size="sm" c="dimmed">
-                    {item.levelName}
-                  </Text>
-                  <Text size="sm" fw={700}>
-                    {item.amount.formatted}
+                <Divider />
+                <Group justify="space-between">
+                  <Text fw={800}>{isEnquiry ? 'Estimated total' : 'Invoice total'}</Text>
+                  <Text fw={900} size="lg">
+                    {totals?.total}
                   </Text>
                 </Group>
-              ))}
-
-              <Divider />
-              <Group justify="space-between">
-                <Text fw={800}>{isEnquiry ? 'Estimated total' : 'Invoice total'}</Text>
-                <Text fw={900} size="lg">
-                  {totals?.total}
-                </Text>
-              </Group>
-            </Stack>
-          </Card>
-
-          {(signup.billing.canMarkInvoiceSent ||
-            signup.billing.canMarkPaid ||
-            signup.billing.canCloseEnquiry ||
-            signup.billing.canReopenEnquiry) && (
-            <Card withBorder radius="md" padding="md">
-              <Group grow>
-                {signup.billing.canMarkInvoiceSent && (
-                  <SignupAction signup={signup} intent="invoice_sent" variant="default">
-                    Invoice sent
-                  </SignupAction>
-                )}
-                {signup.billing.canMarkPaid && (
-                  <SignupAction signup={signup} intent="mark_paid">
-                    Mark as paid
-                  </SignupAction>
-                )}
-                {signup.billing.canCloseEnquiry && (
-                  <SignupAction signup={signup} intent="close_enquiry" variant="default">
-                    Close enquiry
-                  </SignupAction>
-                )}
-                {signup.billing.canReopenEnquiry && (
-                  <SignupAction signup={signup} intent="reopen_enquiry">
-                    Reopen enquiry
-                  </SignupAction>
-                )}
-              </Group>
+              </Stack>
             </Card>
-          )}
 
-          {signup.learners.length > 0 && (
+            {(signup.billing.canMarkInvoiceSent ||
+              signup.billing.canMarkPaid ||
+              signup.billing.canCloseEnquiry ||
+              signup.billing.canReopenEnquiry) && (
+              <Card withBorder radius="md" padding="md">
+                <Group grow>
+                  {signup.billing.canMarkInvoiceSent && (
+                    <SignupAction signup={signup} intent="invoice_sent" variant="default">
+                      Invoice sent
+                    </SignupAction>
+                  )}
+                  {signup.billing.canMarkPaid && (
+                    <SignupAction signup={signup} intent="mark_paid">
+                      Mark as paid
+                    </SignupAction>
+                  )}
+                  {signup.billing.canRecordPartPayment && (
+                    <Button type="button" variant="default" onClick={openPartPayment} fullWidth>
+                      Record part payment
+                    </Button>
+                  )}
+                  {signup.billing.canCloseEnquiry && (
+                    <SignupAction signup={signup} intent="close_enquiry" variant="default">
+                      Close enquiry
+                    </SignupAction>
+                  )}
+                  {signup.billing.canReopenEnquiry && (
+                    <SignupAction signup={signup} intent="reopen_enquiry">
+                      Reopen enquiry
+                    </SignupAction>
+                  )}
+                </Group>
+              </Card>
+            )}
+
+            {signup.learners.length > 0 && (
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <Text size="xs" tt="uppercase" fw={800} c="dimmed">
+                    Learner details
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {signup.learners.length} total
+                  </Text>
+                </Group>
+                {signup.learners.map((learner) => (
+                  <Card key={learner.id} withBorder radius="md" padding="md">
+                    <Stack gap="sm">
+                      <Group justify="space-between" align="flex-start">
+                        <div>
+                          <Text fw={800}>
+                            {learner.firstName} {learner.lastName}
+                          </Text>
+                          <Text size="sm" c="dimmed">
+                            Age {learner.age} · {learner.gender}
+                          </Text>
+                        </div>
+                        {learner.purchaseItem && (
+                          <Badge variant="light" color="aqua">
+                            {learner.purchaseItem.levelName}
+                          </Badge>
+                        )}
+                      </Group>
+                      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                        <DetailField label="Date of birth" value={learner.dateOfBirth.formatted} />
+                        <DetailField label="Relationship" value={relationLabel(learner.relation)} />
+                        <DetailField label="Nationality" value={learner.nationality} />
+                        <DetailField
+                          label="Residential location"
+                          value={learner.residentialLocation}
+                        />
+                        <DetailField label="Medical information" value={learner.medicalInfo} />
+                      </SimpleGrid>
+                      <DetailField label="Swimming experience" value={learner.swimmingExperience} />
+                    </Stack>
+                  </Card>
+                ))}
+              </Stack>
+            )}
+
             <Stack gap="sm">
               <Group justify="space-between">
                 <Text size="xs" tt="uppercase" fw={800} c="dimmed">
-                  Learner details
+                  {isEnquiry ? 'Contact details' : 'Registered by'}
                 </Text>
-                <Text size="xs" c="dimmed">
-                  {signup.learners.length} total
-                </Text>
+                <Badge variant="light" color={roleColor(display.audience)} radius="sm">
+                  {display.roleLabel}
+                </Badge>
               </Group>
-              {signup.learners.map((learner) => (
-                <Card key={learner.id} withBorder radius="md" padding="md">
-                  <Stack gap="sm">
-                    <Group justify="space-between" align="flex-start">
-                      <div>
-                        <Text fw={800}>
-                          {learner.firstName} {learner.lastName}
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                          Age {learner.age} · {learner.gender}
-                        </Text>
-                      </div>
-                      {learner.purchaseItem && (
-                        <Badge variant="light" color="aqua">
-                          {learner.purchaseItem.levelName}
-                        </Badge>
-                      )}
-                    </Group>
-                    <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                      <DetailField label="Date of birth" value={learner.dateOfBirth.formatted} />
-                      <DetailField label="Relationship" value={relationLabel(learner.relation)} />
-                      <DetailField label="Nationality" value={learner.nationality} />
-                      <DetailField
-                        label="Residential location"
-                        value={learner.residentialLocation}
-                      />
-                      <DetailField label="Medical information" value={learner.medicalInfo} />
-                    </SimpleGrid>
-                    <DetailField label="Swimming experience" value={learner.swimmingExperience} />
-                  </Stack>
-                </Card>
-              ))}
+              <Card withBorder radius="md" padding="md">
+                <Stack gap="sm">
+                  <Group gap="sm">
+                    <div>
+                      <Text fw={800}>{display.contactName}</Text>
+                      <Text size="sm" c="dimmed">
+                        {display.roleLabel}
+                      </Text>
+                    </div>
+                  </Group>
+                  <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                    <DetailField label="Email" value={signup.contactEmail} />
+                    <DetailField label="Phone" value={signup.contactPhone} />
+                    <DetailField label="WhatsApp" value={signup.whatsapp} />
+                    {messageNote(signup.message) && (
+                      <DetailField label="Note" value={messageNote(signup.message)} />
+                    )}
+                  </SimpleGrid>
+                </Stack>
+              </Card>
             </Stack>
-          )}
-
-          <Stack gap="sm">
-            <Group justify="space-between">
-              <Text size="xs" tt="uppercase" fw={800} c="dimmed">
-                {isEnquiry ? 'Contact details' : 'Registered by'}
-              </Text>
-              <Badge variant="light" color={roleColor(display.audience)} radius="sm">
-                {display.roleLabel}
-              </Badge>
-            </Group>
-            <Card withBorder radius="md" padding="md">
-              <Stack gap="sm">
-                <Group gap="sm">
-                  <Avatar radius="md" color={roleColor(display.audience)}>
-                    {nameInitials(display.contactName)}
-                  </Avatar>
-                  <div>
-                    <Text fw={800}>{display.contactName}</Text>
-                    <Text size="sm" c="dimmed">
-                      {display.roleLabel}
-                    </Text>
-                  </div>
-                </Group>
-                <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                  <DetailField label="Email" value={signup.contactEmail} />
-                  <DetailField label="Phone" value={signup.contactPhone} />
-                  <DetailField label="WhatsApp" value={signup.whatsapp} />
-                  {messageNote(signup.message) && (
-                    <DetailField label="Note" value={messageNote(signup.message)} />
-                  )}
-                </SimpleGrid>
-              </Stack>
-            </Card>
           </Stack>
-        </Stack>
+        )}
+      </Drawer>
+      {signup && (
+        <Modal
+          opened={partPaymentOpened}
+          onClose={() => setPartPaymentOpened(false)}
+          title="Record part payment"
+          centered
+          withinPortal
+          zIndex={2000}
+        >
+          <Form
+            route="signups.update"
+            routeParams={{ id: signup.id }}
+            onSuccess={() => setPartPaymentOpened(false)}
+          >
+            {({ processing }) => (
+              <Stack gap="md">
+                <input type="hidden" name="intent" value="record_part_payment" />
+                <input type="hidden" name="learnerId" value={paymentLearnerId ?? ''} />
+                <input type="hidden" name="termId" value={paymentTermId ?? ''} />
+                <input type="hidden" name="amount" value={paymentAmount} />
+                <Select
+                  label="Learner"
+                  value={paymentLearnerId}
+                  onChange={(value) => {
+                    setPaymentLearnerId(value)
+                    const learner = signup.learners.find(
+                      (candidate) => String(candidate.id) === value
+                    )
+                    const firstOutstanding = learner?.termPayments.find(
+                      (payment) => payment.balance.raw > 0
+                    )
+                    setPaymentTermId(firstOutstanding ? String(firstOutstanding.termId) : null)
+                    setPaymentAmount('')
+                  }}
+                  data={paymentOptions(signup)}
+                  searchable={signup.learners.length > 6}
+                  required
+                />
+                <Select
+                  label="Term"
+                  value={paymentTermId}
+                  onChange={(value) => {
+                    setPaymentTermId(value)
+                    setPaymentAmount('')
+                  }}
+                  data={paymentTerms.map((payment) => ({
+                    value: String(payment.termId),
+                    label: `${payment.termName} · ${payment.balance.formatted} remaining`,
+                  }))}
+                  placeholder="Select a term"
+                  required
+                />
+                {selectedTermPayment && (
+                  <Text size="sm" c="dimmed">
+                    Paid {selectedTermPayment.amountPaid.formatted} of{' '}
+                    {selectedTermPayment.amount.formatted}. Maximum payment:{' '}
+                    {selectedTermPayment.balance.formatted}.
+                  </Text>
+                )}
+                <NumberInput
+                  label="Amount received"
+                  placeholder="0.00"
+                  prefix="GHS "
+                  min={0.01}
+                  max={
+                    selectedTermPayment?.balance.raw
+                      ? selectedTermPayment.balance.raw / 100
+                      : undefined
+                  }
+                  decimalScale={2}
+                  fixedDecimalScale
+                  value={paymentAmount}
+                  onChange={(value) => {
+                    if (value === '') {
+                      setPaymentAmount('')
+                      return
+                    }
+
+                    const numericValue = typeof value === 'number' ? value : Number(value)
+                    setPaymentAmount(Number.isFinite(numericValue) ? numericValue : '')
+                  }}
+                  required
+                />
+                <Group justify="flex-end">
+                  <Button variant="default" onClick={() => setPartPaymentOpened(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    loading={processing}
+                    disabled={!paymentLearnerId || !paymentTermId || paymentAmount === ''}
+                  >
+                    Record payment
+                  </Button>
+                </Group>
+              </Stack>
+            )}
+          </Form>
+        </Modal>
       )}
-    </Drawer>
+    </>
   )
 }
 
@@ -690,7 +837,9 @@ export default function SignupsIndex({ signups }: PageProps) {
           <NativeSelect
             w={{ base: '100%', sm: 180 }}
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.currentTarget.value as BillingStatus | typeof ALL)}
+            onChange={(event) =>
+              setStatusFilter(event.currentTarget.value as BillingStatus | typeof ALL)
+            }
             data={STATUS_OPTIONS}
           />
         </Group>
@@ -746,20 +895,11 @@ export default function SignupsIndex({ signups }: PageProps) {
                   >
                     <SimpleGrid cols={{ base: 1, md: 5 }} spacing="sm" verticalSpacing="xs">
                       <Group gap="sm" wrap="nowrap">
-                        <Indicator
-                          color="orange"
-                          size={10}
-                          offset={4}
-                          disabled={!flagged}
-                          withBorder
-                          label=""
-                        >
-                          <Avatar radius="md" color={learner ? 'aqua' : roleColor(display.audience)}>
-                            {learner
-                              ? initials(learner.firstName, learner.lastName)
-                              : nameInitials(display.contactName)}
-                          </Avatar>
-                        </Indicator>
+                        {flagged && (
+                          <Indicator color="orange" size={10} offset={4} withBorder label="">
+                            <Box w={8} h={8} />
+                          </Indicator>
+                        )}
                         <div>
                           <Text fw={700}>
                             {learner

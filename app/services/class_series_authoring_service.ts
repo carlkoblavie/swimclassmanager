@@ -21,6 +21,7 @@ import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
+import LessonInstructor from '#models/lesson_instructor'
 import Term from '#models/term'
 import {
   ClassInstructorRole,
@@ -31,11 +32,17 @@ import { RoleName } from '#values/role'
 import { classCode, codeSegment, nextTierNumber } from '#values/account_code'
 import {
   type StoreClassLessonInput,
+  type GenerateClassLessonsInput,
   type StoreSwimmingClassesInput,
   type UpdateSwimmingClassInput,
+  type UpdateLessonActivitiesInput,
 } from '#validators/swimming_class'
 
-const INSTRUCTOR_ROLE_NAMES = [RoleName.TEACHER, RoleName.HEAD_COACH] as string[]
+const INSTRUCTOR_ROLE_NAMES = [
+  RoleName.TEACHER,
+  RoleName.ASSISTANT_COACH,
+  RoleName.HEAD_COACH,
+] as string[]
 
 function hasInstructorRole(membership: Membership): boolean {
   return membership.roles.some((role) => INSTRUCTOR_ROLE_NAMES.includes(role.name))
@@ -43,6 +50,11 @@ function hasInstructorRole(membership: Membership): boolean {
 
 function uniqueNumbers(values: number[]): number[] {
   return [...new Set(values)]
+}
+
+function serializeEquipment(values: string[] | undefined): string | null {
+  const equipment = [...new Set((values ?? []).map((value) => value.trim()).filter(Boolean))]
+  return equipment.length > 0 ? JSON.stringify(equipment) : null
 }
 
 type InstructorSelection = Pick<
@@ -58,7 +70,10 @@ type InstructorSelection = Pick<
   | 'inviteTeacherLastName'
   | 'inviteTeacherPhone'
   | 'inviteTeacherCertifications'
->
+> & {
+  date?: DateTime
+  durationMinutes?: number
+}
 
 type InstructorAssignment = {
   role: ClassInstructorRoleValue
@@ -106,11 +121,10 @@ export default class ClassSeriesAuthoringService {
 
       const selection = await this.resolveClassCurriculum(school, level, data, trx)
       const name = data.name?.trim() || this.generatedClassName(level, selection.stage)
-      await this.assertNameAvailable(school, name, trx)
+      await this.assertNameAvailable(school, name, selection.stage.id, trx)
 
-      const existingCodes = (await SwimmingClass.query({ client: trx }).select('code')).map(
-        (row) => row.code
-      )
+      const existingCodeRows = await SwimmingClass.query({ client: trx }).select('code')
+      const existingCodes = existingCodeRows.map((row) => row.code)
       const code = classCode(selection.stage.code, nextTierNumber(existingCodes, 'class'))
 
       const swimmingClass = new SwimmingClass()
@@ -156,10 +170,14 @@ export default class ClassSeriesAuthoringService {
         swimmingClass.id
       )
 
-      const name = await this.availableCopyName(school, `${swimmingClass.name} (copy)`, trx)
-      const existingCodes = (await SwimmingClass.query({ client: trx }).select('code')).map(
-        (row) => row.code
+      const name = await this.availableCopyName(
+        school,
+        `${swimmingClass.name} (copy)`,
+        swimmingClass.levelStageId,
+        trx
       )
+      const existingCodeRows = await SwimmingClass.query({ client: trx }).select('code')
+      const existingCodes = existingCodeRows.map((row) => row.code)
       const code = classCode(stage.code, nextTierNumber(existingCodes, 'class'))
 
       const copy = new SwimmingClass()
@@ -205,6 +223,7 @@ export default class ClassSeriesAuthoringService {
   protected async availableCopyName(
     school: School,
     base: string,
+    levelStageId: number,
     trx: TransactionClientContract
   ): Promise<string> {
     let name = base
@@ -212,6 +231,7 @@ export default class ClassSeriesAuthoringService {
     while (
       await SwimmingClass.query({ client: trx })
         .where('schoolId', school.id)
+        .where('levelStageId', levelStageId)
         .whereRaw('lower(name) = ?', [name.trim().toLowerCase()])
         .first()
     ) {
@@ -235,7 +255,7 @@ export default class ClassSeriesAuthoringService {
 
       const selection = await this.resolveClassCurriculum(school, level, data, trx)
       const name = data.name?.trim() || this.generatedClassName(level, selection.stage)
-      await this.assertNameAvailable(school, name, trx, swimmingClass.id)
+      await this.assertNameAvailable(school, name, selection.stage.id, trx, swimmingClass.id)
       const instructors = await this.resolveInstructors(school, data, trx)
 
       let termId = swimmingClass.termId
@@ -343,13 +363,92 @@ export default class ClassSeriesAuthoringService {
       const lesson = await swimmingClass.related('lessons').create({
         date,
         objectives: data.objectives,
+        equipment: serializeEquipment(data.equipment),
         notes: data.notes ?? null,
         observation: data.observation ?? null,
         concludedAt: data.intent === 'conclude' ? DateTime.now() : null,
       })
       await this.syncLessonActivities(lesson, legacyActivityIds, schoolActivities)
+      await this.inheritClassInstructors(lesson, swimmingClass, trx)
       return lesson
     })
+  }
+
+  /**
+   * Generate empty dated lessons for a class across a scheduling window.
+   * The class records the latest selected time/weekday for compatibility with
+   * older class displays, but the lesson dates are the actual schedule.
+   */
+  async generateLessons(
+    swimmingClass: SwimmingClass,
+    data: GenerateClassLessonsInput
+  ): Promise<ClassLesson[]> {
+    return db.transaction(async (trx) => {
+      const level = await Level.findOrFail(swimmingClass.levelId, { client: trx })
+      const existingLessons = await ClassLesson.query({ client: trx })
+        .where('swimmingClassId', swimmingClass.id)
+        .select('date')
+
+      const existingDates = new Set(
+        existingLessons.map((lesson) => lesson.date.toISODate()).filter(Boolean) as string[]
+      )
+      const dates = this.lessonDatesInWindow(data.startDate, data.endDate, data.weekdays).filter(
+        (date) => !existingDates.has(date.toISODate()!)
+      )
+
+      if (swimmingClass.termId) {
+        const term = await Term.findOrFail(swimmingClass.termId, { client: trx })
+        for (const date of dates) {
+          this.assertDateWithinTerm(date, term)
+        }
+      }
+
+      if (level.classesCount !== null && existingDates.size + dates.length > level.classesCount) {
+        throw new ClassAuthoringException(
+          `This class can only have ${level.classesCount} ${level.classesCount === 1 ? 'lesson' : 'lessons'}.`
+        )
+      }
+
+      swimmingClass.useTransaction(trx)
+      swimmingClass.weekday = data.weekdays[0]
+      swimmingClass.startTime = data.startTime
+      await swimmingClass.save()
+
+      const lessons: ClassLesson[] = []
+      for (const date of dates) {
+        const lesson = await swimmingClass.related('lessons').create({
+          date,
+          objectives: null,
+          notes: null,
+          observation: null,
+          concludedAt: null,
+        })
+        await this.inheritClassInstructors(lesson, swimmingClass, trx)
+        lessons.push(lesson)
+      }
+
+      return lessons
+    })
+  }
+
+  protected lessonDatesInWindow(
+    startDate: DateTime,
+    endDate: DateTime,
+    weekdays: number[]
+  ): DateTime[] {
+    const allowedWeekdays = new Set(weekdays)
+    let cursor = startDate.startOf('day')
+    const end = endDate.startOf('day')
+    const dates: DateTime[] = []
+
+    while (cursor <= end) {
+      if (allowedWeekdays.has(cursor.weekday)) {
+        dates.push(cursor)
+      }
+      cursor = cursor.plus({ days: 1 })
+    }
+
+    return dates
   }
 
   /** The next occurrence of the class weekday strictly after the anchor. */
@@ -396,6 +495,7 @@ export default class ClassSeriesAuthoringService {
 
       lesson.useTransaction(trx)
       lesson.objectives = data.objectives
+      lesson.equipment = serializeEquipment(data.equipment)
       lesson.notes = data.notes ?? null
       lesson.observation = data.observation ?? null
       lesson.concludedAt =
@@ -405,6 +505,171 @@ export default class ClassSeriesAuthoringService {
       await LessonActivity.query({ client: trx }).where('classLessonId', lesson.id).delete()
       await this.syncLessonActivities(lesson, legacyActivityIds, schoolActivities)
       return lesson
+    })
+  }
+
+  async updateLessonActivities(
+    lesson: ClassLesson,
+    data: UpdateLessonActivitiesInput
+  ): Promise<ClassLesson> {
+    return db.transaction(async (trx) => {
+      const swimmingClass = await SwimmingClass.findOrFail(lesson.swimmingClassId, { client: trx })
+      const legacyActivityIds = await this.resolveLessonActivities(
+        swimmingClass,
+        data.activityIds ?? [],
+        trx
+      )
+      const customActivities = await this.resolveCustomSchoolActivities(swimmingClass, data, trx)
+      const schoolActivities = await this.resolveSchoolActivities(
+        swimmingClass,
+        [
+          ...(data.schoolActivityIds ?? []),
+          ...customActivities.map((selection) => selection.activity.id),
+        ],
+        [
+          ...(data.schoolActivityDurations ?? []),
+          ...customActivities.map((selection) => selection.durationMinutes),
+        ],
+        [
+          ...(data.schoolActivityLedBys ?? []),
+          ...customActivities.map((selection) => selection.ledBy),
+        ],
+        trx
+      )
+
+      lesson.useTransaction(trx)
+      await LessonActivity.query({ client: trx }).where('classLessonId', lesson.id).delete()
+      await this.syncLessonActivities(lesson, legacyActivityIds, schoolActivities)
+      return lesson
+    })
+  }
+
+  async assignLessonInstructors(
+    lesson: ClassLesson,
+    school: School,
+    data: InstructorSelection
+  ): Promise<void> {
+    await db.transaction(async (trx) => {
+      const swimmingClass = await SwimmingClass.findOrFail(lesson.swimmingClassId, { client: trx })
+      const instructors = await this.resolveInstructors(school, data, trx)
+
+      if (data.date) {
+        if (swimmingClass.termId) {
+          const term = await Term.findOrFail(swimmingClass.termId, { client: trx })
+          this.assertDateWithinTerm(data.date, term)
+        }
+
+        const dateAlreadyUsed = await ClassLesson.query({ client: trx })
+          .where('swimmingClassId', swimmingClass.id)
+          .whereNot('id', lesson.id)
+          .where('date', data.date.toISODate()!)
+          .first()
+        if (dateAlreadyUsed) {
+          throw new ClassAuthoringException('This class already has a lesson on that date.')
+        }
+      }
+
+      await LessonInstructor.query({ client: trx }).where('classLessonId', lesson.id).delete()
+      lesson.useTransaction(trx)
+      if (data.date) {
+        lesson.date = data.date
+      }
+      if (data.durationMinutes !== undefined) {
+        lesson.durationMinutes = data.durationMinutes
+      }
+      await lesson.save()
+      await lesson.related('lessonInstructors').createMany(instructors.assignments)
+    })
+  }
+
+  async bulkAssignLessonInstructors(
+    lessons: ClassLesson[],
+    school: School,
+    data: InstructorSelection
+  ): Promise<void> {
+    await db.transaction(async (trx) => {
+      const instructors = await this.resolveInstructors(school, data, trx)
+
+      for (const lesson of lessons) {
+        await LessonInstructor.query({ client: trx }).where('classLessonId', lesson.id).delete()
+        lesson.useTransaction(trx)
+        await lesson.related('lessonInstructors').createMany(instructors.assignments)
+      }
+    })
+  }
+
+  protected async inheritClassInstructors(
+    lesson: ClassLesson,
+    swimmingClass: SwimmingClass,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const instructors = await ClassInstructor.query({ client: trx }).where(
+      'swimmingClassId',
+      swimmingClass.id
+    )
+    if (instructors.length > 0) {
+      await lesson.related('lessonInstructors').createMany(
+        instructors.map((instructor) => ({
+          membershipId: instructor.membershipId,
+          invitationId: instructor.invitationId,
+          role: instructor.role,
+        }))
+      )
+    }
+  }
+
+  /** Copy a lesson's activity snapshots into empty lessons in the same stage. */
+  async copyLessonActivities(
+    sourceLesson: ClassLesson,
+    targetLessonIds: number[]
+  ): Promise<number> {
+    return db.transaction(async (trx) => {
+      const source = await ClassLesson.query({ client: trx })
+        .where('id', sourceLesson.id)
+        .preload('lessonActivities', (activitiesQuery) => activitiesQuery.orderBy('position'))
+        .firstOrFail()
+      const sourceClass = await SwimmingClass.findOrFail(source.swimmingClassId, { client: trx })
+
+      if (source.lessonActivities.length === 0) {
+        throw new ClassAuthoringException('The source lesson has no activities to copy.')
+      }
+
+      const uniqueTargetIds = uniqueNumbers(targetLessonIds)
+      const targets = await ClassLesson.query({ client: trx })
+        .whereIn('id', uniqueTargetIds)
+        .whereHas('swimmingClass', (classQuery) =>
+          classQuery
+            .where('schoolId', sourceClass.schoolId)
+            .where('levelStageId', sourceClass.levelStageId)
+        )
+        .preload('lessonActivities')
+
+      if (targets.length !== uniqueTargetIds.length) {
+        throw new ClassAuthoringException('Choose lessons from the same stage.')
+      }
+
+      if (targets.some((target) => target.lessonActivities.length > 0)) {
+        throw new ClassAuthoringException('Activities can only be copied into empty lessons.')
+      }
+
+      const activitySnapshots = source.lessonActivities.map((activity) => ({
+        levelStageActivityId: activity.levelStageActivityId,
+        schoolActivityId: activity.schoolActivityId,
+        categoryName: activity.categoryName,
+        activityName: activity.activityName,
+        activityDescription: activity.activityDescription,
+        durationMinutes: activity.durationMinutes,
+        ledBy: activity.ledBy,
+        successCue: activity.successCue,
+        position: activity.position,
+      }))
+
+      for (const target of targets) {
+        target.useTransaction(trx)
+        await target.related('lessonActivities').createMany(activitySnapshots)
+      }
+
+      return targets.length
     })
   }
 
@@ -517,7 +782,7 @@ export default class ClassSeriesAuthoringService {
 
   protected async resolveCustomSchoolActivities(
     swimmingClass: SwimmingClass,
-    data: StoreClassLessonInput,
+    data: StoreClassLessonInput | UpdateLessonActivitiesInput,
     trx: TransactionClientContract
   ): Promise<CustomSchoolActivitySelection[]> {
     const names = data.customActivityNames ?? []
@@ -640,9 +905,24 @@ export default class ClassSeriesAuthoringService {
   }
 
   async cancel(swimmingClass: SwimmingClass): Promise<SwimmingClass> {
-    swimmingClass.cancel()
-    await swimmingClass.save()
-    return swimmingClass
+    return db.transaction(async (trx) => {
+      const lessons = await ClassLesson.query({ client: trx })
+        .where('swimmingClassId', swimmingClass.id)
+        .select('id')
+      const lessonIds = lessons.map((lesson) => lesson.id)
+
+      if (lessonIds.length > 0) {
+        await LessonActivity.query({ client: trx }).whereIn('classLessonId', lessonIds).delete()
+        await LessonInstructor.query({ client: trx }).whereIn('classLessonId', lessonIds).delete()
+        await trx.from('enrollment_lessons').whereIn('class_lesson_id', lessonIds).delete()
+        await ClassLesson.query({ client: trx }).whereIn('id', lessonIds).delete()
+      }
+
+      swimmingClass.useTransaction(trx)
+      swimmingClass.cancel()
+      await swimmingClass.save()
+      return swimmingClass
+    })
   }
 
   protected async loadTerm(
@@ -752,11 +1032,11 @@ export default class ClassSeriesAuthoringService {
     selection: CurriculumSelection,
     trx: TransactionClientContract
   ): Promise<void> {
-    const usedActivityIds = (
-      await LessonActivity.query({ client: trx }).whereHas('classLesson', (lessonQuery) =>
-        lessonQuery.where('swimmingClassId', swimmingClass.id)
-      )
-    ).flatMap((lessonActivity) =>
+    const usedActivities = await LessonActivity.query({ client: trx }).whereHas(
+      'classLesson',
+      (lessonQuery) => lessonQuery.where('swimmingClassId', swimmingClass.id)
+    )
+    const usedActivityIds = usedActivities.flatMap((lessonActivity) =>
       lessonActivity.levelStageActivityId ? [lessonActivity.levelStageActivityId] : []
     )
 
@@ -782,11 +1062,13 @@ export default class ClassSeriesAuthoringService {
   protected async assertNameAvailable(
     school: School,
     name: string,
+    levelStageId: number,
     trx: TransactionClientContract,
     excludeClassId?: number
   ): Promise<void> {
     const nameQuery = SwimmingClass.query({ client: trx })
       .where('schoolId', school.id)
+      .where('levelStageId', levelStageId)
       .whereRaw('lower(name) = ?', [name.trim().toLowerCase()])
     if (excludeClassId) {
       nameQuery.whereNot('id', excludeClassId)
@@ -855,15 +1137,18 @@ export default class ClassSeriesAuthoringService {
       [leadInvitationId, ...supportingInvitationIds].filter((id): id is number => id !== undefined)
     )
     if (invitationIds.length > 0) {
-      const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER, { client: trx })
       const invitations = await Invitation.query({ client: trx })
         .whereIn('id', invitationIds)
         .where('schoolId', school.id)
-        .where('roleId', teacherRole.id)
+        .whereHas('role', (roleQuery) =>
+          roleQuery.whereIn('name', [RoleName.TEACHER, RoleName.ASSISTANT_COACH])
+        )
         .whereNull('acceptedAt')
 
       if (invitations.length !== invitationIds.length) {
-        throw new ClassAuthoringException('Choose pending Teacher invitations from this school.')
+        throw new ClassAuthoringException(
+          'Choose pending Teacher or Assistant Coach invitations from this school.'
+        )
       }
     }
 

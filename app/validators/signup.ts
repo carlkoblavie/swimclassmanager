@@ -5,6 +5,7 @@ import { RegistrantRole } from '#values/registrant_role'
 
 export const SignupAdminIntent = {
   INVOICE_SENT: 'invoice_sent',
+  RECORD_PART_PAYMENT: 'record_part_payment',
   MARK_PAID: 'mark_paid',
   CLOSE_ENQUIRY: 'close_enquiry',
   REOPEN_ENQUIRY: 'reopen_enquiry',
@@ -16,9 +17,7 @@ export const storeSignupValidator = vine.create({
   contactPhone: vine.string().trim().minLength(1).maxLength(40),
   whatsapp: vine.string().trim().minLength(1).maxLength(40),
   message: vine.string().trim().maxLength(2000).optional(),
-  registrantRole: vine
-    .enum([RegistrantRole.GUARDIAN, RegistrantRole.ADULT_LEARNER])
-    .optional(),
+  registrantRole: vine.enum([RegistrantRole.GUARDIAN, RegistrantRole.ADULT_LEARNER]).optional(),
   learners: vine
     .array(
       vine.object({
@@ -52,4 +51,11 @@ export const updateSignupValidator = vine.create({
     SignupAdminIntent.CLOSE_ENQUIRY,
     SignupAdminIntent.REOPEN_ENQUIRY,
   ]),
+})
+
+export const recordPartPaymentValidator = vine.create({
+  intent: vine.literal(SignupAdminIntent.RECORD_PART_PAYMENT),
+  learnerId: vine.number().withoutDecimals().positive(),
+  termId: vine.number().withoutDecimals().positive(),
+  amount: vine.number().min(0.01).decimal([0, 2]),
 })

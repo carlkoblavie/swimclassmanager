@@ -26,6 +26,26 @@ function ageFromDateOfBirth(dateOfBirth: DateTime): number {
   return age
 }
 
+type TermPaymentForDisplay = {
+  id: number
+  termId: number
+  amount: number
+  amountPaid: number
+  status: string
+  $preloaded?: { term?: { name: string } }
+}
+
+type EnrollmentForDisplay = {
+  status?: string
+  $preloaded?: { termPayments?: TermPaymentForDisplay[] }
+}
+
+function hasOutstandingPayment(enrollment: EnrollmentForDisplay | undefined): boolean {
+  return Boolean(
+    enrollment?.$preloaded?.termPayments?.some((payment) => payment.amountPaid < payment.amount)
+  )
+}
+
 export default class SignupTransformer extends BaseTransformer<Signup> {
   toObject() {
     const preloaded = this.resource.$preloaded as {
@@ -37,12 +57,33 @@ export default class SignupTransformer extends BaseTransformer<Signup> {
     const purchasePreloaded = purchase?.$preloaded as { items?: PurchaseItem[] } | undefined
     const items = purchasePreloaded?.items ?? []
     const itemsByLearnerId = new Map(items.map((item) => [item.learnerId, item]))
+    const learnerEnrollments = learners.flatMap((learner) => {
+      const learnerPreloaded = learner.$preloaded as
+        | { enrollments?: EnrollmentForDisplay[] }
+        | undefined
+      return learnerPreloaded?.enrollments ?? []
+    })
+    const itemEnrollments = items.flatMap((item) => {
+      const itemPreloaded = item.$preloaded as { enrollment?: EnrollmentForDisplay } | undefined
+      return itemPreloaded?.enrollment ? [itemPreloaded.enrollment] : []
+    })
+    const paymentEnrollments = [...itemEnrollments, ...learnerEnrollments]
+    const hasPartiallyPaidTerm = paymentEnrollments.some((enrollment) =>
+      enrollment.$preloaded?.termPayments?.some(
+        (payment) =>
+          payment.status === 'partial' ||
+          (payment.amountPaid > 0 && payment.amountPaid < payment.amount)
+      )
+    )
+    const hasOutstandingTermPayment = paymentEnrollments.some(hasOutstandingPayment)
     const status = purchase
       ? purchase.status === PurchaseStatus.PAID
         ? 'paid'
-        : purchase.invoiceSentAt
-          ? 'invoice_sent'
-          : 'pending_invoice'
+        : hasPartiallyPaidTerm
+          ? 'part_paid'
+          : purchase.invoiceSentAt
+            ? 'invoice_sent'
+            : 'pending_invoice'
       : this.resource.closedAt
         ? 'closed'
         : 'open'
@@ -66,13 +107,15 @@ export default class SignupTransformer extends BaseTransformer<Signup> {
         label:
           status === 'paid'
             ? 'Paid'
-            : status === 'invoice_sent'
-              ? 'Invoice sent'
-              : status === 'pending_invoice'
-                ? 'Pending invoice'
-                : status === 'closed'
-                  ? 'Closed'
-                  : 'Open',
+            : status === 'part_paid'
+              ? 'Part paid'
+              : status === 'invoice_sent'
+                ? 'Invoice sent'
+                : status === 'pending_invoice'
+                  ? 'Pending invoice'
+                  : status === 'closed'
+                    ? 'Closed'
+                    : 'Open',
         isEnquiry: !purchase,
         invoiceReference: purchase ? invoiceReference(purchase) : null,
         invoiceSentAt: purchase?.invoiceSentAt
@@ -100,7 +143,8 @@ export default class SignupTransformer extends BaseTransformer<Signup> {
             }
           : null,
         canMarkInvoiceSent:
-          Boolean(purchase) && status === 'pending_invoice' && purchase?.status !== 'paid',
+          Boolean(purchase) && !purchase?.invoiceSentAt && purchase?.status !== 'paid',
+        canRecordPartPayment: Boolean(purchase) && status !== 'paid' && hasOutstandingTermPayment,
         canMarkPaid: Boolean(purchase) && status !== 'paid',
         canCloseEnquiry: !purchase && status === 'open',
         canReopenEnquiry: !purchase && status === 'closed',
@@ -118,6 +162,24 @@ export default class SignupTransformer extends BaseTransformer<Signup> {
       },
       learners: learners.map((learner) => {
         const item = itemsByLearnerId.get(learner.id)
+        const itemEnrollment = (
+          item?.$preloaded as { enrollment?: EnrollmentForDisplay } | undefined
+        )?.enrollment
+        const learnerEnrollmentRecords =
+          (learner.$preloaded as { enrollments?: EnrollmentForDisplay[] } | undefined)
+            ?.enrollments ?? []
+        const paymentCandidates = [itemEnrollment, ...learnerEnrollmentRecords].filter(
+          (candidate): candidate is EnrollmentForDisplay => Boolean(candidate)
+        )
+        const termPayments = [
+          ...new Map(
+            paymentCandidates
+              .flatMap((candidate) => candidate.$preloaded?.termPayments ?? [])
+              .filter((payment) => payment.amountPaid < payment.amount)
+              .map((payment) => [payment.id, payment] as const)
+          ).values(),
+        ]
+
         return {
           ...this.pick(learner, [
             'id',
@@ -146,6 +208,24 @@ export default class SignupTransformer extends BaseTransformer<Signup> {
                 },
               }
             : null,
+          termPayments: termPayments.map((payment) => ({
+            id: payment.id,
+            termId: payment.termId,
+            termName: payment.$preloaded?.term?.name ?? 'Term',
+            amount: {
+              raw: payment.amount,
+              formatted: formatCedis(payment.amount),
+            },
+            amountPaid: {
+              raw: payment.amountPaid,
+              formatted: formatCedis(payment.amountPaid),
+            },
+            balance: {
+              raw: Math.max(payment.amount - payment.amountPaid, 0),
+              formatted: formatCedis(Math.max(payment.amount - payment.amountPaid, 0)),
+            },
+            status: payment.status,
+          })),
         }
       }),
     }

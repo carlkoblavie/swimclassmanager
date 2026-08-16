@@ -12,6 +12,7 @@ import ClassSeriesAuthoringService from '#services/class_series_authoring_servic
 import SchoolActivityBankService from '#services/school_activity_bank_service'
 import SkillBankFamilyService from '#services/skill_bank_family_service'
 import SkillBankService from '#services/skill_bank_service'
+import { EnrollmentStatus } from '#values/enrollment_status'
 import InvitationTransformer from '#transformers/invitation_transformer'
 import LevelTransformer from '#transformers/level_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
@@ -70,6 +71,9 @@ export default class SwimmingClassesController {
         skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
       )
       .preload('lessons', (lessonsQuery) => lessonsQuery.orderBy('date'))
+      .withCount('enrollments', (enrollmentsQuery) => {
+        enrollmentsQuery.where('status', EnrollmentStatus.ACTIVE).as('enrolledCount')
+      })
       .orderBy('levelStageId')
       .orderBy('name')
 
@@ -94,7 +98,7 @@ export default class SwimmingClassesController {
 
     session.flash(
       'success',
-      payload.inviteTeacherEmail ? 'Class created. Teacher invited.' : 'Class created.'
+      payload.inviteTeacherEmail ? 'Class created. Instructor invited.' : 'Class created.'
     )
     if (payload.redirectTo === 'back') {
       return response.redirect().back()
@@ -107,7 +111,17 @@ export default class SwimmingClassesController {
    */
   @inject()
   async show({ auth, inertia, params }: HttpContext, activityBank: SchoolActivityBankService) {
-    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const user = auth.getUserOrFail()
+    const schoolId = user.activeSchoolId!
+    const membership = await Membership.query()
+      .where('schoolId', schoolId)
+      .where('userId', user.id)
+      .preload('roles')
+      .first()
+    const isInstructor = membership?.roles.some(
+      (role) => role.name === RoleName.TEACHER || role.name === RoleName.ASSISTANT_COACH
+    )
+    const instructorMembershipId = isInstructor ? membership?.id : null
     const swimmingClass = await SwimmingClass.query()
       .where('id', params.id)
       .where('schoolId', schoolId)
@@ -127,12 +141,22 @@ export default class SwimmingClassesController {
           .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
       )
       .preload('lessons', (lessonsQuery) =>
-        lessonsQuery
+        (instructorMembershipId
+          ? lessonsQuery.whereHas('lessonInstructors', (instructorsQuery) =>
+              instructorsQuery.where('membershipId', instructorMembershipId)
+            )
+          : lessonsQuery
+        )
           .preload('lessonActivities', (activitiesQuery) =>
             activitiesQuery
               .preload('levelStageActivity')
               .preload('schoolActivity', (activityQuery) => activityQuery.preload('category'))
               .orderBy('position')
+          )
+          .preload('lessonInstructors', (instructorsQuery) =>
+            instructorsQuery
+              .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
+              .preload('invitation')
           )
           .orderBy('date')
       )
@@ -200,7 +224,11 @@ export default class SwimmingClassesController {
     const instructorMemberships = await Membership.query()
       .where('schoolId', schoolId)
       .whereHas('roles', (rolesQuery) => {
-        rolesQuery.whereIn('name', [RoleName.TEACHER, RoleName.HEAD_COACH])
+        rolesQuery.whereIn('name', [
+          RoleName.TEACHER,
+          RoleName.ASSISTANT_COACH,
+          RoleName.HEAD_COACH,
+        ])
       })
       .preload('user')
       .preload('roles')
@@ -209,7 +237,9 @@ export default class SwimmingClassesController {
     // Teachers who were invited but have not accepted yet are assignable too.
     const pendingInvitations = await Invitation.query()
       .where('schoolId', schoolId)
-      .whereHas('role', (roleQuery) => roleQuery.where('name', RoleName.TEACHER))
+      .whereHas('role', (roleQuery) =>
+        roleQuery.whereIn('name', [RoleName.TEACHER, RoleName.ASSISTANT_COACH])
+      )
       .whereNull('acceptedAt')
       .orderBy('id')
 
@@ -265,7 +295,7 @@ export default class SwimmingClassesController {
 
     session.flash(
       'success',
-      payload.inviteTeacherEmail ? 'Class updated. Teacher invited.' : 'Class updated.'
+      payload.inviteTeacherEmail ? 'Class updated. Instructor invited.' : 'Class updated.'
     )
     if (payload.redirectTo === 'back') {
       return response.redirect().back()

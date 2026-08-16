@@ -1,34 +1,41 @@
 import { DateTime } from 'luxon'
 import string from '@adonisjs/core/helpers/string'
-import mail from '@adonisjs/mail/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
-import School from '#models/school'
+import router from '@adonisjs/core/services/router'
 import Role from '#models/role'
 import Invitation from '#models/invitation'
-import InvitationMail from '#mails/invitation'
+import { appUrl } from '#config/app'
 import { storeInvitationValidator } from '#validators/invitation'
 import { RoleName } from '#values/role'
 
-const INVITABLE_ROLES: string[] = [
-  RoleName.HEAD_COACH,
-  RoleName.TEACHER,
-  RoleName.DECK_SUPERVISOR,
-  RoleName.PARENT,
+const INVITABLE_ROLES = [
+  { value: RoleName.TEACHER, label: 'Instructor' },
+  { value: RoleName.ASSISTANT_COACH, label: RoleName.ASSISTANT_COACH },
+  { value: RoleName.DECK_SUPERVISOR, label: RoleName.DECK_SUPERVISOR },
+  { value: RoleName.PARENT, label: RoleName.PARENT, disabled: true },
 ]
 
 export default class InvitationsController {
-  create({ inertia }: HttpContext) {
-    return inertia.render('invitations/create', { roles: INVITABLE_ROLES })
+  create({ inertia, session }: HttpContext) {
+    const invitation = session.flashMessages.get('invitation') as
+      | { name: string; email: string; link: string }
+      | undefined
+
+    return inertia.render('invitations/create', {
+      roles: INVITABLE_ROLES,
+      invitation,
+    })
   }
 
   async store({ auth, request, response, session }: HttpContext) {
     const user = auth.getUserOrFail()
     const schoolId = user.activeSchoolId!
-    const payload = await request.validateUsing(storeInvitationValidator, { meta: { schoolId } })
+    const organisationId = user.activeOrganisationId!
+    const payload = await request.validateUsing(storeInvitationValidator, {
+      meta: { schoolId, organisationId },
+    })
 
     const role = await Role.findByOrFail('name', payload.role)
-    const school = await School.findOrFail(schoolId)
-
     const invitation = await Invitation.updateOrCreate(
       { schoolId, email: payload.email },
       {
@@ -42,11 +49,18 @@ export default class InvitationsController {
       }
     )
 
-    await mail.sendLater(
-      new InvitationMail(invitation.email, invitation.token, school.name, payload.role)
+    const link = router.makeUrl(
+      'memberships.store',
+      { token: invitation.token },
+      { prefixUrl: appUrl }
     )
 
-    session.flash('success', `Invitation sent to ${invitation.email}.`)
-    return response.redirect().toRoute('home')
+    session.flash('success', `Invitation created for ${invitation.email}.`)
+    session.flash('invitation', {
+      name: `${payload.firstName} ${payload.lastName}`,
+      email: invitation.email,
+      link,
+    })
+    return response.redirect().toRoute('invitations.create')
   }
 }

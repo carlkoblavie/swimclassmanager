@@ -135,7 +135,7 @@ export default function InstructorPicker({
 
       <Select
         label="Lead instructor"
-        description="Teachers and Head Coaches — including invitees who have not accepted yet."
+        description="Instructors and Head Coaches — including invitees who have not accepted yet."
         placeholder="No lead assigned"
         value={lead}
         onChange={(value) => {
@@ -149,7 +149,7 @@ export default function InstructorPicker({
 
       <MultiSelect
         label="Supporting instructors"
-        description="Additional teachers who help with the class."
+        description="Additional instructors who help with the class."
         placeholder={supporting.length === 0 ? 'No supporting instructors assigned' : undefined}
         value={supporting}
         onChange={setSupporting}
@@ -160,8 +160,8 @@ export default function InstructorPicker({
       {inviteOpen ? (
         <Stack gap="sm">
           <Text size="sm" c="dimmed">
-            The class can be saved while the Teacher invitation is pending; they join the supporting
-            instructors once invited.
+            The class can be saved while the instructor invitation is pending; they join the
+            supporting instructors once invited.
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
             <TextInput
@@ -225,7 +225,7 @@ export default function InstructorPicker({
             leftSection={<IconPlus size={14} />}
             onClick={() => setInviteOpen(true)}
           >
-            Invite a new teacher
+            Invite a new instructor
           </Button>
         </div>
       )}

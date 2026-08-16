@@ -50,7 +50,7 @@ export class ClassInstructorSchema extends BaseModel {
 }
 
 export class ClassLessonSchema extends BaseModel {
-  static $columns = ['concludedAt', 'createdAt', 'date', 'id', 'notes', 'objectives', 'observation', 'swimmingClassId', 'updatedAt'] as const
+  static $columns = ['concludedAt', 'createdAt', 'date', 'durationMinutes', 'equipment', 'id', 'notes', 'objectives', 'observation', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassLessonSchema.$columns
   @column.dateTime()
   declare concludedAt: DateTime | null
@@ -58,6 +58,10 @@ export class ClassLessonSchema extends BaseModel {
   declare createdAt: DateTime
   @column.date()
   declare date: DateTime
+  @column()
+  declare durationMinutes: number | null
+  @column()
+  declare equipment: string | null
   @column({ isPrimary: true })
   declare id: number
   @column()
@@ -89,8 +93,23 @@ export class ClassSkillSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class EnrollmentLessonSchema extends BaseModel {
+  static $columns = ['classLessonId', 'createdAt', 'enrollmentId', 'id', 'updatedAt'] as const
+  $columns = EnrollmentLessonSchema.$columns
+  @column()
+  declare classLessonId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare enrollmentId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class EnrollmentSchema extends BaseModel {
-  static $columns = ['createdAt', 'currency', 'id', 'learnerId', 'levelId', 'price', 'publicId', 'reservedUntil', 'schoolId', 'status', 'swimYearId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'currency', 'id', 'learnerId', 'levelId', 'price', 'publicId', 'reservedUntil', 'schoolId', 'startDate', 'status', 'swimYearId', 'swimmingClassId', 'termId', 'updatedAt'] as const
   $columns = EnrollmentSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -110,10 +129,16 @@ export class EnrollmentSchema extends BaseModel {
   declare reservedUntil: DateTime | null
   @column()
   declare schoolId: number
+  @column.date()
+  declare startDate: DateTime | null
   @column()
   declare status: string
   @column()
   declare swimYearId: number
+  @column()
+  declare swimmingClassId: number | null
+  @column()
+  declare termId: number | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -207,6 +232,25 @@ export class LessonActivitySchema extends BaseModel {
   declare schoolActivityId: number | null
   @column()
   declare successCue: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class LessonInstructorSchema extends BaseModel {
+  static $columns = ['classLessonId', 'createdAt', 'id', 'invitationId', 'membershipId', 'role', 'updatedAt'] as const
+  $columns = LessonInstructorSchema.$columns
+  @column()
+  declare classLessonId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare invitationId: number | null
+  @column()
+  declare membershipId: number | null
+  @column()
+  declare role: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -797,10 +841,12 @@ export class SwimmingClassSchema extends BaseModel {
 }
 
 export class TermPaymentSchema extends BaseModel {
-  static $columns = ['amount', 'createdAt', 'currency', 'enrollmentId', 'id', 'paidAt', 'paymentTransactionId', 'provider', 'providerReference', 'publicId', 'status', 'termId', 'updatedAt'] as const
+  static $columns = ['amount', 'amountPaid', 'createdAt', 'currency', 'enrollmentId', 'id', 'paidAt', 'paymentTransactionId', 'provider', 'providerReference', 'publicId', 'status', 'termId', 'updatedAt'] as const
   $columns = TermPaymentSchema.$columns
   @column()
   declare amount: number
+  @column()
+  declare amountPaid: number
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()

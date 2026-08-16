@@ -37,12 +37,15 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
      * membership. Empty for guests or users without an active-school membership.
      */
     let userPermissions: string[] = []
+    let activeRole: string | undefined
     if (auth?.user && activeSchoolId) {
       const membership = await Membership.query()
         .where('schoolId', activeSchoolId)
         .where('userId', auth.user.id)
+        .preload('roles')
         .first()
       if (membership) {
+        activeRole = membership.roles[0]?.name ?? null
         const access = await permissions.createAccessFor(membership)
         userPermissions = access.permissions()
       }
@@ -63,6 +66,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
       ),
       availableSchools: ctx.inertia.always(SchoolTransformer.transform(availableSchools)),
       userPermissions: ctx.inertia.always(userPermissions),
+      activeRole: ctx.inertia.always(activeRole),
     }
   }
 

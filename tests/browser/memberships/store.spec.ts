@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import hash from '@adonisjs/core/services/hash'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { InvitationFactory } from '#database/factories/invitation_factory'
@@ -33,11 +34,24 @@ test.group('Memberships store', (group) => {
       schoolId: school.id,
       roleId: teacher.id,
       email: 'invitee@example.com',
+      inviteeFirstName: 'Invited',
+      inviteeLastName: 'Member',
+      inviteePhone: '0555000222',
     }).create()
 
     const page = await visit(route('memberships.store', { token: invitation.token }))
 
+    await page.assertPath(route('account_passwords.edit'))
+    const invitedUser = await User.findByOrFail('email', 'invitee@example.com')
+    assert.isTrue(await hash.use().verify(invitedUser.password!, 'Password123'))
+    assert.isTrue(Boolean(invitedUser.mustChangePassword))
+    await page.getByLabel('New password').fill('new-secure-password')
+    await page.getByLabel('Confirm password').fill('new-secure-password')
+    await page.getByRole('button', { name: 'Update password' }).click()
+
     await page.assertPath(route('accounts.edit'))
+    assert.equal(await page.getByLabel('Full name').inputValue(), 'Invited Member')
+    assert.equal(await page.getByLabel('Phone').inputValue(), '0555000222')
     await db.assertHas('users', { email: 'invitee@example.com' })
     await page.assertExists(page.getByRole('button', { name: 'Logout' }))
 

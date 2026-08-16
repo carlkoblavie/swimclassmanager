@@ -51,6 +51,7 @@ export default class EnrollmentService {
         levelId: level.id,
         swimYearId: swimYear.id,
         learnerId: input.learnerId,
+        termId: terms[0]?.id ?? null,
         status: EnrollmentStatus.PENDING,
         price,
         currency: 'GHS',
@@ -87,6 +88,7 @@ export default class EnrollmentService {
       payment.useTransaction(trx)
       payment.merge({
         status: PaymentStatus.SUCCESS,
+        amountPaid: payment.amount,
         provider: 'paystack',
         providerReference: options.providerReference,
         paidAt: DateTime.now(),

@@ -10,6 +10,7 @@ const ALL_ROLES = [
   RoleName.ADMINISTRATOR,
   RoleName.HEAD_COACH,
   RoleName.TEACHER,
+  RoleName.ASSISTANT_COACH,
   RoleName.DECK_SUPERVISOR,
   RoleName.PARENT,
   RoleName.STUDENT,
@@ -94,11 +95,7 @@ test.group('Swimming classes index', (group) => {
     await page.assertNotExists('text=Other School Class')
   })
 
-  test('cancelled classes remain listed as cancelled', async ({
-    visit,
-    route,
-    browserContext,
-  }) => {
+  test('cancelled classes remain listed as cancelled', async ({ visit, route, browserContext }) => {
     await seedRoles()
     const user = await UserFactory.apply('completed').create()
     const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
@@ -110,7 +107,8 @@ test.group('Swimming classes index', (group) => {
 
     const page = await visit(route('swimming_classes.index'))
 
+    await page.getByRole('tab', { name: 'Cancelled (1)' }).click()
     await page.assertVisible('text=Sunset Swimmers')
-    await page.assertVisible('text=Cancelled')
+    await page.assertVisible(page.getByText('Cancelled', { exact: true }))
   })
 })

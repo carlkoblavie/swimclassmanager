@@ -116,6 +116,7 @@ export default class CustomerPurchaseService {
             levelId: level.id,
             swimYearId: swimYear.id,
             learnerId: learner.id,
+            termId: billableTerms[0]?.id ?? null,
             status: EnrollmentStatus.PENDING,
             price,
             currency: 'GHS',
@@ -230,6 +231,7 @@ export default class CustomerPurchaseService {
             levelId: level.id,
             swimYearId: swimYear.id,
             learnerId: learner.id,
+            termId: billableTerms[0]?.id ?? null,
             status: EnrollmentStatus.PENDING,
             price,
             currency: 'GHS',
@@ -385,21 +387,39 @@ export default class CustomerPurchaseService {
       })
       await purchase.save()
 
-      const enrollmentIds = purchase.items.map((item) => item.enrollmentId)
+      const enrollmentIds = purchase.items.length
+        ? purchase.items.map((item) => item.enrollmentId)
+        : await this.enrollmentIdsForSignup(purchase.signupId, purchase.swimYearId, trx)
       const paidAtSql = paidAt.toSQL({ includeOffset: false })
       await Enrollment.query({ client: trx }).whereIn('id', enrollmentIds).update({
         status: EnrollmentStatus.ACTIVE,
         reservedUntil: null,
       })
-      await TermPayment.query({ client: trx }).whereIn('enrollmentId', enrollmentIds).update({
-        status: PaymentStatus.SUCCESS,
-        provider: 'paystack',
-        paymentTransactionId: transaction.id,
-        paidAt: paidAtSql,
-      })
+      await TermPayment.query({ client: trx })
+        .whereIn('enrollmentId', enrollmentIds)
+        .update({
+          status: PaymentStatus.SUCCESS,
+          amountPaid: db.ref('amount'),
+          provider: 'paystack',
+          paymentTransactionId: transaction.id,
+          paidAt: paidAtSql,
+        })
 
       return { purchase, transaction }
     })
+  }
+
+  private async enrollmentIdsForSignup(
+    signupId: number,
+    swimYearId: number,
+    trx: TransactionClientContract
+  ): Promise<number[]> {
+    const enrollments = await Enrollment.query({ client: trx })
+      .whereHas('learner', (learnerQuery) => learnerQuery.where('signupId', signupId))
+      .where('swimYearId', swimYearId)
+      .select('id')
+
+    return enrollments.map((enrollment) => enrollment.id)
   }
 
   private async markInitializationFailed(transaction: PaymentTransaction) {

@@ -144,7 +144,11 @@ export default class ProgramsController {
     const instructorMemberships = await Membership.query()
       .where('schoolId', schoolId)
       .whereHas('roles', (rolesQuery) => {
-        rolesQuery.whereIn('name', [RoleName.TEACHER, RoleName.HEAD_COACH])
+        rolesQuery.whereIn('name', [
+          RoleName.TEACHER,
+          RoleName.ASSISTANT_COACH,
+          RoleName.HEAD_COACH,
+        ])
       })
       .preload('user')
       .preload('roles')
@@ -153,7 +157,9 @@ export default class ProgramsController {
     // Teachers who were invited but have not accepted yet are assignable too.
     const pendingInvitations = await Invitation.query()
       .where('schoolId', schoolId)
-      .whereHas('role', (roleQuery) => roleQuery.where('name', RoleName.TEACHER))
+      .whereHas('role', (roleQuery) =>
+        roleQuery.whereIn('name', [RoleName.TEACHER, RoleName.ASSISTANT_COACH])
+      )
       .whereNull('acceptedAt')
       .orderBy('id')
 

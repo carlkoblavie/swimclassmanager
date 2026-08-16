@@ -4,6 +4,7 @@ import type Invitation from '#models/invitation'
 export default class InvitationTransformer extends BaseTransformer<Invitation> {
   toObject() {
     const fullName = this.resource.inviteeFullName
+    const preloaded = this.resource.$preloaded as { role?: { name: string } }
 
     return {
       ...this.pick(this.resource, [
@@ -18,6 +19,7 @@ export default class InvitationTransformer extends BaseTransformer<Invitation> {
       certifications: this.resource.certifications ?? [],
       isPending: this.resource.isPending,
       isExpired: this.resource.isExpired,
+      role: preloaded.role?.name,
     }
   }
 }

@@ -8,6 +8,7 @@ import LevelStage from '#models/level_stage'
 import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
+import Enrollment from '#models/enrollment'
 import Term from '#models/term'
 
 export default class SwimmingClass extends SwimmingClassSchema {
@@ -28,6 +29,9 @@ export default class SwimmingClass extends SwimmingClassSchema {
 
   @hasMany(() => ClassSkill)
   declare classSkills: HasMany<typeof ClassSkill>
+
+  @hasMany(() => Enrollment)
+  declare enrollments: HasMany<typeof Enrollment>
 
   @hasMany(() => ClassLesson)
   declare lessons: HasMany<typeof ClassLesson>

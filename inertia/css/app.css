@@ -28,9 +28,24 @@
   overflow: hidden;
   border-radius: 14px;
   background:
-    linear-gradient(128deg, rgba(15, 165, 177, 0.88) 0%, rgba(15, 165, 177, 0.68) 34%, transparent 35%),
-    linear-gradient(21deg, rgba(248, 116, 87, 0.78) 0%, rgba(248, 116, 87, 0.62) 20%, transparent 21%),
-    linear-gradient(154deg, rgba(132, 110, 177, 0.9) 0%, rgba(132, 110, 177, 0.75) 60%, transparent 61%),
+    linear-gradient(
+      128deg,
+      rgba(15, 165, 177, 0.88) 0%,
+      rgba(15, 165, 177, 0.68) 34%,
+      transparent 35%
+    ),
+    linear-gradient(
+      21deg,
+      rgba(248, 116, 87, 0.78) 0%,
+      rgba(248, 116, 87, 0.62) 20%,
+      transparent 21%
+    ),
+    linear-gradient(
+      154deg,
+      rgba(132, 110, 177, 0.9) 0%,
+      rgba(132, 110, 177, 0.75) 60%,
+      transparent 61%
+    ),
     linear-gradient(34deg, rgba(20, 128, 141, 0.96) 0%, rgba(20, 128, 141, 0.96) 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
@@ -963,4 +978,78 @@
 
 .signup-row:last-of-type {
   border-bottom: 0 !important;
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+
+  html,
+  body,
+  #app {
+    width: 100% !important;
+    min-width: 0 !important;
+    background: #fff !important;
+  }
+
+  .mantine-AppShell-header,
+  .mantine-AppShell-navbar,
+  .screen-only,
+  .mantine-Notifications-root {
+    display: none !important;
+  }
+
+  .mantine-AppShell-main {
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .lesson-print-page {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .lesson-print-page > .mantine-Stack-root {
+    gap: 0 !important;
+  }
+
+  .lesson-print-card {
+    width: 100% !important;
+    max-width: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .lesson-print-card > .mantine-Divider-root {
+    display: none !important;
+  }
+
+  .lesson-plan-print-content {
+    padding: 0 !important;
+  }
+
+  .lesson-plan-print-content .mantine-SimpleGrid-root {
+    display: grid !important;
+  }
+
+  .lesson-plan-print-content .mantine-SimpleGrid-root:first-of-type {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .lesson-plan-print-content .mantine-SimpleGrid-root:nth-of-type(2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .lesson-plan-print-content table {
+    page-break-inside: auto;
+  }
+
+  .lesson-plan-print-content tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
 }

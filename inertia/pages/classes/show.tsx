@@ -8,23 +8,26 @@ import {
   Container,
   Divider,
   Group,
+  SimpleGrid,
   Stack,
+  Table,
   Text,
   ThemeIcon,
   Title,
   Tooltip,
 } from '@mantine/core'
-import { IconPencil, IconTrash } from '@tabler/icons-react'
+import { IconCalendar, IconPencil, IconPrinter, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
-import { router } from '@inertiajs/react'
+import { router, usePage } from '@inertiajs/react'
 import { Form, Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
 import EditLessonForm from '~/components/edit_lesson_form'
+import EditLessonActivitiesForm from '~/components/edit_lesson_activities_form'
+import LessonSkillTiles from '~/components/lesson_skill_tiles'
 import MetaStrip from '~/components/meta_strip'
-import PlanLessonForm from '~/components/plan_lesson_form'
 
 type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
@@ -44,21 +47,10 @@ function instructorBadges(instructors: ClassInstructor[]) {
       {instructors.map((instructor) => (
         <Group key={`${instructor.type}-${instructor.id}`} gap={4} wrap="nowrap">
           {instructor.label}
-          {instructor.status === 'pending' && (
-            <Badge variant="light" color="yellow" size="sm">
-              Pending
-            </Badge>
-          )}
         </Group>
       ))}
     </Group>
   )
-}
-
-// Names of the skills this lesson's activities belong to.
-function skillFocus(lesson: Lesson, skills: Data.SwimmingClass['skills']): string[] {
-  const skillIds = new Set(lesson.activities.map((activity) => activity.skillId))
-  return skills.filter((skill) => skillIds.has(skill.id)).map((skill) => skill.name)
 }
 
 function lessonActivityGroups(lesson: Lesson, skills: Data.SwimmingClass['skills']) {
@@ -97,175 +89,237 @@ function lessonSkills(swimmingClass: Data.SwimmingClass): Data.SwimmingClass['sk
     : (swimmingClass.stage?.skills ?? [])
 }
 
+function lessonPlanCode(lesson: Lesson) {
+  return `LP-${String(lesson.id).padStart(4, '0')}`
+}
+
+function formatClock(date: Date) {
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
+}
+
+function lessonTimeRange(
+  swimmingClass: Data.SwimmingClass,
+  durationMinutes = swimmingClass.durationMinutes
+) {
+  if (!swimmingClass.startTime?.raw) {
+    return null
+  }
+
+  const [hour, minute] = swimmingClass.startTime.raw.split(':').map(Number)
+  const start = new Date(2000, 0, 1, hour, minute)
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+  return `${formatClock(start)} – ${formatClock(end)}`
+}
+
 export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
-  const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
+  const { url, props } = usePage()
+  const canEditLesson = ((props.userPermissions as string[] | undefined) ?? []).includes(
+    'lesson.edit'
+  )
+  const searchParams = new URL(url, 'http://localhost').searchParams
+  const focusedLessonId = Number(
+    searchParams.get('editLessonId') ?? searchParams.get('lessonId') ?? 0
+  )
+  const editLessonId = Number(searchParams.get('editLessonId') ?? 0)
+  const editLessonExists = swimmingClass.lessons.some((lesson) => lesson.id === editLessonId)
+  const [editingLessonId, setEditingLessonId] = useState<number | null>(() =>
+    canEditLesson && editLessonExists ? editLessonId : null
+  )
+  const [editingActivitiesLessonId, setEditingActivitiesLessonId] = useState<number | null>(() =>
+    !canEditLesson && editLessonExists ? editLessonId : null
+  )
   const skillsForLessons = lessonSkills(swimmingClass)
+  const displayedLessons = focusedLessonId
+    ? swimmingClass.lessons.filter((lesson) => lesson.id === focusedLessonId)
+    : swimmingClass.lessons
 
   const plannedCount = swimmingClass.lessons.filter(
     (lesson) => lesson.activities.length > 0 || Boolean(lesson.objectives)
   ).length
-  const leadInstructor = swimmingClass.leadInstructor
-  const supportingInstructors = swimmingClass.supportingInstructors ?? []
+  const focusedLesson = focusedLessonId
+    ? swimmingClass.lessons.find((lesson) => lesson.id === focusedLessonId)
+    : undefined
+  const leadInstructor = focusedLesson?.leadInstructor ?? swimmingClass.leadInstructor
+  const supportingInstructors =
+    focusedLesson?.supportingInstructors ?? swimmingClass.supportingInstructors ?? []
+  const displayedDurationMinutes = focusedLesson?.durationMinutes ?? swimmingClass.durationMinutes
 
   return (
-    <Container size="lg" py="xl">
+    <Container className="lesson-print-page" size="lg" py="xl">
       <Stack gap="lg">
-        <Anchor component={Link} route="swimming_classes.index" size="sm">
-          ← Classes
+        <Anchor className="screen-only" component={Link} route="lessons.index" size="sm">
+          ← Lessons
         </Anchor>
 
-        {/* Class hero */}
-        <Card padding={0}>
-          <Group justify="space-between" align="flex-start" p="lg" wrap="wrap">
-            <Group gap="md" align="flex-start" wrap="nowrap">
-              <Box
-                bg="aqua.0"
-                c="aqua.8"
-                w={54}
-                h={54}
-                style={{
-                  borderRadius: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Text fw={800} fz="md" lh={1}>
-                  {(swimmingClass.weekdayName ?? 'TBD').slice(0, 3)}
-                </Text>
-                <Text fz={10} fw={700} tt="uppercase" lh={1} mt={3}>
-                  {swimmingClass.startTime?.formatted ?? '—'}
-                </Text>
-              </Box>
-              <div>
-                <Group gap="xs">
-                  <Title order={1} fz="h2">
-                    {swimmingClass.name}
-                  </Title>
-                  <Badge variant="light" color="gray" size="sm">
-                    {swimmingClass.code}
-                  </Badge>
-                  {swimmingClass.isCancelled && (
-                    <Badge variant="light" color="red" size="sm">
-                      Cancelled
+        {!focusedLessonId && (
+          <Card padding={0}>
+            <Group justify="space-between" align="flex-start" p="lg" wrap="wrap">
+              <Group gap="md" align="flex-start" wrap="nowrap">
+                <Box
+                  bg="aqua.0"
+                  c="aqua.8"
+                  w={54}
+                  h={54}
+                  style={{
+                    borderRadius: 12,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Text fw={800} fz="md" lh={1}>
+                    {(swimmingClass.weekdayName ?? 'TBD').slice(0, 3)}
+                  </Text>
+                  <Text fz={10} fw={700} tt="uppercase" lh={1} mt={3}>
+                    {swimmingClass.startTime?.formatted ?? '—'}
+                  </Text>
+                </Box>
+                <div>
+                  <Group gap="xs">
+                    <Title order={1} fz="h2">
+                      {swimmingClass.name}
+                    </Title>
+                    <Badge variant="light" color="gray" size="sm">
+                      {swimmingClass.code}
                     </Badge>
+                    {swimmingClass.isCancelled && (
+                      <Badge variant="light" color="red" size="sm">
+                        Cancelled
+                      </Badge>
+                    )}
+                  </Group>
+                  <Text size="sm" c="dimmed" mt={4}>
+                    Program:{' '}
+                    {swimmingClass.level ? (
+                      <>
+                        <Anchor
+                          component={Link}
+                          href={urlFor('programs.show', { id: swimmingClass.level.programId })}
+                          size="sm"
+                          fw={600}
+                        >
+                          {swimmingClass.level.programName}
+                        </Anchor>{' '}
+                        —{' '}
+                        <Anchor
+                          component={Link}
+                          href={urlFor('levels.show', { id: swimmingClass.level.id })}
+                          size="sm"
+                          fw={600}
+                        >
+                          {swimmingClass.level.name}
+                        </Anchor>
+                      </>
+                    ) : (
+                      'Not set'
+                    )}{' '}
+                    · Weekly class
+                  </Text>
+                </div>
+              </Group>
+              <Guard for="lesson.generate">
+                <Group gap="sm">
+                  <Button
+                    component={Link}
+                    href={urlFor('swimming_classes.edit', { id: swimmingClass.id })}
+                    variant="default"
+                  >
+                    Edit class
+                  </Button>
+                  {!swimmingClass.isCancelled && (
+                    <Form route="swimming_classes.update" routeParams={{ id: swimmingClass.id }}>
+                      {({ processing }) => (
+                        <>
+                          <input type="hidden" name="intent" value="cancel" />
+                          <Button type="submit" color="red" variant="light" loading={processing}>
+                            Cancel class
+                          </Button>
+                        </>
+                      )}
+                    </Form>
                   )}
                 </Group>
-                <Text size="sm" c="dimmed" mt={4}>
-                  Program:{' '}
-                  {swimmingClass.level ? (
-                    <>
-                      <Anchor
-                        component={Link}
-                        href={urlFor('programs.show', { id: swimmingClass.level.programId })}
-                        size="sm"
-                        fw={600}
-                      >
-                        {swimmingClass.level.programName}
-                      </Anchor>{' '}
-                      —{' '}
-                      <Anchor
-                        component={Link}
-                        href={urlFor('levels.show', { id: swimmingClass.level.id })}
-                        size="sm"
-                        fw={600}
-                      >
-                        {swimmingClass.level.name}
-                      </Anchor>
-                    </>
-                  ) : (
-                    'Not set'
-                  )}{' '}
-                  · Weekly class
-                </Text>
-              </div>
+              </Guard>
             </Group>
-            <Guard for="class.manage">
-              <Group gap="sm">
-                <Button
-                  component={Link}
-                  href={urlFor('swimming_classes.edit', { id: swimmingClass.id })}
-                  variant="default"
-                >
-                  Edit class
-                </Button>
-                {!swimmingClass.isCancelled && (
-                  <Form route="swimming_classes.update" routeParams={{ id: swimmingClass.id }}>
-                    {({ processing }) => (
-                      <>
-                        <input type="hidden" name="intent" value="cancel" />
-                        <Button type="submit" color="red" variant="light" loading={processing}>
-                          Cancel class
-                        </Button>
-                      </>
-                    )}
-                  </Form>
-                )}
-              </Group>
-            </Guard>
-          </Group>
-          <Divider />
-          <MetaStrip
-            items={[
-              {
-                label: 'Day & time',
-                value: swimmingClass.startTime
-                  ? `${swimmingClass.weekdayName} · ${swimmingClass.startTime.formatted}`
-                  : 'Not scheduled',
-              },
-              { label: 'Duration', value: `${swimmingClass.durationMinutes} min` },
-              {
-                label: 'Lead instructor',
-                value: instructorBadges(leadInstructor ? [leadInstructor] : []),
-              },
-              {
-                label: 'Supporting instructors',
-                value: instructorBadges(supportingInstructors),
-              },
-              { label: 'Location', value: swimmingClass.location ?? 'Not set' },
-              {
-                label: 'Term',
-                value: swimmingClass.term
-                  ? `${swimmingClass.term.swimYearName} · ${swimmingClass.term.name}`
-                  : 'Not set',
-              },
-              {
-                label: 'Term dates',
-                value: swimmingClass.term
-                  ? `${swimmingClass.term.startsOn.formatted} – ${swimmingClass.term.endsOn.formatted}`
-                  : '—',
-              },
-              { label: 'Stage', value: swimmingClass.stage?.name ?? 'Not set' },
-              {
-                label: 'Capacity',
-                value:
-                  typeof swimmingClass.level?.capacity === 'number'
-                    ? `${swimmingClass.level.capacity} learners`
+            <Divider />
+            <MetaStrip
+              items={[
+                {
+                  label: 'Day & time',
+                  value: swimmingClass.startTime
+                    ? `${swimmingClass.weekdayName} · ${swimmingClass.startTime.formatted}`
+                    : 'Not scheduled',
+                },
+                { label: 'Duration', value: `${displayedDurationMinutes} min` },
+                {
+                  label: 'Lead instructor',
+                  value: instructorBadges(leadInstructor ? [leadInstructor] : []),
+                },
+                {
+                  label: 'Supporting instructors',
+                  value: instructorBadges(supportingInstructors),
+                },
+                { label: 'Location', value: swimmingClass.location ?? 'Not set' },
+                {
+                  label: 'Term',
+                  value: swimmingClass.term
+                    ? `${swimmingClass.term.swimYearName} · ${swimmingClass.term.name}`
+                    : 'Not set',
+                },
+                {
+                  label: 'Term dates',
+                  value: swimmingClass.term
+                    ? `${swimmingClass.term.startsOn.formatted} – ${swimmingClass.term.endsOn.formatted}`
                     : '—',
-              },
-              { label: 'Skills', value: swimmingClass.skills.length },
-              {
-                label: 'Lessons planned',
-                value: swimmingClass.lessonAllowance
-                  ? `${swimmingClass.lessons.length} of ${swimmingClass.lessonAllowance}`
-                  : plannedCount,
-              },
-            ]}
-          />
-        </Card>
+                },
+                { label: 'Stage', value: swimmingClass.stage?.name ?? 'Not set' },
+                {
+                  label: 'Capacity',
+                  value:
+                    typeof swimmingClass.level?.capacity === 'number'
+                      ? `${swimmingClass.level.capacity} learners`
+                      : '—',
+                },
+                { label: 'Skills', value: swimmingClass.skills.length },
+                {
+                  label: 'Lessons planned',
+                  value: swimmingClass.lessonAllowance
+                    ? `${swimmingClass.lessons.length} of ${swimmingClass.lessonAllowance}`
+                    : plannedCount,
+                },
+              ]}
+            />
+          </Card>
+        )}
 
         {/* Lessons */}
-        <Group justify="space-between" align="center">
-          <Title order={2} fz="lg">
-            Lessons
-          </Title>
-          <Text size="sm" c="dimmed">
-            {swimmingClass.lessons.length}{' '}
-            {swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · {plannedCount} planned
-          </Text>
-        </Group>
+        {!focusedLessonId && (
+          <Group justify="space-between" align="center">
+            <Title order={2} fz="lg">
+              Lessons
+            </Title>
+            <Group gap="sm">
+              <Text size="sm" c="dimmed">
+                {swimmingClass.lessons.length}{' '}
+                {swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · {plannedCount} planned
+              </Text>
+              <Guard for="class.manage">
+                <Button
+                  component={Link}
+                  href={urlFor('lessons.index', [], {
+                    qs: { classId: swimmingClass.id, generate: '1' },
+                  })}
+                  variant="light"
+                  leftSection={<IconCalendar size={16} />}
+                >
+                  Generate lessons
+                </Button>
+              </Guard>
+            </Group>
+          </Group>
+        )}
 
         {swimmingClass.lessons.length === 0 && (
           <Card>
@@ -275,17 +329,18 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
           </Card>
         )}
 
-        {swimmingClass.lessons.map((lesson, index) => {
-          const focus = skillFocus(lesson, skillsForLessons)
+        {displayedLessons.map((lesson) => {
+          const lessonNumber = swimmingClass.lessons.findIndex((item) => item.id === lesson.id) + 1
           const isPlanned = lesson.activities.length > 0 || Boolean(lesson.objectives)
           const plannedMinutes = lessonPlannedMinutes(lesson)
+          const timeRange = lessonTimeRange(swimmingClass, lesson.durationMinutes)
 
           return (
-            <Card key={lesson.id} padding={0}>
-              <Group gap="md" p="md" px="lg" wrap="nowrap" align="center">
+            <Card className="lesson-print-card" key={lesson.id} padding={0}>
+              <Group className="screen-only" gap="md" p="md" px="lg" wrap="nowrap" align="center">
                 <ThemeIcon variant="light" radius="md" size={30}>
                   <Text size="xs" fw={800}>
-                    {index + 1}
+                    {lessonNumber}
                   </Text>
                 </ThemeIcon>
                 <div>
@@ -294,11 +349,20 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                   </Text>
                   <Text size="xs" c="dimmed">
                     {swimmingClass.startTime ? `${swimmingClass.startTime.formatted} · ` : ''}
-                    {swimmingClass.durationMinutes} min ·{' '}
-                    {plannedMinutes} planned
+                    {lesson.durationMinutes} min · {plannedMinutes} planned
                   </Text>
                 </div>
                 <Group gap="xs" ml="auto" wrap="nowrap">
+                  {!isPlanned && (
+                    <Box ta="right" style={{ flexShrink: 0, marginRight: 8 }}>
+                      <Text fw={800} fz={24} c="teal.7" lh={1.05}>
+                        #{lessonNumber}
+                      </Text>
+                      <Text size="sm" c="dimmed">
+                        {lesson.durationMinutes} min
+                      </Text>
+                    </Box>
+                  )}
                   {isPlanned ? (
                     <Badge variant="light" color="green" size="sm">
                       Planned
@@ -308,7 +372,15 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                       Draft
                     </Badge>
                   )}
-                  <Guard for="class.manage">
+                  <Button
+                    type="button"
+                    variant="default"
+                    leftSection={<IconPrinter size={16} />}
+                    onClick={() => window.print()}
+                  >
+                    Print
+                  </Button>
+                  <Guard for="lesson.edit">
                     <Tooltip label="Edit lesson">
                       <ActionIcon
                         variant="subtle"
@@ -323,6 +395,8 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                         <IconPencil size={14} />
                       </ActionIcon>
                     </Tooltip>
+                  </Guard>
+                  <Guard for="class.manage">
                     <Tooltip label="Remove lesson">
                       <ActionIcon
                         variant="subtle"
@@ -337,103 +411,213 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                       </ActionIcon>
                     </Tooltip>
                   </Guard>
+                  {!canEditLesson && (
+                    <Guard for="lesson.activities.manage">
+                      <Tooltip label="Edit activities">
+                        <ActionIcon
+                          variant="subtle"
+                          size="sm"
+                          aria-label={`Edit activities for ${lesson.date.formatted}`}
+                          onClick={() =>
+                            setEditingActivitiesLessonId((current) =>
+                              current === lesson.id ? null : lesson.id
+                            )
+                          }
+                        >
+                          <IconPencil size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Guard>
+                  )}
                 </Group>
               </Group>
               <Divider />
-              <Stack gap="sm" p="lg" pt="md">
+              <Stack gap="sm" p="md" pt="sm">
                 {isPlanned ? (
-                  <>
-                    {lesson.objectives && (
-                      <Box
-                        p="sm"
-                        style={{
-                          border: '1px solid var(--mantine-color-gray-3)',
-                          borderRadius: 10,
-                        }}
-                      >
-                        <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em">
-                          Lesson objectives
+                  <Box className="lesson-plan-print-content" p="sm">
+                    <Group justify="space-between" align="flex-start" wrap="nowrap">
+                      <Box style={{ minWidth: 0 }}>
+                        <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.1em">
+                          Lesson plan · {lessonPlanCode(lesson)}
                         </Text>
-                        <Text size="sm" mt={4}>
-                          {lesson.objectives}
+                        <Title order={3} fz={22} mt={4}>
+                          {swimmingClass.name}
+                        </Title>
+                        <Text c="dimmed" size="sm" mt={2}>
+                          {lesson.date.formatted}
+                          {timeRange ? ` · ${timeRange}` : ''}
                         </Text>
                       </Box>
-                    )}
-                    {focus.length > 0 && (
-                      <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.05em">
-                        Skill focus ·{' '}
-                        <Text span size="xs" fw={700} c="aqua.8" tt="uppercase" lts="0.05em">
-                          {focus.join(', ')}
+                      <Box ta="right" style={{ flexShrink: 0 }}>
+                        <Text fw={800} fz={24} c="teal.7" lh={1.05}>
+                          #{lessonNumber}
                         </Text>
-                      </Text>
-                    )}
-                    <Stack gap="md">
-                      {lessonActivityGroups(lesson, skillsForLessons).map((group) => (
-                        <Stack key={group.name} gap="xs">
-                          <Text size="sm" fw={700} c="aqua.8">
-                            {group.name}
-                          </Text>
-                          {group.activities.map((activity, activityIndex) => (
-                            <Group
-                              key={activity.id}
-                              gap="sm"
-                              align="flex-start"
-                              wrap="nowrap"
-                              p="sm"
-                              style={{
-                                border: '1px solid var(--mantine-color-gray-3)',
-                                borderRadius: 10,
-                              }}
-                            >
-                              <Text
-                                size="sm"
-                                c="dimmed"
-                                w={18}
-                                ta="right"
-                                style={{ flexShrink: 0 }}
-                              >
-                                {activityIndex + 1}
+                        <Text size="sm" c="dimmed">
+                          {swimmingClass.durationMinutes} min
+                        </Text>
+                      </Box>
+                    </Group>
+
+                    <SimpleGrid
+                      cols={{ base: 1, sm: 2, md: 4 }}
+                      spacing={1}
+                      bg="gray.2"
+                      mt="lg"
+                      style={{
+                        border: '1px solid var(--mantine-color-gray-2)',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {[
+                        { label: 'Stage', value: swimmingClass.stage?.name ?? 'Not set' },
+                        { label: 'Level', value: swimmingClass.level?.name ?? 'Not set' },
+                        {
+                          label: 'Instructor',
+                          value: (
+                            <Stack gap={2}>
+                              <Text size="sm" fw={700}>
+                                Lead: {leadInstructor?.label ?? 'Not assigned'}
                               </Text>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <Group gap="xs" align="center">
-                                  <Text size="sm" fw={700}>
-                                    {activity.name}
-                                  </Text>
-                                </Group>
-                                {activity.description && (
-                                  <Text size="xs" c="dimmed" mt={2}>
-                                    {activity.description}
-                                  </Text>
-                                )}
-                                {lessonActivityLeaderLabel(activity.ledBy) && (
-                                  <Text size="xs" c="dimmed" mt={2}>
-                                    {lessonActivityLeaderLabel(activity.ledBy)}
-                                  </Text>
-                                )}
-                                {activity.successCue && (
-                                  <Text size="xs" c="dimmed" mt={2}>
-                                    Success cue: {activity.successCue}
-                                  </Text>
-                                )}
-                              </div>
-                              {activity.durationMinutes && (
-                                <Text
-                                  size="xs"
-                                  fw={800}
-                                  c="aqua.8"
-                                  style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                                >
-                                  {activity.durationMinutes} MIN
-                                </Text>
-                              )}
-                            </Group>
-                          ))}
-                        </Stack>
+                              <Text size="sm" fw={700}>
+                                Support:{' '}
+                                {supportingInstructors.length > 0
+                                  ? supportingInstructors
+                                      .map((instructor) => instructor.label)
+                                      .join(', ')
+                                  : 'None'}
+                              </Text>
+                            </Stack>
+                          ),
+                        },
+                        {
+                          label: 'Capacity',
+                          value:
+                            typeof swimmingClass.level?.capacity === 'number'
+                              ? `${swimmingClass.level.capacity} learners`
+                              : '—',
+                        },
+                      ].map((item) => (
+                        <Box key={item.label} bg="white" p="sm">
+                          <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.08em">
+                            {item.label}
+                          </Text>
+                          <Text fw={800} size="sm" mt={4}>
+                            {item.value}
+                          </Text>
+                        </Box>
                       ))}
-                    </Stack>
+                    </SimpleGrid>
+
+                    <Box
+                      mt="md"
+                      p="sm"
+                      bg="aqua.0"
+                      style={{
+                        border: '1px solid var(--mantine-color-aqua-2)',
+                        borderRadius: 12,
+                      }}
+                    >
+                      <Group gap="sm" wrap="nowrap">
+                        <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
+                          Aim
+                        </Text>
+                        <Text fw={800} size="sm">
+                          {lesson.objectives || 'Not specified'}
+                        </Text>
+                      </Group>
+                    </Box>
+
+                    {skillsForLessons.length > 0 && (
+                      <Box
+                        mt="lg"
+                        pt="lg"
+                        style={{ borderTop: '2px solid var(--mantine-color-gray-9)' }}
+                      >
+                        <Group gap="md" align="baseline">
+                          <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.12em">
+                            Skills assessed
+                          </Text>
+                          <Text c="gray.5">{skillsForLessons.length} assessed this lesson</Text>
+                        </Group>
+                        <Box mt="md">
+                          <LessonSkillTiles skills={skillsForLessons} />
+                        </Box>
+                      </Box>
+                    )}
+
+                    <Text mt="xl" size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.12em">
+                      Session plan
+                    </Text>
+                    <Table mt="xs" striped verticalSpacing="sm" horizontalSpacing="sm">
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Phase / Activity</Table.Th>
+                          <Table.Th>Teaching Points</Table.Th>
+                          <Table.Th>Organisation</Table.Th>
+                          <Table.Th>Mins</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {lessonActivityGroups(lesson, skillsForLessons).flatMap((group) =>
+                          group.activities.map((activity, activityIndex) => (
+                            <Table.Tr key={activity.id}>
+                              <Table.Td>
+                                {activityIndex === 0 && (
+                                  <Text size="sm" fw={800}>
+                                    {group.name}:
+                                  </Text>
+                                )}
+                                <Text size="sm">{activity.name}</Text>
+                              </Table.Td>
+                              <Table.Td>
+                                <Text size="sm">
+                                  {activity.successCue || activity.description || '—'}
+                                </Text>
+                              </Table.Td>
+                              <Table.Td>
+                                <Text size="sm">
+                                  {lessonActivityLeaderLabel(activity.ledBy) ?? 'All together'}
+                                </Text>
+                              </Table.Td>
+                              <Table.Td>
+                                <Text size="sm" style={{ whiteSpace: 'nowrap' }}>
+                                  {activity.durationMinutes
+                                    ? `${activity.durationMinutes} ${activity.durationMinutes === 1 ? 'min' : 'mins'}`
+                                    : '—'}
+                                </Text>
+                              </Table.Td>
+                            </Table.Tr>
+                          ))
+                        )}
+                      </Table.Tbody>
+                    </Table>
+
+                    <Text ta="right" size="sm" mt="xs">
+                      Total time: {plannedMinutes} minutes
+                    </Text>
+                    {lesson.equipment.length > 0 && (
+                      <Box
+                        mt="md"
+                        pt="sm"
+                        style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}
+                      >
+                        <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.08em">
+                          Equipment
+                        </Text>
+                        <Group gap="xs" mt="xs">
+                          {lesson.equipment.map((item) => (
+                            <Badge key={item} variant="default" color="gray" radius="xl">
+                              {item}
+                            </Badge>
+                          ))}
+                        </Group>
+                      </Box>
+                    )}
                     {lesson.isConcluded && (
                       <Box
                         p="sm"
+                        mt="sm"
                         style={{
                           border: '1px solid var(--mantine-color-green-3)',
                           borderRadius: 10,
@@ -447,10 +631,9 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                         </Text>
                       </Box>
                     )}
-                  </>
+                  </Box>
                 ) : (
-                  <Group
-                    justify="space-between"
+                  <Box
                     p="md"
                     style={{
                       border: '1px dashed var(--mantine-color-gray-4)',
@@ -466,17 +649,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                         build this lesson.
                       </Text>
                     </div>
-                    <Guard for="class.manage">
-                      <Button
-                        type="button"
-                        size="xs"
-                        variant="light"
-                        onClick={() => setEditingLessonId(lesson.id)}
-                      >
-                        + Plan activities
-                      </Button>
-                    </Guard>
-                  </Group>
+                  </Box>
                 )}
                 {lesson.notes && (
                   <Text size="xs" c="dimmed" fs="italic">
@@ -488,37 +661,22 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                     lesson={lesson}
                     skills={skillsForLessons}
                     activityBank={activityBank}
-                    durationMinutes={swimmingClass.durationMinutes}
+                    durationMinutes={lesson.durationMinutes}
                     onCancel={() => setEditingLessonId(null)}
+                  />
+                )}
+                {editingActivitiesLessonId === lesson.id && !canEditLesson && (
+                  <EditLessonActivitiesForm
+                    lesson={lesson}
+                    activityBank={activityBank}
+                    durationMinutes={lesson.durationMinutes}
+                    onCancel={() => setEditingActivitiesLessonId(null)}
                   />
                 )}
               </Stack>
             </Card>
           )
         })}
-
-        {!swimmingClass.isCancelled && editingLessonId === null && (
-          <Guard for="class.manage">
-            {swimmingClass.lessonAllowance &&
-            swimmingClass.lessons.length >= swimmingClass.lessonAllowance ? (
-              <Card>
-                <Text size="sm" c="dimmed">
-                  All {swimmingClass.lessonAllowance} lessons this level allows are planned.
-                </Text>
-              </Card>
-            ) : (
-              <PlanLessonForm
-                classId={swimmingClass.id}
-                weekday={swimmingClass.weekday ?? 1}
-                weekdayName={swimmingClass.weekdayName ?? ''}
-                existingDates={swimmingClass.lessons.map((lesson) => lesson.date.raw)}
-                skills={skillsForLessons}
-                activityBank={activityBank}
-                durationMinutes={swimmingClass.durationMinutes}
-              />
-            )}
-          </Guard>
-        )}
       </Stack>
     </Container>
   )

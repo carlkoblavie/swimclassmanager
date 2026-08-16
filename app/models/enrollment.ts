@@ -1,5 +1,5 @@
-import { beforeCreate, belongsTo, hasMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { beforeCreate, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { randomUUID } from 'node:crypto'
 import { EnrollmentSchema } from '#database/schema'
 import School from '#models/school'
@@ -7,6 +7,9 @@ import Level from '#models/level'
 import SwimYear from '#models/swim_year'
 import Learner from '#models/learner'
 import TermPayment from '#models/term_payment'
+import SwimmingClass from '#models/swimming_class'
+import Term from '#models/term'
+import ClassLesson from '#models/class_lesson'
 
 export default class Enrollment extends EnrollmentSchema {
   @beforeCreate()
@@ -28,6 +31,20 @@ export default class Enrollment extends EnrollmentSchema {
   @belongsTo(() => Learner)
   declare learner: BelongsTo<typeof Learner>
 
+  @belongsTo(() => SwimmingClass)
+  declare swimmingClass: BelongsTo<typeof SwimmingClass>
+
+  @belongsTo(() => Term)
+  declare term: BelongsTo<typeof Term>
+
   @hasMany(() => TermPayment)
   declare termPayments: HasMany<typeof TermPayment>
+
+  @manyToMany(() => ClassLesson, {
+    pivotTable: 'enrollment_lessons',
+    pivotForeignKey: 'enrollment_id',
+    pivotRelatedForeignKey: 'class_lesson_id',
+    pivotTimestamps: true,
+  })
+  declare lessons: ManyToMany<typeof ClassLesson>
 }

@@ -11,11 +11,11 @@ test.group('Roles catalog', (group) => {
     return truncate
   })
 
-  test('contains the six defined roles', async ({ assert }) => {
+  test('contains the seven defined roles', async ({ assert }) => {
     const roles = await Role.query()
     const names = roles.map((role) => role.name).sort()
 
-    assert.lengthOf(roles, 6)
+    assert.lengthOf(roles, 7)
     assert.deepEqual(names, [...Object.values(RoleName)].sort())
   })
 })

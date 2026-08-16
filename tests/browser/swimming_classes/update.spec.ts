@@ -113,7 +113,7 @@ test.group('Swimming classes update', (group) => {
     using fake = mail.fake()
 
     const page = await visit(route('swimming_classes.edit', { id: swimmingClass.id }))
-    await page.getByRole('button', { name: 'Invite a new teacher' }).click()
+    await page.getByRole('button', { name: 'Invite a new instructor' }).click()
     await page.getByLabel('First name').fill('Pending')
     await page.getByLabel('Last name').fill('Coach')
     await page.getByLabel('Phone number').fill('0555000111')
@@ -125,7 +125,7 @@ test.group('Swimming classes update', (group) => {
     await page.getByRole('button', { name: 'Save changes' }).click()
 
     await page.assertPath(route('swimming_classes.show', { id: swimmingClass.id }))
-    await page.assertVisible('text=Class updated. Teacher invited.')
+    await page.assertVisible('text=Class updated. Instructor invited.')
     await page.assertVisible(page.getByText('Pending', { exact: true }))
     await db.assertHas('invitations', {
       school_id: school.id,

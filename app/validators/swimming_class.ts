@@ -74,6 +74,7 @@ export const updateSwimmingClassValidator = vine.create({
 
 export const storeClassLessonValidator = vine.create({
   objectives: vine.string().trim().minLength(1).maxLength(2000),
+  equipment: vine.array(vine.string().trim().minLength(1).maxLength(120)).distinct().optional(),
   schoolActivityIds: vine.array(vine.number().withoutDecimals().positive()).optional(),
   schoolActivityDurations: vine.array(vine.number().withoutDecimals().positive()).optional(),
   schoolActivityLedBys: vine
@@ -95,6 +96,84 @@ export const storeClassLessonValidator = vine.create({
   intent: vine.string().trim().maxLength(20).optional(),
 })
 
+export const updateLessonActivitiesValidator = vine.create({
+  schoolActivityIds: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  schoolActivityDurations: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  schoolActivityLedBys: vine
+    .array(vine.number().withoutDecimals().in(LESSON_ACTIVITY_LEADER_VALUES))
+    .optional(),
+  customActivityNames: vine.array(vine.string().trim().minLength(1).maxLength(120)).optional(),
+  customActivityCategoryIds: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  customActivityDescriptions: vine
+    .array(vine.string().trim().maxLength(2000).nullable())
+    .optional(),
+  customActivitySuccessCues: vine.array(vine.string().trim().maxLength(255).nullable()).optional(),
+  customActivityDurations: vine.array(vine.number().withoutDecimals().positive()).optional(),
+  customActivityLedBys: vine
+    .array(vine.number().withoutDecimals().in(LESSON_ACTIVITY_LEADER_VALUES))
+    .optional(),
+  activityIds: vine.array(vine.number().withoutDecimals().positive()).distinct().optional(),
+})
+
+export const generateClassLessonsValidator = vine.create({
+  classId: vine.number().withoutDecimals().positive().exists({
+    table: 'swimming_classes',
+    column: 'id',
+  }),
+  startDate: vine.date({ formats: ['YYYY-MM-DD'] }),
+  endDate: vine.date({ formats: ['YYYY-MM-DD'] }).afterOrSameAs('startDate'),
+  startTime: vine
+    .string()
+    .trim()
+    .regex(/^\d{2}:\d{2}$/),
+  weekdays: vine
+    .array(vine.number().withoutDecimals().min(1).max(7))
+    .minLength(1)
+    .maxLength(7)
+    .distinct(),
+})
+
+export const copyLessonActivitiesValidator = vine.create({
+  targetLessonIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .minLength(1)
+    .maxLength(100)
+    .distinct(),
+})
+
+export const assignLessonInstructorsValidator = vine.create({
+  date: vine.date({ formats: ['YYYY-MM-DD'] }).optional(),
+  durationMinutes: vine.number().withoutDecimals().positive().optional(),
+  leadInstructorMembershipId: vine.number().withoutDecimals().positive().optional(),
+  leadInstructorInvitationId: vine.number().withoutDecimals().positive().optional(),
+  supportingInstructorMembershipIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+  supportingInstructorInvitationIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+})
+
+export const bulkAssignLessonInstructorsValidator = vine.create({
+  lessonIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .minLength(1)
+    .maxLength(100)
+    .distinct(),
+  leadInstructorMembershipId: vine.number().withoutDecimals().positive().optional(),
+  leadInstructorInvitationId: vine.number().withoutDecimals().positive().optional(),
+  supportingInstructorMembershipIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+  supportingInstructorInvitationIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .distinct()
+    .optional(),
+})
+
 export type StoreSwimmingClassesInput = Awaited<
   ReturnType<typeof storeSwimmingClassesValidator.validate>
 >
@@ -102,3 +181,12 @@ export type UpdateSwimmingClassInput = Awaited<
   ReturnType<typeof updateSwimmingClassValidator.validate>
 >
 export type StoreClassLessonInput = Awaited<ReturnType<typeof storeClassLessonValidator.validate>>
+export type UpdateLessonActivitiesInput = Awaited<
+  ReturnType<typeof updateLessonActivitiesValidator.validate>
+>
+export type GenerateClassLessonsInput = Awaited<
+  ReturnType<typeof generateClassLessonsValidator.validate>
+>
+export type BulkAssignLessonInstructorsInput = Awaited<
+  ReturnType<typeof bulkAssignLessonInstructorsValidator.validate>
+>

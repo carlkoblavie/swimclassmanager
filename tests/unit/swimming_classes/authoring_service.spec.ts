@@ -6,6 +6,9 @@ import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { LevelFactory } from '#database/factories/level_factory'
 import ClassInstructor from '#models/class_instructor'
+import ClassLesson from '#models/class_lesson'
+import LessonInstructor from '#models/lesson_instructor'
+import LessonActivity from '#models/lesson_activity'
 import Invitation from '#models/invitation'
 import Role from '#models/role'
 import SchoolLevelSetting from '#models/school_level_setting'
@@ -230,7 +233,7 @@ test.group('Class series authoring service', (group) => {
     )
   })
 
-  test('a class name must be unique within the school', async ({ assert }) => {
+  test('a class name must be unique within the stage', async ({ assert }) => {
     const { school, level, term, classInput } = await setupContext()
     await new ClassSeriesAuthoringService().createOne(school, {
       levelId: level.id,
@@ -418,6 +421,169 @@ test.group('Class series authoring service', (group) => {
     )
   })
 
+  test('generates empty lessons for selected weekdays without duplicating dates', async ({
+    assert,
+  }) => {
+    const { school, level, term, classInput } = await setupContext()
+    const created = await new ClassSeriesAuthoringService().createOne(school, {
+      levelId: level.id,
+      termId: term.id,
+      ...classInput(),
+    })
+    await ClassLesson.create({
+      swimmingClassId: created.id,
+      date: DateTime.fromISO('2026-09-15'),
+      objectives: null,
+      notes: null,
+      observation: null,
+      concludedAt: null,
+    })
+
+    const lessons = await new ClassSeriesAuthoringService().generateLessons(created, {
+      classId: created.id,
+      startDate: DateTime.fromISO('2026-09-14'),
+      endDate: DateTime.fromISO('2026-09-21'),
+      startTime: '17:00',
+      weekdays: [1, 2],
+    })
+
+    assert.equal(lessons.length, 2)
+    const scheduled = await SwimmingClass.findOrFail(created.id)
+    assert.equal(scheduled.weekday, 1)
+    assert.equal(scheduled.startTime, '17:00')
+    const dates = (
+      await ClassLesson.query().where('swimmingClassId', created.id).orderBy('date')
+    ).map((lesson) => lesson.date.toISODate())
+    assert.deepEqual(dates, ['2026-09-14', '2026-09-15', '2026-09-21'])
+  })
+
+  test('generated lessons inherit class instructors and support per-lesson overrides', async ({
+    assert,
+  }) => {
+    const { school, level, term, classInput } = await setupContext()
+    const leadUser = await UserFactory.apply('completed').create()
+    const supportingUser = await UserFactory.apply('completed').create()
+    const replacementUser = await UserFactory.apply('completed').create()
+    const lead = await joinSchool(leadUser, school, RoleName.TEACHER)
+    const supporting = await joinSchool(supportingUser, school, RoleName.TEACHER)
+    const replacement = await joinSchool(replacementUser, school, RoleName.HEAD_COACH)
+
+    const swimmingClass = await new ClassSeriesAuthoringService().createOne(school, {
+      levelId: level.id,
+      termId: term.id,
+      leadInstructorMembershipId: lead.id,
+      supportingInstructorMembershipIds: [supporting.id],
+      ...classInput({ name: 'Staffed squad' }),
+    })
+
+    const [lesson] = await new ClassSeriesAuthoringService().generateLessons(swimmingClass, {
+      classId: swimmingClass.id,
+      startDate: DateTime.fromISO('2026-09-14'),
+      endDate: DateTime.fromISO('2026-09-14'),
+      startTime: '17:00',
+      weekdays: [1],
+    })
+
+    let assignments = await LessonInstructor.query()
+      .where('classLessonId', lesson.id)
+      .orderBy('role')
+    assert.deepEqual(
+      assignments.map((assignment) => [assignment.membershipId, assignment.role]),
+      [
+        [lead.id, ClassInstructorRole.LEAD],
+        [supporting.id, ClassInstructorRole.SUPPORTING],
+      ]
+    )
+
+    await new ClassSeriesAuthoringService().assignLessonInstructors(lesson, school, {
+      date: DateTime.fromISO('2026-09-21'),
+      durationMinutes: 30,
+      leadInstructorMembershipId: replacement.id,
+      supportingInstructorMembershipIds: [supporting.id],
+    })
+
+    await lesson.refresh()
+    assert.equal(lesson.date.toISODate(), '2026-09-21')
+    assert.equal(lesson.durationMinutes, 30)
+
+    assignments = await LessonInstructor.query().where('classLessonId', lesson.id).orderBy('role')
+    assert.deepEqual(
+      assignments.map((assignment) => [assignment.membershipId, assignment.role]),
+      [
+        [replacement.id, ClassInstructorRole.LEAD],
+        [supporting.id, ClassInstructorRole.SUPPORTING],
+      ]
+    )
+  })
+
+  test('bulk assignment applies a lead and supporting instructor team to lessons', async ({
+    assert,
+  }) => {
+    const { school, level, term, classInput } = await setupContext()
+    const leadUser = await UserFactory.apply('completed').create()
+    const supportingUser = await UserFactory.apply('completed').create()
+    const lead = await joinSchool(leadUser, school, RoleName.HEAD_COACH)
+    const supporting = await joinSchool(supportingUser, school, RoleName.ASSISTANT_COACH)
+    const swimmingClass = await new ClassSeriesAuthoringService().createOne(school, {
+      levelId: level.id,
+      termId: term.id,
+      ...classInput({ name: 'Bulk assignment squad' }),
+    })
+    const lessons = await ClassLesson.createMany([
+      { swimmingClassId: swimmingClass.id, date: DateTime.fromISO('2026-09-14') },
+      { swimmingClassId: swimmingClass.id, date: DateTime.fromISO('2026-09-21') },
+    ])
+
+    await new ClassSeriesAuthoringService().bulkAssignLessonInstructors(lessons, school, {
+      leadInstructorMembershipId: lead.id,
+      supportingInstructorMembershipIds: [supporting.id],
+    })
+
+    const assignments = await LessonInstructor.query().whereIn(
+      'classLessonId',
+      lessons.map((lesson) => lesson.id)
+    )
+    assert.equal(assignments.length, 4)
+    assert.equal(assignments.filter((assignment) => assignment.membershipId === lead.id).length, 2)
+    assert.equal(
+      assignments.filter((assignment) => assignment.membershipId === supporting.id).length,
+      2
+    )
+  })
+
+  test('copying activities rejects lessons that are not empty', async ({ assert }) => {
+    const { school, level, term, activity, classInput } = await setupContext()
+    const created = await new ClassSeriesAuthoringService().createOne(school, {
+      levelId: level.id,
+      termId: term.id,
+      ...classInput(),
+    })
+    const source = await ClassLesson.create({
+      swimmingClassId: created.id,
+      date: DateTime.fromISO('2026-09-14'),
+    })
+    const target = await ClassLesson.create({
+      swimmingClassId: created.id,
+      date: DateTime.fromISO('2026-09-21'),
+    })
+    await LessonActivity.create({
+      classLessonId: source.id,
+      levelStageActivityId: activity.id,
+      position: 1,
+    })
+    await LessonActivity.create({
+      classLessonId: target.id,
+      levelStageActivityId: activity.id,
+      position: 1,
+    })
+
+    await expectAuthoringError(
+      assert,
+      () => new ClassSeriesAuthoringService().copyLessonActivities(source, [target.id]),
+      'Activities can only be copied into empty lessons.'
+    )
+  })
+
   test('lesson activities must belong to the class skills', async ({ assert }) => {
     const { school, level, stage, term, classInput } = await setupContext()
     const otherSkill = await LevelStageSkill.create({
@@ -462,6 +628,7 @@ test.group('Class series authoring service', (group) => {
 
     const lesson = await new ClassSeriesAuthoringService().planLesson(scheduled, {
       objectives: 'Float calmly and return to the wall.',
+      equipment: ['Kickboards x6', 'Lane rope'],
       schoolActivityIds: [activity.id, activity.id],
       schoolActivityDurations: [9, 4],
       schoolActivityLedBys: [LessonActivityLeader.LEARNER, LessonActivityLeader.INSTRUCTOR],
@@ -469,6 +636,7 @@ test.group('Class series authoring service', (group) => {
     await lesson.load('lessonActivities')
 
     assert.equal(lesson.objectives, 'Float calmly and return to the wall.')
+    assert.equal(lesson.equipment, JSON.stringify(['Kickboards x6', 'Lane rope']))
     assert.equal(lesson.lessonActivities[0].schoolActivityId, activity.id)
     assert.equal(lesson.lessonActivities[0].activityName, activity.name)
     assert.equal(lesson.lessonActivities[0].categoryName, bank[0].name)

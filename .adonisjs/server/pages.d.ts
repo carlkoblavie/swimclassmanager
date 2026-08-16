@@ -22,12 +22,16 @@ declare module '@adonisjs/inertia/types' {
     'classes/edit': ExtractProps<(typeof import('../../inertia/pages/classes/edit.tsx'))['default']>
     'classes/index': ExtractProps<(typeof import('../../inertia/pages/classes/index.tsx'))['default']>
     'classes/show': ExtractProps<(typeof import('../../inertia/pages/classes/show.tsx'))['default']>
+    'enrolment/index': ExtractProps<(typeof import('../../inertia/pages/enrolment/index.tsx'))['default']>
     'errors/not_found': ExtractProps<(typeof import('../../inertia/pages/errors/not_found.tsx'))['default']>
     'errors/server_error': ExtractProps<(typeof import('../../inertia/pages/errors/server_error.tsx'))['default']>
     'home': ExtractProps<(typeof import('../../inertia/pages/home.tsx'))['default']>
     'invitations/create': ExtractProps<(typeof import('../../inertia/pages/invitations/create.tsx'))['default']>
     'landing': ExtractProps<(typeof import('../../inertia/pages/landing.tsx'))['default']>
+    'learners/show': ExtractProps<(typeof import('../../inertia/pages/learners/show.tsx'))['default']>
+    'lessons/index': ExtractProps<(typeof import('../../inertia/pages/lessons/index.tsx'))['default']>
     'levels/show': ExtractProps<(typeof import('../../inertia/pages/levels/show.tsx'))['default']>
+    'members/index': ExtractProps<(typeof import('../../inertia/pages/members/index.tsx'))['default']>
     'programs/create': ExtractProps<(typeof import('../../inertia/pages/programs/create.tsx'))['default']>
     'programs/edit': ExtractProps<(typeof import('../../inertia/pages/programs/edit.tsx'))['default']>
     'programs/index': ExtractProps<(typeof import('../../inertia/pages/programs/index.tsx'))['default']>

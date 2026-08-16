@@ -49,6 +49,15 @@ function stripStageSuffix(name: string, stageName: string): string {
   return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name
 }
 
+function lessonSummary(swimmingClass: Data.SwimmingClass) {
+  if (swimmingClass.lessons.length === 0) {
+    return 'No lessons yet'
+  }
+  const first = swimmingClass.lessons[0]
+  const last = swimmingClass.lessons[swimmingClass.lessons.length - 1]
+  return `${swimmingClass.lessons.length} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · ${first.date.formatted}${last.id !== first.id ? ` – ${last.date.formatted}` : ''}`
+}
+
 export default function LevelsShow({
   level,
   classes,
@@ -252,6 +261,15 @@ export default function LevelsShow({
                                       ? `${swimmingClass.durationMinutes} min`
                                       : 'No duration'}
                                   </Badge>
+                                  <Anchor
+                                    component={Link}
+                                    href={`/lessons?classId=${swimmingClass.id}`}
+                                    size="sm"
+                                    fw={700}
+                                    c={swimmingClass.lessons.length === 0 ? 'dimmed' : undefined}
+                                  >
+                                    {lessonSummary(swimmingClass)}
+                                  </Anchor>
                                 </Group>
                                 {swimmingClass.skills.length > 0 && (
                                   <Group gap="md" wrap="wrap">
@@ -273,6 +291,36 @@ export default function LevelsShow({
                                       </Group>
                                     ))}
                                   </Group>
+                                )}
+                                {swimmingClass.lessons.length === 0 && (
+                                  <Guard for="class.manage">
+                                    <Card
+                                      withBorder
+                                      shadow="none"
+                                      radius="md"
+                                      padding="xs"
+                                      bg="blue.0"
+                                    >
+                                      <Group gap="xs" wrap="wrap">
+                                        <Text size="sm" fw={700}>
+                                          {stripStageSuffix(swimmingClass.name, stage.name)} created
+                                        </Text>
+                                        <Text size="sm" c="dimmed">
+                                          0 lessons scheduled
+                                        </Text>
+                                        <Anchor
+                                          component={Link}
+                                          href={urlFor('lessons.index', [], {
+                                            qs: { classId: swimmingClass.id, generate: '1' },
+                                          })}
+                                          size="sm"
+                                          fw={700}
+                                        >
+                                          Generate lessons
+                                        </Anchor>
+                                      </Group>
+                                    </Card>
+                                  </Guard>
                                 )}
                               </Stack>
                               <Guard for="class.manage">

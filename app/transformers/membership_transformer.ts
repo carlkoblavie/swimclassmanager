@@ -22,6 +22,7 @@ export default class MembershipTransformer extends BaseTransformer<Membership> {
         : undefined,
       roles,
       label,
+      lessonsCount: Number(this.resource.$extras.lessonsCount ?? 0),
     }
   }
 }

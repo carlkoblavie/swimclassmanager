@@ -7,6 +7,7 @@ import School from '#models/school'
 import User from '#models/user'
 import Role from '#models/role'
 import ClassInstructor from '#models/class_instructor'
+import LessonInstructor from '#models/lesson_instructor'
 
 export default class Membership extends compose(
   MembershipSchema,
@@ -30,4 +31,7 @@ export default class Membership extends compose(
 
   @hasMany(() => ClassInstructor)
   declare classInstructors: HasMany<typeof ClassInstructor>
+
+  @hasMany(() => LessonInstructor)
+  declare lessonInstructors: HasMany<typeof LessonInstructor>
 }

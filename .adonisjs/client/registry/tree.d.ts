@@ -34,6 +34,9 @@ export interface ApiDefinition {
   activeSchools: {
     update: typeof routes['active_schools.update']
   }
+  members: {
+    index: typeof routes['members.index']
+  }
   invitations: {
     create: typeof routes['invitations.create']
     store: typeof routes['invitations.store']
@@ -62,6 +65,14 @@ export interface ApiDefinition {
   }
   paystackWebhooks: {
     store: typeof routes['paystack_webhooks.store']
+  }
+  enrolment: {
+    index: typeof routes['enrolment.index']
+    place: typeof routes['enrolment.place']
+    withdraw: typeof routes['enrolment.withdraw']
+  }
+  learners: {
+    show: typeof routes['learners.show']
   }
   programs: {
     index: typeof routes['programs.index']
@@ -125,6 +136,14 @@ export interface ApiDefinition {
   classLessons: {
     store: typeof routes['class_lessons.store']
     update: typeof routes['class_lessons.update']
+    activitiesUpdate: typeof routes['class_lessons.activities_update']
+    copyActivities: typeof routes['class_lessons.copy_activities']
+    assignInstructors: typeof routes['class_lessons.assign_instructors']
+    bulkAssignInstructors: typeof routes['class_lessons.bulk_assign_instructors']
     destroy: typeof routes['class_lessons.destroy']
+  }
+  lessons: {
+    index: typeof routes['lessons.index']
+    store: typeof routes['lessons.store']
   }
 }

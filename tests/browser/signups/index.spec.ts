@@ -91,7 +91,19 @@ test.group('Sign-ups index', (group) => {
     await page.assertVisible(page.getByRole('heading', { name: 'Sign-ups' }))
     await page.assertVisible('text=Ama Mensah')
     await page.assertVisible('text=Adjoa Mensah')
-    await page.assertVisible(page.getByText('Pending invoice').first())
+    await page.assertVisible(page.getByText('Invoice pending').first())
+
+    await page.getByText('Ama Mensah').first().click()
+    await page.assertVisible(page.getByRole('button', { name: 'Record part payment' }))
+    await page.getByRole('button', { name: 'Record part payment' }).click()
+    await page.getByLabel('Amount received').fill('1')
+    await page.getByRole('button', { name: 'Record payment' }).click()
+    await page.assertVisible('text=Part payment recorded.')
+    await db.assertHas('term_payments', {
+      enrollment_id: enrollment.id,
+      amount_paid: 100,
+      status: PaymentStatus.PARTIAL,
+    })
 
     await page.getByText('Ama Mensah').first().click()
     await page.getByRole('button', { name: 'Invoice sent', exact: true }).click()

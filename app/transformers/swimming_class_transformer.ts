@@ -5,6 +5,7 @@ import type ClassLesson from '#models/class_lesson'
 import type ClassSkill from '#models/class_skill'
 import type Invitation from '#models/invitation'
 import type LessonActivity from '#models/lesson_activity'
+import type LessonInstructor from '#models/lesson_instructor'
 import type Level from '#models/level'
 import type LevelStage from '#models/level_stage'
 import type LevelStageActivity from '#models/level_stage_activity'
@@ -32,6 +33,14 @@ type TransformedLessonActivity = {
   position: number
 }
 
+export type TransformedInstructor = {
+  type: 'membership' | 'invitation'
+  id: number
+  role: number
+  status: 'active' | 'pending'
+  label: string
+}
+
 export const WEEKDAY_NAMES: Record<number, string> = {
   1: 'Monday',
   2: 'Tuesday',
@@ -45,6 +54,60 @@ export const WEEKDAY_NAMES: Record<number, string> = {
 function formatTime(value: string): string {
   const parsed = DateTime.fromFormat(value, 'HH:mm')
   return parsed.isValid ? parsed.toFormat('h:mm a') : value
+}
+
+function parseEquipment(value: string | null): string[] {
+  if (!value) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string' && item.trim() !== '')
+    }
+  } catch {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function transformInstructor(
+  instructor: ClassInstructor | LessonInstructor
+): TransformedInstructor {
+  const instructorPreloaded = instructor.$preloaded as {
+    membership?: Membership
+    invitation?: Invitation
+  }
+  const membership = instructorPreloaded.membership
+  const invitation = instructorPreloaded.invitation
+  const membershipPreloaded = membership?.$preloaded as { user?: User } | undefined
+  const user = membershipPreloaded?.user ?? membership?.user
+
+  if (membership) {
+    return {
+      type: 'membership',
+      id: membership.id,
+      role: instructor.role,
+      status: 'active',
+      label: user?.fullName?.trim() || user?.email || 'Assigned instructor',
+    }
+  }
+
+  return {
+    type: 'invitation',
+    id: invitation?.id ?? instructor.invitationId ?? 0,
+    role: instructor.role,
+    status: 'pending',
+    label: invitation?.inviteeFullName || invitation?.email || 'Pending instructor',
+  }
 }
 
 export default class SwimmingClassTransformer extends BaseTransformer<SwimmingClass> {
@@ -67,33 +130,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       (a, b) => a.date.toMillis() - b.date.toMillis()
     )
 
-    const instructors = classInstructors.map((classInstructor) => {
-      const instructorPreloaded = classInstructor.$preloaded as {
-        membership?: Membership
-        invitation?: Invitation
-      }
-      const membership = instructorPreloaded.membership
-      const invitation = instructorPreloaded.invitation
-      const membershipPreloaded = membership?.$preloaded as { user?: User } | undefined
-      const user = membershipPreloaded?.user ?? membership?.user
-
-      if (membership) {
-        return {
-          type: 'membership' as const,
-          id: membership.id,
-          role: classInstructor.role,
-          status: 'active' as const,
-          label: user?.fullName?.trim() || user?.email || 'Assigned instructor',
-        }
-      }
-      return {
-        type: 'invitation' as const,
-        id: invitation?.id ?? classInstructor.invitationId ?? 0,
-        role: classInstructor.role,
-        status: 'pending' as const,
-        label: invitation?.inviteeFullName || invitation?.email || 'Pending instructor',
-      }
-    })
+    const instructors = classInstructors.map(transformInstructor)
     const leadInstructor =
       instructors.find((instructor) => instructor.role === ClassInstructorRole.LEAD) ?? null
     const supportingInstructors = instructors.filter(
@@ -133,6 +170,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         : undefined,
       // The level's curriculum length caps how many lessons a class may plan.
       lessonAllowance: level?.classesCount ?? null,
+      enrolledCount: Number(this.resource.$extras.enrolledCount ?? 0),
       stage: stage
         ? {
             id: stage.id,
@@ -193,16 +231,28 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         ]
       }),
       lessons: lessons.map((lesson) => {
-        const lessonPreloaded = lesson.$preloaded as { lessonActivities?: LessonActivity[] }
+        const lessonPreloaded = lesson.$preloaded as {
+          lessonActivities?: LessonActivity[]
+          lessonInstructors?: LessonInstructor[]
+        }
         const lessonActivities = lessonPreloaded.lessonActivities ?? []
+        const lessonInstructors = (lessonPreloaded.lessonInstructors ?? []).map(transformInstructor)
+        const lessonLeadInstructor =
+          lessonInstructors.find((instructor) => instructor.role === ClassInstructorRole.LEAD) ??
+          null
+        const lessonSupportingInstructors = lessonInstructors.filter(
+          (instructor) => instructor.role === ClassInstructorRole.SUPPORTING
+        )
 
         return {
           id: lesson.id,
+          durationMinutes: lesson.durationMinutes ?? this.resource.durationMinutes,
           date: {
             raw: lesson.date.toISODate() ?? '',
             formatted: lesson.date.toFormat('cccc d LLL yyyy'),
           },
           objectives: lesson.objectives,
+          equipment: parseEquipment(lesson.equipment),
           notes: lesson.notes,
           observation: lesson.observation,
           concludedAt: lesson.concludedAt
@@ -212,6 +262,9 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
               }
             : null,
           isConcluded: lesson.concludedAt !== null,
+          instructors: lessonInstructors,
+          leadInstructor: lessonLeadInstructor,
+          supportingInstructors: lessonSupportingInstructors,
           activities: lessonActivities.flatMap((lessonActivity): TransformedLessonActivity[] => {
             const activityPreloaded = lessonActivity.$preloaded as {
               schoolActivity?: SchoolActivity

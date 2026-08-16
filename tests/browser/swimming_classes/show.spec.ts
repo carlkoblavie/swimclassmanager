@@ -55,15 +55,18 @@ test.group('Swimming classes show', (group) => {
 
     const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
 
-    await page.assertVisible('text=Monday Splash')
+    await page.assertVisible(page.getByText('Monday Splash', { exact: true }).first())
     await page.assertVisible('text=AQT-4820')
     // Schedule facts live in separate meta-strip cells on the hero.
     await page.assertVisible('text=Monday · 5:00 PM')
-    await page.assertVisible(page.getByText('45 min', { exact: true }))
-    await page.assertVisible('text=Monday 13 Jul 2026')
-    await page.assertVisible('text=Waist movement')
+    await page.assertVisible(page.getByText('#1', { exact: true }))
+    await page.assertVisible(page.getByText('45 min', { exact: true }).first())
+    await page.assertVisible(page.getByText('Monday 13 Jul 2026', { exact: true }).first())
+    await page.assertVisible(page.getByText('Waist movement', { exact: true }).first())
     // The skill appears in both the focus line and its lesson group header.
     await page.assertVisible(page.getByText('Hip rotation').first())
+    await page.assertVisible('text=Pass')
+    await page.assertVisible('text=Smooth circles both directions')
     await page.assertVisible('text=Standing twists')
   })
 

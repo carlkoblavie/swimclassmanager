@@ -24,6 +24,7 @@ import {
 import {
   IconClipboardList,
   IconCreditCard,
+  IconCalendarEvent,
   IconListDetails,
   IconLayoutDashboard,
   IconLogout,
@@ -32,9 +33,8 @@ import {
   IconSchool,
   IconSettings,
   IconStack2,
-  IconSwimming,
   IconTargetArrow,
-  IconUserPlus,
+  IconUsersGroup,
 } from '@tabler/icons-react'
 
 function Brand() {
@@ -136,7 +136,7 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
   const { url } = usePage()
   useFlashToasts(children)
 
-  const { user, activeOrganisation, activeSchool, availableSchools } = children.props
+  const { user, activeSchool, availableSchools, activeRole } = children.props
 
   // Signed into a school → full app shell with a sidebar.
   if (activeSchool) {
@@ -159,14 +159,11 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
         <AppShell.Navbar p="md">
           <Stack h="100%" justify="space-between" gap="md">
             <Stack gap={4}>
-              <Box bg="gray.0" p="md" mb="md" style={{ borderRadius: 14 }}>
-                <Text size="xs" tt="uppercase" c="dimmed" fw={800} style={{ letterSpacing: 1 }}>
-                  {activeOrganisation?.name ?? 'School'}
-                </Text>
-                <Text size="sm" fw={800} mt={4}>
+              <Box bg="gray.0" p="sm" mb="sm" style={{ borderRadius: 14 }}>
+                <Text size="sm" fw={800}>
                   {activeSchool.name}
                 </Text>
-                <Badge mt="sm" variant="light" color="gray" radius="xl">
+                <Badge mt="xs" variant="light" color="gray" radius="xl">
                   Starter
                 </Badge>
               </Box>
@@ -198,7 +195,7 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                 route="home"
                 label="Dashboard"
                 icon={<IconLayoutDashboard size={18} stroke={1.6} />}
-                active={url === '/'}
+                active={url === '/dashboard'}
               />
               <SidebarLink
                 route="programs.index"
@@ -206,28 +203,28 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                 icon={<IconStack2 size={18} stroke={1.6} />}
                 active={url.startsWith('/programs')}
               />
-              <Guard for="program.manage">
-                <SidebarLink
-                  route="skill_bank.index"
-                  label="Skills bank"
-                  icon={<IconTargetArrow size={18} stroke={1.6} />}
-                  active={url.startsWith('/skill-bank')}
-                />
-              </Guard>
-              <Guard for="program.manage">
-                <SidebarLink
-                  route="activity_bank.index"
-                  label="Activity bank"
-                  icon={<IconListDetails size={18} stroke={1.6} />}
-                  active={url.startsWith('/activity-bank')}
-                />
-              </Guard>
               <Guard for="class.view">
                 <SidebarLink
                   route="swimming_classes.index"
                   label="Classes"
-                  icon={<IconSwimming size={18} stroke={1.6} />}
+                  icon={<IconCalendarEvent size={18} stroke={1.6} />}
                   active={url.startsWith('/classes')}
+                />
+              </Guard>
+              <Guard for="class.view">
+                <SidebarLink
+                  route="lessons.index"
+                  label="Lessons"
+                  icon={<IconCalendarEvent size={18} stroke={1.6} />}
+                  active={url.startsWith('/lessons')}
+                />
+              </Guard>
+              <Guard for="enrolment.view">
+                <SidebarLink
+                  route="enrolment.index"
+                  label="Enrolment"
+                  icon={<IconUsersGroup size={18} stroke={1.6} />}
+                  active={url.startsWith('/enrolment')}
                 />
               </Guard>
               <Guard for="signup.view">
@@ -238,16 +235,35 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                   active={url.startsWith('/signups')}
                 />
               </Guard>
-              <Guard for="invitation.create">
+
+              <SidebarSection label="Skills" />
+              <Guard for="program.manage">
                 <SidebarLink
-                  route="invitations.create"
-                  label="Invite member"
-                  icon={<IconUserPlus size={18} stroke={1.6} />}
-                  active={url.startsWith('/invitations')}
+                  route="skill_bank.index"
+                  label="Skills"
+                  icon={<IconTargetArrow size={18} stroke={1.6} />}
+                  active={url.startsWith('/skill-bank')}
+                />
+              </Guard>
+              <Guard for="program.manage">
+                <SidebarLink
+                  route="activity_bank.index"
+                  label="Activities"
+                  icon={<IconListDetails size={18} stroke={1.6} />}
+                  active={url.startsWith('/activity-bank')}
                 />
               </Guard>
 
-              <SidebarSection label="Account" />
+              <SidebarSection label="Accounts" />
+              <Guard for="invitation.create">
+                <SidebarLink
+                  route="members.index"
+                  label="Members"
+                  icon={<IconUsersGroup size={18} stroke={1.6} />}
+                  active={url.startsWith('/members')}
+                />
+              </Guard>
+
               <Guard for="program.manage">
                 <SidebarLink
                   route="bank_packs.index"
@@ -281,7 +297,7 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                     {user?.fullName ?? user?.email}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    Owner
+                    {activeRole ?? 'Member'}
                   </Text>
                 </Box>
                 <Form route="sessions.destroy">

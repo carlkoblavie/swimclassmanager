@@ -102,6 +102,12 @@ const routes = {
     tokens: [{"old":"/active-school","type":0,"val":"active-school","end":""}],
     types: placeholder as Registry['active_schools.update']['types'],
   },
+  'members.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/members',
+    tokens: [{"old":"/members","type":0,"val":"members","end":""}],
+    types: placeholder as Registry['members.index']['types'],
+  },
   'invitations.create': {
     methods: ["GET","HEAD"],
     pattern: '/invitations/create',
@@ -179,6 +185,30 @@ const routes = {
     pattern: '/signups/:id',
     tokens: [{"old":"/signups/:id","type":0,"val":"signups","end":""},{"old":"/signups/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['signups.update']['types'],
+  },
+  'enrolment.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/enrolment',
+    tokens: [{"old":"/enrolment","type":0,"val":"enrolment","end":""}],
+    types: placeholder as Registry['enrolment.index']['types'],
+  },
+  'learners.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/learners/:id',
+    tokens: [{"old":"/learners/:id","type":0,"val":"learners","end":""},{"old":"/learners/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['learners.show']['types'],
+  },
+  'enrolment.place': {
+    methods: ["POST"],
+    pattern: '/enrolment/place',
+    tokens: [{"old":"/enrolment/place","type":0,"val":"enrolment","end":""},{"old":"/enrolment/place","type":0,"val":"place","end":""}],
+    types: placeholder as Registry['enrolment.place']['types'],
+  },
+  'enrolment.withdraw': {
+    methods: ["POST"],
+    pattern: '/enrolment/withdraw',
+    tokens: [{"old":"/enrolment/withdraw","type":0,"val":"enrolment","end":""},{"old":"/enrolment/withdraw","type":0,"val":"withdraw","end":""}],
+    types: placeholder as Registry['enrolment.withdraw']['types'],
   },
   'programs.index': {
     methods: ["GET","HEAD"],
@@ -408,11 +438,47 @@ const routes = {
     tokens: [{"old":"/classes/:id/lessons","type":0,"val":"classes","end":""},{"old":"/classes/:id/lessons","type":1,"val":"id","end":""},{"old":"/classes/:id/lessons","type":0,"val":"lessons","end":""}],
     types: placeholder as Registry['class_lessons.store']['types'],
   },
+  'lessons.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/lessons',
+    tokens: [{"old":"/lessons","type":0,"val":"lessons","end":""}],
+    types: placeholder as Registry['lessons.index']['types'],
+  },
+  'lessons.store': {
+    methods: ["POST"],
+    pattern: '/lessons',
+    tokens: [{"old":"/lessons","type":0,"val":"lessons","end":""}],
+    types: placeholder as Registry['lessons.store']['types'],
+  },
   'class_lessons.update': {
     methods: ["PATCH"],
     pattern: '/class-lessons/:id',
     tokens: [{"old":"/class-lessons/:id","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['class_lessons.update']['types'],
+  },
+  'class_lessons.activities_update': {
+    methods: ["PATCH"],
+    pattern: '/class-lessons/:id/activities',
+    tokens: [{"old":"/class-lessons/:id/activities","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/activities","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/activities","type":0,"val":"activities","end":""}],
+    types: placeholder as Registry['class_lessons.activities_update']['types'],
+  },
+  'class_lessons.copy_activities': {
+    methods: ["POST"],
+    pattern: '/class-lessons/:id/copy-activities',
+    tokens: [{"old":"/class-lessons/:id/copy-activities","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/copy-activities","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/copy-activities","type":0,"val":"copy-activities","end":""}],
+    types: placeholder as Registry['class_lessons.copy_activities']['types'],
+  },
+  'class_lessons.assign_instructors': {
+    methods: ["PATCH"],
+    pattern: '/class-lessons/:id/instructors',
+    tokens: [{"old":"/class-lessons/:id/instructors","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/instructors","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/instructors","type":0,"val":"instructors","end":""}],
+    types: placeholder as Registry['class_lessons.assign_instructors']['types'],
+  },
+  'class_lessons.bulk_assign_instructors': {
+    methods: ["POST"],
+    pattern: '/class-lessons/bulk-assign-instructors',
+    tokens: [{"old":"/class-lessons/bulk-assign-instructors","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/bulk-assign-instructors","type":0,"val":"bulk-assign-instructors","end":""}],
+    types: placeholder as Registry['class_lessons.bulk_assign_instructors']['types'],
   },
   'class_lessons.destroy': {
     methods: ["DELETE"],

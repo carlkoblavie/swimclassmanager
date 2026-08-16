@@ -1,5 +1,6 @@
 export const PaymentStatus = {
   PENDING: 'pending',
+  PARTIAL: 'partial',
   SUCCESS: 'success',
   FAILED: 'failed',
   REFUNDED: 'refunded',
