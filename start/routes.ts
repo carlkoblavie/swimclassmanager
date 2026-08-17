@@ -30,6 +30,14 @@ router
   .as('home')
 
 router
+  .get('/release', [controllers.Release, 'index'])
+  .use(middleware.auth())
+  .use(middleware.forcePasswordChange())
+  .use(middleware.completeProfile())
+  .use(middleware.activeSchool())
+  .as('release.index')
+
+router
   .group(() => {
     router.get('login', [controllers.Sessions, 'create']).as('sign_in_links.create')
     router.post('login', [controllers.Sessions, 'store'])

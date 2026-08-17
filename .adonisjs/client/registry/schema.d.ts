@@ -31,6 +31,18 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/home_controller').default['index']>>>
     }
   }
+  'release.index': {
+    methods: ["GET","HEAD"]
+    pattern: '/release'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/release_controller').default['index']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/release_controller').default['index']>>>
+    }
+  }
   'sign_in_links.create': {
     methods: ["GET","HEAD"]
     pattern: '/login'

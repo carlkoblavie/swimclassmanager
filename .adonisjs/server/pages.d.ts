@@ -36,6 +36,7 @@ declare module '@adonisjs/inertia/types' {
     'programs/edit': ExtractProps<(typeof import('../../inertia/pages/programs/edit.tsx'))['default']>
     'programs/index': ExtractProps<(typeof import('../../inertia/pages/programs/index.tsx'))['default']>
     'programs/show': ExtractProps<(typeof import('../../inertia/pages/programs/show.tsx'))['default']>
+    'release': ExtractProps<(typeof import('../../inertia/pages/release.tsx'))['default']>
     'schools/create': ExtractProps<(typeof import('../../inertia/pages/schools/create.tsx'))['default']>
     'settings/swim_years': ExtractProps<(typeof import('../../inertia/pages/settings/swim_years.tsx'))['default']>
     'signups/create': ExtractProps<(typeof import('../../inertia/pages/signups/create.tsx'))['default']>

@@ -4,6 +4,9 @@ import type { routes } from './index.ts'
 export interface ApiDefinition {
   landing: typeof routes['landing']
   home: typeof routes['home']
+  release: {
+    index: typeof routes['release.index']
+  }
   signInLinks: {
     create: typeof routes['sign_in_links.create']
     store: typeof routes['sign_in_links.store']

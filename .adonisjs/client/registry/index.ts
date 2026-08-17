@@ -18,6 +18,12 @@ const routes = {
     tokens: [{"old":"/dashboard","type":0,"val":"dashboard","end":""}],
     types: placeholder as Registry['home']['types'],
   },
+  'release.index': {
+    methods: ["GET","HEAD"],
+    pattern: '/release',
+    tokens: [{"old":"/release","type":0,"val":"release","end":""}],
+    types: placeholder as Registry['release.index']['types'],
+  },
   'sign_in_links.create': {
     methods: ["GET","HEAD"],
     pattern: '/login',

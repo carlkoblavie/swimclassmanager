@@ -25,6 +25,7 @@ export const controllers = {
   Memberships: () => import('#controllers/memberships_controller'),
   PaystackWebhooks: () => import('#controllers/paystack_webhooks_controller'),
   Programs: () => import('#controllers/programs_controller'),
+  Release: () => import('#controllers/release_controller'),
   SchoolAgeGroups: () => import('#controllers/school_age_groups_controller'),
   Schools: () => import('#controllers/schools_controller'),
   Sessions: () => import('#controllers/sessions_controller'),
