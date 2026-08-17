@@ -20,9 +20,6 @@ export default function Release({ release }: PageProps) {
   return (
     <Container size="md" py={{ base: 32, sm: 56 }}>
       <Stack gap={6} mb={{ base: 40, sm: 56 }}>
-        <Text size="sm" fw={800} c="dimmed" tt="uppercase" style={{ letterSpacing: 1.6 }}>
-          Swim With Carl
-        </Text>
         <Title order={1} size="h1" mt="xs">
           What&apos;s new
         </Title>
