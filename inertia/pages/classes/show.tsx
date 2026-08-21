@@ -8,7 +8,6 @@ import {
   Container,
   Divider,
   Group,
-  SimpleGrid,
   Stack,
   Table,
   Text,
@@ -17,7 +16,7 @@ import {
   Tooltip,
 } from '@mantine/core'
 import { IconCalendar, IconPencil, IconPrinter, IconTrash } from '@tabler/icons-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { router, usePage } from '@inertiajs/react'
 import { Form, Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
@@ -93,6 +92,10 @@ function lessonPlanCode(lesson: Lesson) {
   return `LP-${String(lesson.id).padStart(4, '0')}`
 }
 
+function isLessonPlanned(lesson: Lesson) {
+  return lesson.activities.length > 0 || Boolean(lesson.objectives)
+}
+
 function formatClock(date: Date) {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
 }
@@ -128,10 +131,18 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
   const [editingActivitiesLessonId, setEditingActivitiesLessonId] = useState<number | null>(() =>
     !canEditLesson && editLessonExists ? editLessonId : null
   )
+  useEffect(() => {
+    setEditingLessonId(canEditLesson && editLessonExists ? editLessonId : null)
+    setEditingActivitiesLessonId(!canEditLesson && editLessonExists ? editLessonId : null)
+  }, [canEditLesson, editLessonExists, editLessonId, url])
   const skillsForLessons = lessonSkills(swimmingClass)
   const displayedLessons = focusedLessonId
     ? swimmingClass.lessons.filter((lesson) => lesson.id === focusedLessonId)
     : swimmingClass.lessons
+  const nextLessons = focusedLessonId
+    ? swimmingClass.lessons.filter((lesson) => lesson.id !== focusedLessonId)
+    : []
+  const nextLessonsToPlan = nextLessons.filter((lesson) => !isLessonPlanned(lesson)).length
 
   const plannedCount = swimmingClass.lessons.filter(
     (lesson) => lesson.activities.length > 0 || Boolean(lesson.objectives)
@@ -284,13 +295,53 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                 },
                 { label: 'Skills', value: swimmingClass.skills.length },
                 {
-                  label: 'Lessons planned',
-                  value: swimmingClass.lessonAllowance
-                    ? `${swimmingClass.lessons.length} of ${swimmingClass.lessonAllowance}`
-                    : plannedCount,
+                  label: 'Lessons at level',
+                  value:
+                    typeof swimmingClass.levelLessonCount === 'number' &&
+                    typeof swimmingClass.lessonAllowance === 'number'
+                      ? `${swimmingClass.levelLessonCount} of ${swimmingClass.lessonAllowance}`
+                      : plannedCount,
                 },
               ]}
             />
+            <Box
+              mt="md"
+              p="sm"
+              bg="aqua.0"
+              style={{
+                border: '1px solid var(--mantine-color-aqua-2)',
+                borderRadius: 12,
+              }}
+            >
+              <Stack gap={4}>
+                <Group gap="sm" wrap="nowrap">
+                  <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
+                    Class Aim
+                  </Text>
+                  <Text fw={800} size="sm">
+                    {swimmingClass.aim || 'Not specified'}
+                  </Text>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  Pre-requisite:{' '}
+                  {swimmingClass.prerequisiteStage
+                    ? `${swimmingClass.level?.name ?? 'Level'} - ${swimmingClass.prerequisiteStage.name}`
+                    : 'No prerequisite'}
+                </Text>
+                {swimmingClass.assessmentGoals.length > 0 && (
+                  <Stack gap={2} mt="xs">
+                    <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
+                      Assessment goals
+                    </Text>
+                    {swimmingClass.assessmentGoals.map((goal, index) => (
+                      <Text key={index} size="sm">
+                        • {goal}
+                      </Text>
+                    ))}
+                  </Stack>
+                )}
+              </Stack>
+            </Box>
           </Card>
         )}
 
@@ -331,7 +382,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
 
         {displayedLessons.map((lesson) => {
           const lessonNumber = swimmingClass.lessons.findIndex((item) => item.id === lesson.id) + 1
-          const isPlanned = lesson.activities.length > 0 || Boolean(lesson.objectives)
+          const isPlanned = isLessonPlanned(lesson)
           const plannedMinutes = lessonPlannedMinutes(lesson)
           const timeRange = lessonTimeRange(swimmingClass, lesson.durationMinutes)
 
@@ -433,6 +484,37 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
               </Group>
               <Divider />
               <Stack gap="sm" p="md" pt="sm">
+                {!isPlanned && (
+                  <Box
+                    p="sm"
+                    bg="aqua.0"
+                    style={{
+                      border: '1px solid var(--mantine-color-aqua-2)',
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
+                      Class aim
+                    </Text>
+                    <Text fw={800} size="sm" mt={4}>
+                      {swimmingClass.aim || 'Not specified'}
+                    </Text>
+                    {swimmingClass.assessmentGoals.length > 0 && (
+                      <Box mt="sm">
+                        <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
+                          Assessment goals
+                        </Text>
+                        <Stack gap={2} mt={4}>
+                          {swimmingClass.assessmentGoals.map((goal, index) => (
+                            <Text key={`${goal}-${index}`} size="sm">
+                              • {goal}
+                            </Text>
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
+                  </Box>
+                )}
                 {isPlanned ? (
                   <Box className="lesson-plan-print-content" p="sm">
                     <Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -458,10 +540,12 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                       </Box>
                     </Group>
 
-                    <SimpleGrid
-                      cols={{ base: 1, sm: 2, md: 4 }}
-                      spacing={1}
+                    <Group
+                      className="lesson-print-meta-grid"
+                      gap={1}
                       bg="gray.2"
+                      align="stretch"
+                      wrap="nowrap"
                       mt="lg"
                       style={{
                         border: '1px solid var(--mantine-color-gray-2)',
@@ -498,7 +582,12 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                               : '—',
                         },
                       ].map((item) => (
-                        <Box key={item.label} bg="white" p="sm">
+                        <Box
+                          key={item.label}
+                          bg="white"
+                          p="sm"
+                          style={{ flex: '1 1 0', minWidth: 0 }}
+                        >
                           <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.08em">
                             {item.label}
                           </Text>
@@ -507,26 +596,62 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                           </Text>
                         </Box>
                       ))}
-                    </SimpleGrid>
+                    </Group>
 
-                    <Box
+                    <Stack
                       mt="md"
-                      p="sm"
+                      gap={0}
                       bg="aqua.0"
                       style={{
                         border: '1px solid var(--mantine-color-aqua-2)',
                         borderRadius: 12,
+                        overflow: 'hidden',
                       }}
                     >
-                      <Group gap="sm" wrap="nowrap">
+                      <Group gap="sm" wrap="nowrap" p="sm">
                         <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
-                          Aim
+                          Class Aim
+                        </Text>
+                        <Text fw={800} size="sm">
+                          {swimmingClass.aim || 'Not specified'}
+                        </Text>
+                      </Group>
+                      <Group
+                        gap="sm"
+                        wrap="nowrap"
+                        p="sm"
+                        style={{ borderTop: '1px solid var(--mantine-color-aqua-2)' }}
+                      >
+                        <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
+                          This lesson
                         </Text>
                         <Text fw={800} size="sm">
                           {lesson.objectives || 'Not specified'}
                         </Text>
                       </Group>
-                    </Box>
+                    </Stack>
+
+                    {swimmingClass.assessmentGoals.length > 0 && (
+                      <Box
+                        mt="md"
+                        p="sm"
+                        style={{
+                          border: '1px solid var(--mantine-color-gray-3)',
+                          borderRadius: 12,
+                        }}
+                      >
+                        <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.08em">
+                          Assessment goals
+                        </Text>
+                        <Stack gap={2} mt={4}>
+                          {swimmingClass.assessmentGoals.map((goal, index) => (
+                            <Text key={index} size="sm">
+                              • {goal}
+                            </Text>
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
 
                     {skillsForLessons.length > 0 && (
                       <Box
@@ -534,15 +659,19 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                         pt="lg"
                         style={{ borderTop: '2px solid var(--mantine-color-gray-9)' }}
                       >
-                        <Group gap="md" align="baseline">
-                          <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.12em">
+                        <Group gap="lg" align="baseline" wrap="wrap">
+                          <Text
+                            size="xs"
+                            fw={800}
+                            tt="uppercase"
+                            c="dimmed"
+                            lts="0.12em"
+                            style={{ flexShrink: 0 }}
+                          >
                             Skills assessed
                           </Text>
-                          <Text c="gray.5">{skillsForLessons.length} assessed this lesson</Text>
-                        </Group>
-                        <Box mt="md">
                           <LessonSkillTiles skills={skillsForLessons} />
-                        </Box>
+                        </Group>
                       </Box>
                     )}
 
@@ -677,6 +806,67 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
             </Card>
           )
         })}
+
+        {focusedLessonId && nextLessons.length > 0 && (
+          <Card className="screen-only" padding={0}>
+            <Group justify="flex-start" gap="md" p="lg" pb="sm">
+              <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.12em">
+                Next lessons
+              </Text>
+              <Text c="dimmed" size="sm">
+                {nextLessons.length} remaining · {nextLessonsToPlan} still to plan
+              </Text>
+            </Group>
+            <Box
+              style={{
+                height: 360,
+                overflowY: 'auto',
+                padding: '0 24px 12px',
+              }}
+            >
+              <Stack gap={0}>
+                {nextLessons.map((lesson) => {
+                  const lessonNumber =
+                    swimmingClass.lessons.findIndex((item) => item.id === lesson.id) + 1
+                  const planned = isLessonPlanned(lesson)
+                  const lessonHref = `${urlFor('swimming_classes.show', {
+                    id: swimmingClass.id,
+                  })}?${planned ? 'lessonId' : 'editLessonId'}=${lesson.id}`
+
+                  return (
+                    <Anchor
+                      key={lesson.id}
+                      component={Link}
+                      href={lessonHref}
+                      underline="never"
+                      style={{ display: 'block', textDecoration: 'none' }}
+                    >
+                      <Group
+                        gap="md"
+                        wrap="nowrap"
+                        py="sm"
+                        style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}
+                      >
+                        <Text c="gray.5" fw={800} w={40} style={{ flexShrink: 0 }}>
+                          #{lessonNumber}
+                        </Text>
+                        <Text c="dimmed" size="sm" w={190} style={{ flexShrink: 0 }}>
+                          {lesson.date.formatted}
+                        </Text>
+                        <Text c="blue.7" fw={600} style={{ flex: 1 }}>
+                          {lesson.objectives || 'Add a lesson aim'}
+                        </Text>
+                        <Text c={planned ? 'teal.7' : 'gray.5'} size="sm" style={{ flexShrink: 0 }}>
+                          {planned ? 'Planned' : 'Not planned'}
+                        </Text>
+                      </Group>
+                    </Anchor>
+                  )
+                })}
+              </Stack>
+            </Box>
+          </Card>
+        )}
       </Stack>
     </Container>
   )

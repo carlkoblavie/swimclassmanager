@@ -50,6 +50,12 @@ export const storeSwimmingClassesValidator = vine.create({
   levelId: vine.number().withoutDecimals().positive().exists({ table: 'levels', column: 'id' }),
   termId: vine.number().withoutDecimals().positive().exists({ table: 'terms', column: 'id' }),
   name: vine.string().trim().minLength(1).maxLength(120).optional(),
+  aim: vine.string().trim().minLength(1).maxLength(500),
+  assessmentGoals: vine
+    .array(vine.string().trim().minLength(1).maxLength(500))
+    .minLength(1)
+    .maxLength(50),
+  prerequisiteStageId: vine.number().withoutDecimals().positive().optional(),
   durationMinutes: vine.number().withoutDecimals().positive(),
   ...classCurriculumFields,
   ...instructorFields,
@@ -65,6 +71,12 @@ export const updateSwimmingClassValidator = vine.create({
     .exists({ table: 'terms', column: 'id' })
     .optional(),
   name: vine.string().trim().minLength(1).maxLength(120).optional(),
+  aim: vine.string().trim().minLength(1).maxLength(500),
+  assessmentGoals: vine
+    .array(vine.string().trim().minLength(1).maxLength(500))
+    .minLength(1)
+    .maxLength(50),
+  prerequisiteStageId: vine.number().withoutDecimals().positive().optional(),
   durationMinutes: vine.number().withoutDecimals().positive(),
   location: vine.string().trim().maxLength(255).nullable().optional(),
   ...classCurriculumFields,

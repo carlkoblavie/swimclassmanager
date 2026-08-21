@@ -75,7 +75,13 @@ export default class ClassLessonsController {
     await authoring.updateLesson(lesson, payload)
 
     session.flash('success', 'Lesson updated.')
-    return response.redirect().toRoute('swimming_classes.show', { id: lesson.swimmingClassId })
+    return response.redirect().toRoute(
+      'swimming_classes.show',
+      { id: lesson.swimmingClassId },
+      {
+        qs: { lessonId: lesson.id },
+      }
+    )
   }
 
   /** Update only the activity plan, without changing lesson details. */
@@ -91,7 +97,13 @@ export default class ClassLessonsController {
     await authoring.updateLessonActivities(lesson, payload)
 
     session.flash('success', 'Lesson activities updated.')
-    return response.redirect().toRoute('swimming_classes.show', { id: lesson.swimmingClassId })
+    return response.redirect().toRoute(
+      'swimming_classes.show',
+      { id: lesson.swimmingClassId },
+      {
+        qs: { lessonId: lesson.id },
+      }
+    )
   }
 
   /** Copy one lesson's activities into selected empty lessons in the same stage. */

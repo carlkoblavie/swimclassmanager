@@ -12,8 +12,8 @@ import {
   TextInput,
 } from '@mantine/core'
 import type { Data } from '@generated/data'
+import AssessmentGoalsFields from '~/components/assessment_goals_fields'
 import ClassSkillPicker, { type ClassSkillOption } from '~/components/class_skill_picker'
-import InstructorPicker from '~/components/instructor_picker'
 
 export type { ClassSkillOption } from '~/components/class_skill_picker'
 
@@ -32,8 +32,6 @@ type FormLevel = {
 export default function ClassForm({
   level,
   termOptions,
-  instructorOptions,
-  pendingInstructorOptions,
   skillOptions,
   initialStageId,
   redirectBack = false,
@@ -66,6 +64,9 @@ export default function ClassForm({
   const [termId, setTermId] = useState(defaultTerm ? String(defaultTerm.id) : '')
   const [stageId, setStageId] = useState(initialStage ? String(initialStage.id) : '')
   const [name, setName] = useState('')
+  const [aim, setAim] = useState('')
+  const [assessmentGoals, setAssessmentGoals] = useState([''])
+  const [prerequisiteStageId, setPrerequisiteStageId] = useState('none')
   const [durationMinutes, setDurationMinutes] = useState('45')
   const defaultSkillIdsForStage = (candidate: FormLevel['stages'][number] | undefined) => {
     if (!candidate) {
@@ -141,6 +142,13 @@ export default function ClassForm({
             <input type="hidden" name="durationMinutes" value={durationMinutes} />
             {redirectBack && <input type="hidden" name="redirectTo" value="back" />}
             {name.trim() !== '' && <input type="hidden" name="name" value={name} />}
+            <input type="hidden" name="aim" value={aim} />
+            {assessmentGoals.map((goal, index) => (
+              <input key={index} type="hidden" name={`assessmentGoals[${index}]`} value={goal} />
+            ))}
+            {prerequisiteStageId !== 'none' && (
+              <input type="hidden" name="prerequisiteStageId" value={prerequisiteStageId} />
+            )}
             {skillIds.map((id, index) => (
               <input key={id} type="hidden" name={`skillIds[${index}]`} value={id} />
             ))}
@@ -179,6 +187,21 @@ export default function ClassForm({
                 error={errors.name}
                 style={{ flex: '1 1 360px' }}
               />
+              <TextInput
+                label="Lesson duration"
+                description="Days and times are set later."
+                type="number"
+                w={180}
+                value={durationMinutes}
+                onChange={(event) => setDurationMinutes(event.currentTarget.value)}
+                rightSection={
+                  <Text size="sm" c="dimmed">
+                    mins
+                  </Text>
+                }
+                rightSectionWidth={52}
+                error={errors.durationMinutes}
+              />
               <NativeSelect
                 label="Term"
                 description="The term this class belongs to."
@@ -194,19 +217,37 @@ export default function ClassForm({
             </Group>
 
             <TextInput
-              label="Lesson duration"
-              description="Days and times are set later."
-              type="number"
-              w={260}
-              value={durationMinutes}
-              onChange={(event) => setDurationMinutes(event.currentTarget.value)}
-              rightSection={
-                <Text size="sm" c="dimmed">
-                  mins
-                </Text>
-              }
-              rightSectionWidth={52}
-              error={errors.durationMinutes}
+              label="Main objective"
+              description="What a learner should be able to do by the end of the class."
+              placeholder="e.g. Swim 10 m unaided and recover to the wall with confidence"
+              value={aim}
+              onChange={(event) => setAim(event.currentTarget.value)}
+              error={errors.aim}
+              required
+            />
+
+            <NativeSelect
+              label="Pre-requisite"
+              description="The stage a learner must have cleared before joining this class."
+              value={prerequisiteStageId}
+              onChange={(event) => setPrerequisiteStageId(event.currentTarget.value)}
+              data={[
+                { value: 'none', label: 'No prerequisite' },
+                ...stages
+                  .filter((candidate) => String(candidate.id) !== stageId)
+                  .map((candidate) => ({
+                    value: String(candidate.id),
+                    label: `${level.name} - ${candidate.name}`,
+                  })),
+              ]}
+              error={errors.prerequisiteStageId}
+              required
+            />
+
+            <AssessmentGoalsFields
+              goals={assessmentGoals}
+              onChange={setAssessmentGoals}
+              error={errors.assessmentGoals}
             />
 
             <Box>
@@ -221,12 +262,6 @@ export default function ClassForm({
                 onChange={setSkillIds}
               />
             </Box>
-
-            <InstructorPicker
-              instructorOptions={instructorOptions}
-              pendingInstructorOptions={pendingInstructorOptions}
-              errors={errors}
-            />
 
             <Divider />
             <Group justify="space-between" align="center">

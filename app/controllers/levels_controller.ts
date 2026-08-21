@@ -8,6 +8,7 @@ import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import { permissions } from '#start/permissions'
 import BankPackService from '#services/bank_pack_service'
+import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
 import SkillBankFamilyService from '#services/skill_bank_family_service'
 import SkillBankService from '#services/skill_bank_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
@@ -86,6 +87,7 @@ export default class LevelsController {
           .preload('level', (levelQuery) => levelQuery.preload('program'))
           .preload('term', (termQuery) => termQuery.preload('swimYear'))
           .preload('levelStage')
+          .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
           .preload('classInstructors', (instructorsQuery) =>
             instructorsQuery
               .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
@@ -98,6 +100,9 @@ export default class LevelsController {
           .orderBy('levelStageId')
           .orderBy('name')
       : []
+    const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(schoolId, [
+      level.id,
+    ])
 
     // Options for the "New class" form (only needed by class managers).
     const instructorMemberships = canManageClasses
@@ -135,7 +140,7 @@ export default class LevelsController {
 
     return inertia.render('levels/show', {
       level: LevelTransformer.transform(level, schoolId).useVariant('forClassOption'),
-      classes: SwimmingClassTransformer.transform(classes),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
       canManageClasses,
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),

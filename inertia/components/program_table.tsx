@@ -24,6 +24,7 @@ import { Guard } from '~/utils/permissions'
 import ClassDuplicateForm from '~/components/class_duplicate_form'
 import ClassEditForm from '~/components/class_edit_form'
 import ClassForm, { type ClassSkillOption } from '~/components/class_form'
+import ClassDetails from '~/components/class_details'
 import ProgramLevelAddForm from '~/components/program_level_add_form'
 import ProgramStageAddForm from '~/components/program_stage_add_form'
 
@@ -41,15 +42,6 @@ type SwimmingClass = Data.SwimmingClass
 function stripStageSuffix(name: string, stageName: string): string {
   const suffix = ` · ${stageName}`
   return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name
-}
-
-function lessonSummary(swimmingClass: SwimmingClass) {
-  if (swimmingClass.lessons.length === 0) {
-    return 'No lessons yet'
-  }
-  const first = swimmingClass.lessons[0]
-  const last = swimmingClass.lessons[swimmingClass.lessons.length - 1]
-  return `${swimmingClass.lessons.length} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · ${first.date.formatted}${last.id !== first.id ? ` – ${last.date.formatted}` : ''}`
 }
 
 function StageAccordion({
@@ -163,88 +155,25 @@ function StageAccordion({
             {stageClasses.map((swimmingClass) => (
               <Stack key={swimmingClass.id} gap="sm">
                 <Card withBorder shadow="none" padding="md" radius="md" style={{ minHeight: 92 }}>
-                  <Group justify="space-between" gap="sm" wrap="nowrap" align="flex-start">
-                    <Box style={{ minWidth: 0, flex: 1 }}>
-                      <Group gap="xs" wrap="wrap">
-                        <Anchor
-                          component={Link}
-                          href={urlFor('swimming_classes.show', { id: swimmingClass.id })}
-                          fw={800}
-                          size="sm"
-                          c="inherit"
-                        >
-                          {stripStageSuffix(swimmingClass.name, stage.name)}
-                        </Anchor>
-                        <Badge variant="light" color="gray" size="sm">
-                          {swimmingClass.code}
-                        </Badge>
-                        {swimmingClass.isCancelled && (
-                          <Badge variant="light" color="red" size="sm">
-                            Cancelled
-                          </Badge>
-                        )}
-                        <Text size="sm" fw={700} c="dimmed">
-                          {typeof swimmingClass.durationMinutes === 'number'
-                            ? `${swimmingClass.durationMinutes} min`
-                            : 'No duration'}
-                        </Text>
-                        <Anchor
-                          component={Link}
-                          href={`/lessons?classId=${swimmingClass.id}`}
-                          size="sm"
-                          fw={700}
-                          c={swimmingClass.lessons.length === 0 ? 'dimmed' : undefined}
-                        >
-                          {lessonSummary(swimmingClass)}
-                        </Anchor>
-                      </Group>
-                      {swimmingClass.skills.length > 0 ? (
-                        <Group gap="md" wrap="wrap" mt={8}>
-                          {swimmingClass.skills.map((skill) => (
-                            <Text key={skill.id} size="sm" fw={600} c="gray.7">
-                              {skill.name}
-                            </Text>
-                          ))}
-                        </Group>
-                      ) : (
-                        <Text size="xs" c="dimmed" mt={6}>
-                          No skills selected.
-                        </Text>
-                      )}
-                      {swimmingClass.lessons.length === 0 && (
-                        <Guard for="class.manage">
-                          <Card
-                            withBorder
-                            shadow="none"
-                            radius="md"
-                            padding="xs"
-                            bg="blue.0"
-                            mt="sm"
-                          >
-                            <Group gap="xs" wrap="wrap">
-                              <Text size="sm" fw={700}>
-                                {stripStageSuffix(swimmingClass.name, stage.name)} created
-                              </Text>
-                              <Text size="sm" c="dimmed">
-                                0 lessons scheduled
-                              </Text>
-                              <Anchor
-                                component={Link}
-                                href={urlFor('lessons.index', [], {
-                                  qs: { classId: swimmingClass.id, generate: '1' },
-                                })}
-                                size="sm"
-                                fw={700}
-                              >
-                                Generate lessons
-                              </Anchor>
-                            </Group>
-                          </Card>
-                        </Guard>
-                      )}
+                  <Group
+                    justify="space-between"
+                    gap="sm"
+                    wrap="nowrap"
+                    align="flex-start"
+                    style={{ position: 'relative' }}
+                  >
+                    <Box style={{ minWidth: 0, width: '100%' }}>
+                      <ClassDetails
+                        swimmingClass={swimmingClass}
+                        displayName={stripStageSuffix(swimmingClass.name, stage.name)}
+                      />
                     </Box>
                     <Guard for="class.manage">
-                      <Group gap={4} wrap="nowrap">
+                      <Group
+                        gap={2}
+                        wrap="nowrap"
+                        style={{ position: 'absolute', top: 0, right: 0 }}
+                      >
                         <Tooltip label="Edit class">
                           <ActionIcon
                             type="button"
@@ -395,6 +324,7 @@ function LevelCard({
   const [addingStage, setAddingStage] = useState(false)
   const addStageFormRef = useRef<HTMLDivElement>(null)
   const activeClasses = classes.filter((swimmingClass) => !swimmingClass.isCancelled)
+  const levelLessonCount = classes[0]?.levelLessonCount ?? 0
   const classesByStage = new Map<number, SwimmingClass[]>()
   for (const swimmingClass of activeClasses) {
     const list = classesByStage.get(swimmingClass.levelStageId) ?? []
@@ -454,7 +384,7 @@ function LevelCard({
         {typeof level.classesCount === 'number' && (
           <Text span size="sm" fw={600} c="dimmed">
             {' '}
-            · {level.classesCount} Lessons
+            · {levelLessonCount} of {level.classesCount} lessons generated
           </Text>
         )}
       </Text>

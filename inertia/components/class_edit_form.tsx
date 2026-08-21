@@ -2,17 +2,12 @@ import { useState } from 'react'
 import { Form } from '@adonisjs/inertia/react'
 import { Button, Card, Group, NativeSelect, Stack, Text, TextInput } from '@mantine/core'
 import type { Data } from '@generated/data'
+import AssessmentGoalsFields from '~/components/assessment_goals_fields'
 import ClassSkillPicker, { type ClassSkillOption } from '~/components/class_skill_picker'
-import InstructorPicker, { invitationKey, membershipKey } from '~/components/instructor_picker'
-
-const CLASS_INSTRUCTOR_ROLE_LEAD = 1
-const CLASS_INSTRUCTOR_ROLE_SUPPORTING = 2
 
 export default function ClassEditForm({
   swimmingClass,
   level,
-  instructorOptions,
-  pendingInstructorOptions,
   skillOptions,
   termOptions,
   redirectBack = false,
@@ -60,6 +55,13 @@ export default function ClassEditForm({
 
   const [levelStageId, setLevelStageId] = useState(String(swimmingClass.levelStageId))
   const [termId, setTermId] = useState(swimmingClass.term ? String(swimmingClass.term.id) : '')
+  const [aim, setAim] = useState(swimmingClass.aim ?? '')
+  const [assessmentGoals, setAssessmentGoals] = useState(
+    swimmingClass.assessmentGoals.length > 0 ? swimmingClass.assessmentGoals : ['']
+  )
+  const [prerequisiteStageId, setPrerequisiteStageId] = useState(
+    swimmingClass.prerequisiteStageId ? String(swimmingClass.prerequisiteStageId) : 'none'
+  )
   const [skillIds, setSkillIds] = useState<string[]>(initialSkillIds)
   const stage = stages.find((candidate) => String(candidate.id) === levelStageId)
 
@@ -74,19 +76,6 @@ export default function ClassEditForm({
     ),
   ]
 
-  const instructorKey = (instructor: Data.SwimmingClass['instructors'][number]) =>
-    instructor.type === 'membership' ? membershipKey(instructor.id) : invitationKey(instructor.id)
-  const leadInstructor =
-    swimmingClass.leadInstructor ??
-    swimmingClass.instructors.find((instructor) => instructor.role === CLASS_INSTRUCTOR_ROLE_LEAD)
-  const savedSupportingInstructors = swimmingClass.supportingInstructors ?? []
-  const supportingInstructors =
-    savedSupportingInstructors.length > 0
-      ? savedSupportingInstructors
-      : swimmingClass.instructors.filter(
-          (instructor) => instructor.role === CLASS_INSTRUCTOR_ROLE_SUPPORTING
-        )
-
   return (
     <Form
       route="swimming_classes.update"
@@ -97,21 +86,62 @@ export default function ClassEditForm({
         <Card withBorder shadow="none">
           <Stack gap="lg">
             <Stack gap="sm">
-              <TextInput
-                label="Class name"
-                name="name"
-                defaultValue={swimmingClass.name}
-                error={errors.name}
-              />
-              <TextInput
-                label="Duration (mins)"
-                name="durationMinutes"
-                type="number"
-                w={160}
-                defaultValue={String(swimmingClass.durationMinutes)}
-                error={errors.durationMinutes}
-              />
+              <Group gap="md" align="flex-start" wrap="wrap">
+                <TextInput
+                  label="Class name"
+                  name="name"
+                  defaultValue={swimmingClass.name}
+                  error={errors.name}
+                  style={{ flex: '1 1 360px' }}
+                />
+                <TextInput
+                  label="Duration (mins)"
+                  name="durationMinutes"
+                  type="number"
+                  w={180}
+                  defaultValue={String(swimmingClass.durationMinutes)}
+                  error={errors.durationMinutes}
+                />
+              </Group>
               {termId !== '' && <input type="hidden" name="termId" value={termId} />}
+              <TextInput
+                label="Main objective"
+                description="What a learner should be able to do by the end of the class."
+                placeholder="e.g. Swim 10 m unaided and recover to the wall with confidence"
+                name="aim"
+                value={aim}
+                onChange={(event) => setAim(event.currentTarget.value)}
+                error={errors.aim}
+                required
+              />
+              {assessmentGoals.map((goal, index) => (
+                <input key={index} type="hidden" name={`assessmentGoals[${index}]`} value={goal} />
+              ))}
+              <AssessmentGoalsFields
+                goals={assessmentGoals}
+                onChange={setAssessmentGoals}
+                error={errors.assessmentGoals}
+              />
+              <NativeSelect
+                label="Pre-requisite"
+                description="The stage a learner must have cleared before joining this class."
+                value={prerequisiteStageId}
+                onChange={(event) => setPrerequisiteStageId(event.currentTarget.value)}
+                data={[
+                  { value: 'none', label: 'No prerequisite' },
+                  ...stages
+                    .filter((candidate) => String(candidate.id) !== levelStageId)
+                    .map((candidate) => ({
+                      value: String(candidate.id),
+                      label: `${level.name} - ${candidate.name}`,
+                    })),
+                ]}
+                error={errors.prerequisiteStageId}
+                required
+              />
+              {prerequisiteStageId !== 'none' && (
+                <input type="hidden" name="prerequisiteStageId" value={prerequisiteStageId} />
+              )}
               {redirectBack && <input type="hidden" name="redirectTo" value="back" />}
               <NativeSelect
                 label="Term"
@@ -169,14 +199,6 @@ export default function ClassEditForm({
                 <input key={id} type="hidden" name={`skillIds[${index}]`} value={id} />
               ))}
             </Stack>
-
-            <InstructorPicker
-              instructorOptions={instructorOptions}
-              pendingInstructorOptions={pendingInstructorOptions}
-              initialLead={leadInstructor ? instructorKey(leadInstructor) : null}
-              initialSupporting={supportingInstructors.map(instructorKey)}
-              errors={errors}
-            />
 
             <Group justify="flex-end" gap="sm">
               {onCancel && (

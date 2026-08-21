@@ -29,6 +29,8 @@ export const SwimmingClassFactory = factory
       levelStageId: stage.id,
       code: `ST00CL${faker.string.numeric(6)}`,
       name: `${faker.word.adjective()} Swim Class ${faker.string.alphanumeric(4)}`,
+      aim: 'Build confidence in the water.',
+      assessmentGoals: JSON.stringify(['Float unaided for 10 seconds.']),
       weekday: 1,
       startTime: '09:00',
       durationMinutes: 45,

@@ -24,6 +24,9 @@ export default class SwimmingClass extends SwimmingClassSchema {
   @belongsTo(() => LevelStage)
   declare levelStage: BelongsTo<typeof LevelStage>
 
+  @belongsTo(() => LevelStage, { foreignKey: 'prerequisiteStageId' })
+  declare prerequisiteStage: BelongsTo<typeof LevelStage>
+
   @hasMany(() => ClassInstructor)
   declare classInstructors: HasMany<typeof ClassInstructor>
 

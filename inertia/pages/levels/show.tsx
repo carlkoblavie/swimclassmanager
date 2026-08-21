@@ -25,6 +25,7 @@ import { Guard } from '~/utils/permissions'
 import ClassDuplicateForm from '~/components/class_duplicate_form'
 import ClassForm from '~/components/class_form'
 import type { ClassSkillOption } from '~/components/class_form'
+import ClassDetails from '~/components/class_details'
 import MetaStrip from '~/components/meta_strip'
 
 type PageProps = InertiaProps<{
@@ -37,25 +38,9 @@ type PageProps = InertiaProps<{
   skillBankSkills: ClassSkillOption[]
 }>
 
-const SKILL_DOT_COLORS = [
-  'var(--mantine-color-aqua-6)',
-  'var(--mantine-color-violet-5)',
-  'var(--mantine-color-teal-6)',
-  'var(--mantine-color-orange-5)',
-]
-
 function stripStageSuffix(name: string, stageName: string): string {
   const suffix = ` · ${stageName}`
   return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name
-}
-
-function lessonSummary(swimmingClass: Data.SwimmingClass) {
-  if (swimmingClass.lessons.length === 0) {
-    return 'No lessons yet'
-  }
-  const first = swimmingClass.lessons[0]
-  const last = swimmingClass.lessons[swimmingClass.lessons.length - 1]
-  return `${swimmingClass.lessons.length} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · ${first.date.formatted}${last.id !== first.id ? ` – ${last.date.formatted}` : ''}`
 }
 
 export default function LevelsShow({
@@ -67,6 +52,7 @@ export default function LevelsShow({
   skillBankSkills,
 }: PageProps) {
   const skillCount = level.stages.reduce((total, stage) => total + stage.skills.length, 0)
+  const levelLessonCount = classes[0]?.levelLessonCount ?? 0
 
   // Group active classes by stage.
   const activeClasses = classes.filter((swimmingClass) => !swimmingClass.isCancelled)
@@ -175,8 +161,11 @@ export default function LevelsShow({
               },
               { label: 'Your fee', value: level.fee.formatted },
               {
-                label: 'Total lessons',
-                value: typeof level.classesCount === 'number' ? level.classesCount : '—',
+                label: 'Lessons generated',
+                value:
+                  typeof level.classesCount === 'number'
+                    ? `${levelLessonCount} of ${level.classesCount}`
+                    : levelLessonCount,
               },
               { label: 'Stages', value: level.stages.length },
               { label: 'Skills', value: skillCount },
@@ -250,81 +239,24 @@ export default function LevelsShow({
                       {stageClasses.map((swimmingClass) => (
                         <Stack key={swimmingClass.id} gap="sm">
                           <Card withBorder shadow="none" padding="md">
-                            <Group justify="space-between" wrap="nowrap" align="flex-start">
-                              <Stack gap={8} style={{ minWidth: 0, flex: 1 }}>
-                                <Group gap="xs" wrap="wrap">
-                                  <Text fw={700}>
-                                    {stripStageSuffix(swimmingClass.name, stage.name)}
-                                  </Text>
-                                  <Badge variant="light" color="gray" size="sm">
-                                    {typeof swimmingClass.durationMinutes === 'number'
-                                      ? `${swimmingClass.durationMinutes} min`
-                                      : 'No duration'}
-                                  </Badge>
-                                  <Anchor
-                                    component={Link}
-                                    href={`/lessons?classId=${swimmingClass.id}`}
-                                    size="sm"
-                                    fw={700}
-                                    c={swimmingClass.lessons.length === 0 ? 'dimmed' : undefined}
-                                  >
-                                    {lessonSummary(swimmingClass)}
-                                  </Anchor>
-                                </Group>
-                                {swimmingClass.skills.length > 0 && (
-                                  <Group gap="md" wrap="wrap">
-                                    {swimmingClass.skills.map((skill, skillIndex) => (
-                                      <Group key={skill.id} gap={6} wrap="nowrap">
-                                        <Box
-                                          w={8}
-                                          h={8}
-                                          style={{
-                                            borderRadius: '50%',
-                                            background:
-                                              SKILL_DOT_COLORS[
-                                                skillIndex % SKILL_DOT_COLORS.length
-                                              ],
-                                            flexShrink: 0,
-                                          }}
-                                        />
-                                        <Text size="sm">{skill.name}</Text>
-                                      </Group>
-                                    ))}
-                                  </Group>
-                                )}
-                                {swimmingClass.lessons.length === 0 && (
-                                  <Guard for="class.manage">
-                                    <Card
-                                      withBorder
-                                      shadow="none"
-                                      radius="md"
-                                      padding="xs"
-                                      bg="blue.0"
-                                    >
-                                      <Group gap="xs" wrap="wrap">
-                                        <Text size="sm" fw={700}>
-                                          {stripStageSuffix(swimmingClass.name, stage.name)} created
-                                        </Text>
-                                        <Text size="sm" c="dimmed">
-                                          0 lessons scheduled
-                                        </Text>
-                                        <Anchor
-                                          component={Link}
-                                          href={urlFor('lessons.index', [], {
-                                            qs: { classId: swimmingClass.id, generate: '1' },
-                                          })}
-                                          size="sm"
-                                          fw={700}
-                                        >
-                                          Generate lessons
-                                        </Anchor>
-                                      </Group>
-                                    </Card>
-                                  </Guard>
-                                )}
-                              </Stack>
+                            <Group
+                              justify="space-between"
+                              wrap="nowrap"
+                              align="flex-start"
+                              style={{ position: 'relative' }}
+                            >
+                              <Box style={{ minWidth: 0, width: '100%' }}>
+                                <ClassDetails
+                                  swimmingClass={swimmingClass}
+                                  displayName={stripStageSuffix(swimmingClass.name, stage.name)}
+                                />
+                              </Box>
                               <Guard for="class.manage">
-                                <Group gap={4} wrap="nowrap">
+                                <Group
+                                  gap={2}
+                                  wrap="nowrap"
+                                  style={{ position: 'absolute', top: 0, right: 0 }}
+                                >
                                   <Tooltip label="Edit">
                                     <ActionIcon
                                       component={Link}

@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import ClassAuthoringException from '#exceptions/class_authoring_exception'
+import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
 import Invitation from '#models/invitation'
 import Membership from '#models/membership'
 import SwimmingClass from '#models/swimming_class'
@@ -43,6 +44,7 @@ export default class LessonSchedulesController {
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
+      .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
       .preload('classSkills', (skillsQuery) =>
         skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
       )
@@ -68,6 +70,10 @@ export default class LessonSchedulesController {
       )
       .orderBy('levelStageId')
       .orderBy('name')
+    const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(
+      schoolId,
+      classes.map((swimmingClass) => swimmingClass.levelId)
+    )
 
     const [instructorMemberships, pendingInstructorInvitations] = await Promise.all([
       Membership.query()
@@ -91,7 +97,7 @@ export default class LessonSchedulesController {
     ])
 
     return inertia.render('lessons/index', {
-      classes: SwimmingClassTransformer.transform(classes),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInstructorInvitations),
       selectedClassId,

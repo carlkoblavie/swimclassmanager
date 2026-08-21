@@ -9,6 +9,7 @@ import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import BankPackService from '#services/bank_pack_service'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
+import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
 import SchoolActivityBankService from '#services/school_activity_bank_service'
 import SkillBankFamilyService from '#services/skill_bank_family_service'
 import SkillBankService from '#services/skill_bank_service'
@@ -62,6 +63,7 @@ export default class SwimmingClassesController {
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
+      .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
       .preload('classInstructors', (instructorsQuery) =>
         instructorsQuery
           .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
@@ -76,9 +78,13 @@ export default class SwimmingClassesController {
       })
       .orderBy('levelStageId')
       .orderBy('name')
+    const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(
+      schoolId,
+      classes.map((swimmingClass) => swimmingClass.levelId)
+    )
 
     return inertia.render('classes/index', {
-      classes: SwimmingClassTransformer.transform(classes),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
     })
   }
 
@@ -130,6 +136,7 @@ export default class SwimmingClassesController {
       .preload('levelStage', (stageQuery) =>
         stageQuery.preload('skills', (skillQuery) => skillQuery.preload('activities'))
       )
+      .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
       .preload('classInstructors', (instructorsQuery) =>
         instructorsQuery
           .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
@@ -161,6 +168,9 @@ export default class SwimmingClassesController {
           .orderBy('date')
       )
       .firstOrFail()
+    const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(schoolId, [
+      swimmingClass.levelId,
+    ])
     const bank = await activityBank.forSchool(
       schoolId,
       swimmingClass.classSkills.length > 0
@@ -177,7 +187,7 @@ export default class SwimmingClassesController {
     )
 
     return inertia.render('classes/show', {
-      swimmingClass: SwimmingClassTransformer.transform(swimmingClass),
+      swimmingClass: SwimmingClassTransformer.transform(swimmingClass, levelLessonCounts),
       activityBank: SchoolActivityCategoryTransformer.transform(bank),
     })
   }
@@ -199,6 +209,7 @@ export default class SwimmingClassesController {
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
+      .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
       .preload('classInstructors', (instructorsQuery) =>
         instructorsQuery
           .preload('membership', (membershipQuery) => membershipQuery.preload('user'))

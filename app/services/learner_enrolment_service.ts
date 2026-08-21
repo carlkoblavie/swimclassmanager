@@ -20,6 +20,7 @@ export default class LearnerEnrolmentService {
         .where('schoolId', school.id)
         .whereNull('cancelledAt')
         .preload('level')
+        .preload('prerequisiteStage')
         .preload('term')
         .first()
 
@@ -27,6 +28,23 @@ export default class LearnerEnrolmentService {
         throw new EnrollmentException('Choose an active class with a swim year.')
       }
       const termId = swimmingClass.termId
+
+      if (swimmingClass.prerequisiteStageId && swimmingClass.prerequisiteStage) {
+        const clearedLearnerIds = await Enrollment.query({ client: trx })
+          .where('schoolId', school.id)
+          .whereIn('learnerId', input.learnerIds)
+          .where('status', EnrollmentStatus.ACTIVE)
+          .whereHas('swimmingClass', (classQuery) =>
+            classQuery.where('levelStageId', swimmingClass.prerequisiteStageId!)
+          )
+          .distinct('learnerId')
+
+        if (clearedLearnerIds.length !== input.learnerIds.length) {
+          throw new EnrollmentException(
+            `Learners must clear ${swimmingClass.prerequisiteStage.name} before joining this class.`
+          )
+        }
+      }
 
       const enrollments = await Enrollment.query({ client: trx })
         .where('schoolId', school.id)

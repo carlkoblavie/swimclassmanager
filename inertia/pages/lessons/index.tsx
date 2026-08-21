@@ -465,6 +465,14 @@ export default function LessonsIndex({
     () => countLessons(startDate, endDate, weekdays),
     [startDate, endDate, weekdays]
   )
+  const levelLessonCount = generationClass?.levelLessonCount ?? null
+  const levelLessonAllowance = generationClass?.lessonAllowance ?? null
+  const levelLessonsRemaining =
+    typeof levelLessonCount === 'number' && typeof levelLessonAllowance === 'number'
+      ? Math.max(levelLessonAllowance - levelLessonCount, 0)
+      : null
+  const exceedsLevelAllowance =
+    levelLessonsRemaining !== null && lessonCount > levelLessonsRemaining
   const endsAt = endTime(startTime, generationClass?.durationMinutes ?? null)
   const scheduledStart = selectedClass?.startTime?.raw ?? startTime
   const editingLesson =
@@ -710,11 +718,18 @@ export default function LessonsIndex({
                             {generationClass.durationMinutes} min each
                           </Text>
                         )}
+                        {levelLessonsRemaining !== null && (
+                          <Text size="sm" c={exceedsLevelAllowance ? 'red' : 'dimmed'} mt={4}>
+                            Level total: {levelLessonCount} of {levelLessonAllowance} lessons ·{' '}
+                            {levelLessonsRemaining} remaining
+                            {exceedsLevelAllowance && ' — reduce the date range or weekdays'}
+                          </Text>
+                        )}
                       </Box>
                       <Button
                         type="submit"
                         loading={processing}
-                        disabled={!generationClass || lessonCount === 0}
+                        disabled={!generationClass || lessonCount === 0 || exceedsLevelAllowance}
                       >
                         Generate lessons
                       </Button>

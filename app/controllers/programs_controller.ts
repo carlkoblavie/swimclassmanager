@@ -10,6 +10,7 @@ import SwimmingClass from '#models/swimming_class'
 import { permissions } from '#start/permissions'
 import BankPackService from '#services/bank_pack_service'
 import ProgramAuthoringService from '#services/program_authoring_service'
+import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
 import SkillBankFamilyService from '#services/skill_bank_family_service'
 import SkillBankService from '#services/skill_bank_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
@@ -120,6 +121,7 @@ export default class ProgramsController {
             .preload('level', (levelQuery) => levelQuery.preload('program'))
             .preload('term', (termQuery) => termQuery.preload('swimYear'))
             .preload('levelStage')
+            .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
             .preload('classInstructors', (instructorsQuery) =>
               instructorsQuery
                 .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
@@ -132,6 +134,10 @@ export default class ProgramsController {
             .orderBy('levelStageId')
             .orderBy('name')
         : []
+    const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(
+      schoolId,
+      classes.map((swimmingClass) => swimmingClass.levelId)
+    )
 
     // Ongoing and upcoming swim years feed the class builder's term picker.
     const termYears = await SwimYear.query()
@@ -165,7 +171,7 @@ export default class ProgramsController {
 
     return inertia.render('programs/index', {
       programs: ProgramTransformer.transform(programs, schoolId),
-      classes: SwimmingClassTransformer.transform(classes),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
       termOptions: SwimYearTransformer.transform(termYears),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),
@@ -224,6 +230,7 @@ export default class ProgramsController {
           .preload('level', (levelQuery) => levelQuery.preload('program'))
           .preload('term', (termQuery) => termQuery.preload('swimYear'))
           .preload('levelStage')
+          .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
           .preload('classInstructors', (instructorsQuery) =>
             instructorsQuery
               .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
@@ -236,6 +243,10 @@ export default class ProgramsController {
           .orderBy('weekday')
           .orderBy('startTime')
       : []
+    const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(
+      schoolId,
+      classes.map((swimmingClass) => swimmingClass.levelId)
+    )
 
     const termYears = await SwimYear.query()
       .where('schoolId', schoolId)
@@ -245,7 +256,7 @@ export default class ProgramsController {
 
     return inertia.render('programs/show', {
       program: ProgramTransformer.transform(program, schoolId),
-      classes: SwimmingClassTransformer.transform(classes),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
       termOptions: SwimYearTransformer.transform(termYears),
     })
   }

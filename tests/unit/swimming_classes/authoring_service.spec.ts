@@ -92,6 +92,8 @@ async function setupContext() {
     skillIds: [bankSkill.id],
     durationMinutes: 45,
     name: 'Evening squad',
+    aim: 'Build confidence in the water.',
+    assessmentGoals: ['Float unaided for 10 seconds.'],
     ...overrides,
   })
 
@@ -128,6 +130,9 @@ test.group('Class series authoring service', (group) => {
     assert.equal(created.weekday, null)
     assert.equal(created.startTime, null)
     assert.equal(created.durationMinutes, 45)
+    assert.equal(created.aim, 'Build confidence in the water.')
+    assert.equal(created.assessmentGoals, JSON.stringify(['Float unaided for 10 seconds.']))
+    assert.equal(created.prerequisiteStageId, null)
     await created.load('classSkills')
     assert.equal(created.classSkills[0].skillBankSkillId, bankSkill.id)
     assert.equal(created.classSkills[0].levelStageSkillId, skill.id)
@@ -778,7 +783,42 @@ test.group('Class series authoring service', (group) => {
         new ClassSeriesAuthoringService().planLesson(scheduled, {
           objectives: 'This should fail before creating another lesson.',
         }),
-      'This class already has all 1 lesson its level allows.'
+      'This level already has all 1 lesson it allows.'
+    )
+  })
+
+  test('shares a level lesson allowance across classes', async ({ assert }) => {
+    const { school, level, term, classInput, scheduleClass } = await setupContext()
+    level.merge({ classesCount: 2 })
+    await level.save()
+
+    const first = await new ClassSeriesAuthoringService().createOne(school, {
+      levelId: level.id,
+      termId: term.id,
+      ...classInput({ name: 'Morning squad' }),
+    })
+    const second = await new ClassSeriesAuthoringService().createOne(school, {
+      levelId: level.id,
+      termId: term.id,
+      ...classInput({ name: 'Evening squad' }),
+    })
+    const scheduledFirst = await scheduleClass(first.id)
+    const scheduledSecond = await scheduleClass(second.id)
+
+    await new ClassSeriesAuthoringService().planLesson(scheduledFirst, {
+      objectives: 'First shared lesson.',
+    })
+    await new ClassSeriesAuthoringService().planLesson(scheduledSecond, {
+      objectives: 'Second shared lesson.',
+    })
+
+    await expectAuthoringError(
+      assert,
+      () =>
+        new ClassSeriesAuthoringService().planLesson(scheduledFirst, {
+          objectives: 'This should exceed the level allowance.',
+        }),
+      'This level already has all 2 lessons it allows.'
     )
   })
 })

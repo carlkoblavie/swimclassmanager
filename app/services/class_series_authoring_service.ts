@@ -23,6 +23,7 @@ import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
 import LessonInstructor from '#models/lesson_instructor'
 import Term from '#models/term'
+import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
 import {
   ClassInstructorRole,
   type ClassInstructorRole as ClassInstructorRoleValue,
@@ -55,6 +56,14 @@ function uniqueNumbers(values: number[]): number[] {
 function serializeEquipment(values: string[] | undefined): string | null {
   const equipment = [...new Set((values ?? []).map((value) => value.trim()).filter(Boolean))]
   return equipment.length > 0 ? JSON.stringify(equipment) : null
+}
+
+function serializeAssessmentGoals(values: string[]): string {
+  const goals = values.map((value) => value.trim()).filter(Boolean)
+  if (goals.length === 0) {
+    throw new ClassAuthoringException('Add at least one assessment goal.')
+  }
+  return JSON.stringify(goals)
 }
 
 type InstructorSelection = Pick<
@@ -108,6 +117,8 @@ type CustomSchoolActivitySelection = {
 }
 
 export default class ClassSeriesAuthoringService {
+  protected lessonCapacity = new ClassLessonCapacityService()
+
   /**
    * Create a single class under an available level. The class carries its
    * stage, skills, and a lesson duration; scheduling (days, times, and the
@@ -120,6 +131,11 @@ export default class ClassSeriesAuthoringService {
       const instructors = await this.resolveInstructors(school, data, trx)
 
       const selection = await this.resolveClassCurriculum(school, level, data, trx)
+      const prerequisiteStageId = this.resolvePrerequisiteStageId(
+        level,
+        data.prerequisiteStageId,
+        selection.stage.id
+      )
       const name = data.name?.trim() || this.generatedClassName(level, selection.stage)
       await this.assertNameAvailable(school, name, selection.stage.id, trx)
 
@@ -135,6 +151,9 @@ export default class ClassSeriesAuthoringService {
         levelStageId: selection.stage.id,
         termId: term.id,
         name,
+        aim: data.aim,
+        assessmentGoals: serializeAssessmentGoals(data.assessmentGoals),
+        prerequisiteStageId,
         code,
         durationMinutes: data.durationMinutes,
         location: null,
@@ -188,6 +207,9 @@ export default class ClassSeriesAuthoringService {
         levelStageId: swimmingClass.levelStageId,
         termId: swimmingClass.termId,
         name,
+        aim: swimmingClass.aim,
+        assessmentGoals: swimmingClass.assessmentGoals,
+        prerequisiteStageId: swimmingClass.prerequisiteStageId,
         code,
         durationMinutes: swimmingClass.durationMinutes,
         location: swimmingClass.location,
@@ -254,6 +276,11 @@ export default class ClassSeriesAuthoringService {
       const level = await this.loadAvailableLevel(school, swimmingClass.levelId, trx)
 
       const selection = await this.resolveClassCurriculum(school, level, data, trx)
+      const prerequisiteStageId = this.resolvePrerequisiteStageId(
+        level,
+        data.prerequisiteStageId,
+        selection.stage.id
+      )
       const name = data.name?.trim() || this.generatedClassName(level, selection.stage)
       await this.assertNameAvailable(school, name, selection.stage.id, trx, swimmingClass.id)
       const instructors = await this.resolveInstructors(school, data, trx)
@@ -280,6 +307,9 @@ export default class ClassSeriesAuthoringService {
         levelStageId: selection.stage.id,
         termId,
         name,
+        aim: data.aim,
+        assessmentGoals: serializeAssessmentGoals(data.assessmentGoals),
+        prerequisiteStageId,
         code,
         durationMinutes: data.durationMinutes,
         location: data.location ?? null,
@@ -331,15 +361,17 @@ export default class ClassSeriesAuthoringService {
       )
       this.assertConclusionObservation(data)
 
-      // The level's curriculum length is a hard lesson allowance per class.
+      // The level's curriculum length is shared by every class in the level.
       const level = await Level.findOrFail(swimmingClass.levelId, { client: trx })
       if (level.classesCount !== null) {
-        const plannedCount = await ClassLesson.query({ client: trx })
-          .where('swimmingClassId', swimmingClass.id)
-          .count('* as total')
-        if (Number(plannedCount[0].$extras.total) >= level.classesCount) {
+        const levelLessonCount = await this.lessonCapacity.countForLevel(
+          swimmingClass.schoolId,
+          swimmingClass.levelId,
+          trx
+        )
+        if (levelLessonCount >= level.classesCount) {
           throw new ClassAuthoringException(
-            `This class already has all ${level.classesCount} ${level.classesCount === 1 ? 'lesson' : 'lessons'} its level allows.`
+            `This level already has all ${level.classesCount} ${level.classesCount === 1 ? 'lesson' : 'lessons'} it allows.`
           )
         }
       }
@@ -403,10 +435,17 @@ export default class ClassSeriesAuthoringService {
         }
       }
 
-      if (level.classesCount !== null && existingDates.size + dates.length > level.classesCount) {
-        throw new ClassAuthoringException(
-          `This class can only have ${level.classesCount} ${level.classesCount === 1 ? 'lesson' : 'lessons'}.`
+      if (level.classesCount !== null) {
+        const levelLessonCount = await this.lessonCapacity.countForLevel(
+          swimmingClass.schoolId,
+          swimmingClass.levelId,
+          trx
         )
+        if (levelLessonCount + dates.length > level.classesCount) {
+          throw new ClassAuthoringException(
+            `This level can only have ${level.classesCount} ${level.classesCount === 1 ? 'lesson' : 'lessons'}.`
+          )
+        }
       }
 
       swimmingClass.useTransaction(trx)
@@ -1025,6 +1064,26 @@ export default class ClassSeriesAuthoringService {
         }
       }),
     }
+  }
+
+  protected resolvePrerequisiteStageId(
+    level: Level,
+    stageId: number | undefined,
+    classStageId: number
+  ): number | null {
+    if (stageId === undefined) {
+      return null
+    }
+
+    if (stageId === classStageId) {
+      throw new ClassAuthoringException('A class cannot require its own stage.')
+    }
+
+    if (!level.stages.some((stage) => stage.id === stageId)) {
+      throw new ClassAuthoringException('Choose a prerequisite stage from this level.')
+    }
+
+    return stageId
   }
 
   protected async assertLessonActivitiesCovered(

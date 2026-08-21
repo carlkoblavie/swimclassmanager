@@ -79,6 +79,23 @@ function parseEquipment(value: string | null): string[] {
     .filter(Boolean)
 }
 
+function parseAssessmentGoals(value: string | null): string[] {
+  if (!value) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string' && item.trim() !== '')
+    }
+  } catch {
+    return [value]
+  }
+
+  return [value]
+}
+
 function transformInstructor(
   instructor: ClassInstructor | LessonInstructor
 ): TransformedInstructor {
@@ -111,10 +128,18 @@ function transformInstructor(
 }
 
 export default class SwimmingClassTransformer extends BaseTransformer<SwimmingClass> {
+  constructor(
+    resource: SwimmingClass,
+    protected levelLessonCounts: Map<number, number> = new Map()
+  ) {
+    super(resource)
+  }
+
   toObject() {
     const preloaded = this.resource.$preloaded as {
       level?: Level
       levelStage?: LevelStage
+      prerequisiteStage?: LevelStage & { $preloaded: { level?: Level } }
       classInstructors?: ClassInstructor[]
       classSkills?: ClassSkill[]
       lessons?: ClassLesson[]
@@ -124,6 +149,8 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
     const levelPreloaded = level?.$preloaded as { program?: Program } | undefined
     const program = levelPreloaded?.program
     const stage = preloaded.levelStage
+    const prerequisiteStage = preloaded.prerequisiteStage
+    const prerequisiteLevel = prerequisiteStage?.$preloaded?.level
     const classInstructors = preloaded.classInstructors ?? []
     const classSkills = preloaded.classSkills ?? []
     const lessons = (preloaded.lessons ?? []).toSorted(
@@ -143,6 +170,9 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         'schoolId',
         'levelId',
         'levelStageId',
+        'aim',
+        'assessmentGoals',
+        'prerequisiteStageId',
         'code',
         'name',
         'location',
@@ -168,8 +198,9 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             programName: program?.name ?? '',
           }
         : undefined,
-      // The level's curriculum length caps how many lessons a class may plan.
+      // The level's curriculum length is shared by all classes in the level.
       lessonAllowance: level?.classesCount ?? null,
+      levelLessonCount: level ? (this.levelLessonCounts.get(level.id) ?? 0) : null,
       enrolledCount: Number(this.resource.$extras.enrolledCount ?? 0),
       stage: stage
         ? {
@@ -187,6 +218,21 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             })),
           }
         : undefined,
+      prerequisiteStage: prerequisiteStage
+        ? {
+            id: prerequisiteStage.id,
+            code: prerequisiteStage.code,
+            name: prerequisiteStage.name,
+            level: prerequisiteLevel
+              ? {
+                  id: prerequisiteLevel.id,
+                  code: prerequisiteLevel.code,
+                  name: prerequisiteLevel.name,
+                }
+              : undefined,
+          }
+        : null,
+      assessmentGoals: parseAssessmentGoals(this.resource.assessmentGoals),
       term: (() => {
         const term = preloaded.term
         if (!term) {

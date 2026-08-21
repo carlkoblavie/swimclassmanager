@@ -41,6 +41,8 @@ test.group('Swimming classes store', (group) => {
     await page.getByRole('button', { name: 'Create class' }).click()
 
     await page.getByLabel('Base class name').fill('Evening squad')
+    await page.getByLabel('Main objective').fill('Swim 10 metres with confidence.')
+    await page.getByLabel('Assessment goal 1').fill('Swim 10 metres unaided.')
     await page.getByRole('combobox', { name: 'Lead instructor' }).click()
     await page.getByRole('option', { name: /Coach Ama/ }).click()
     await page.keyboard.press('Escape')
@@ -59,6 +61,9 @@ test.group('Swimming classes store', (group) => {
       code: 'ST01CL01',
       weekday: 1,
       duration_minutes: 45,
+      aim: 'Swim 10 metres with confidence.',
+      assessment_goals: JSON.stringify(['Swim 10 metres unaided.']),
+      prerequisite_stage_id: null,
     })
     await db.assertHas('swimming_classes', {
       name: 'Evening squad - Tuesday',
@@ -83,6 +88,8 @@ test.group('Swimming classes store', (group) => {
 
     const page = await visit(route('programs.index'))
     await page.getByRole('button', { name: 'Create class' }).click()
+    await page.getByLabel('Main objective').fill('Build confidence in the water.')
+    await page.getByLabel('Assessment goal 1').fill('Float unaided for 10 seconds.')
     await page.getByRole('button', { name: 'Create 1 class' }).click()
 
     await page.assertPath(route('programs.index'))
@@ -110,6 +117,8 @@ test.group('Swimming classes store', (group) => {
 
     const page = await visit(route('programs.index'))
     await page.getByRole('button', { name: 'Create class' }).click()
+    await page.getByLabel('Main objective').fill('Build confidence in the water.')
+    await page.getByLabel('Assessment goal 1').fill('Float unaided for 10 seconds.')
     await page.getByRole('button', { name: 'Add another day' }).click()
     // Force both days to the same name.
     await page.getByLabel('Class name', { exact: true }).nth(0).fill('Same Name')
