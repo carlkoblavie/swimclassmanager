@@ -175,14 +175,12 @@ export default function EditLessonInstructorsDrawer({
                       defaultValue={lesson.date.raw}
                       required
                     />
-                    <TextInput
-                      label="Duration"
-                      type="number"
-                      value={lesson.durationMinutes}
-                      rightSection={<Text size="xs">min</Text>}
-                      disabled
-                      readOnly
-                    />
+                    <Box>
+                      <Text size="sm" fw={500}>
+                        Duration
+                      </Text>
+                      <Text mt={8}>{lesson.durationMinutes} min</Text>
+                    </Box>
                   </SimpleGrid>
                 </Box>
 
