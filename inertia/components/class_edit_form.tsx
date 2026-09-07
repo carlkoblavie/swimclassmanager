@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Form } from '@adonisjs/inertia/react'
-import { Button, Card, Group, NativeSelect, Stack, Text, TextInput } from '@mantine/core'
+import { Button, Card, Group, NativeSelect, NumberInput, Stack, Text, TextInput } from '@mantine/core'
 import type { Data } from '@generated/data'
 import AssessmentGoalsFields from '~/components/assessment_goals_fields'
 import ClassSkillPicker, { type ClassSkillOption } from '~/components/class_skill_picker'
@@ -103,16 +103,18 @@ export default function ClassEditForm({
                   defaultValue={String(swimmingClass.durationMinutes)}
                   error={errors.durationMinutes}
                 />
-                <TextInput
+                <NumberInput
                   label="Max lessons"
-                  name="maxLessons"
-                  type="number"
                   w={180}
-                  value={maxLessons}
-                  onChange={(event) => setMaxLessons(event.currentTarget.value)}
+                  min={1}
+                  allowNegative={false}
+                  allowDecimal={false}
+                  value={maxLessons === '' ? '' : Number(maxLessons)}
+                  onChange={(value) => setMaxLessons(value === '' ? '' : String(value))}
                   error={errors.maxLessons}
                   required
                 />
+                <input type="hidden" name="maxLessons" value={maxLessons} />
               </Group>
               {termId !== '' && <input type="hidden" name="termId" value={termId} />}
               <TextInput
