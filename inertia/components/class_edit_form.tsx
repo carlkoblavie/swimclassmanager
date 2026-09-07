@@ -117,7 +117,6 @@ export default function ClassEditForm({
                 />
               </Group>
               {termId !== '' && <input type="hidden" name="termId" value={termId} />}
-              <input type="hidden" name="maxLessons" value={maxLessons} />
               <TextInput
                 label="Main objective"
                 description="What a learner should be able to do by the end of the class."
