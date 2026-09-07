@@ -107,13 +107,13 @@ export default function ClassEditForm({
                 />
                 <TextInput
                   label="Max lessons"
-                  description="Leave blank for no limit."
                   name="maxLessons"
                   type="number"
                   w={180}
                   value={maxLessons}
                   onChange={(event) => setMaxLessons(event.currentTarget.value)}
                   error={errors.maxLessons}
+                  required
                 />
               </Group>
               {termId !== '' && <input type="hidden" name="termId" value={termId} />}

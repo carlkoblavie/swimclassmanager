@@ -150,7 +150,7 @@ export default function ClassForm({
             {prerequisiteStageId !== 'none' && (
               <input type="hidden" name="prerequisiteStageId" value={prerequisiteStageId} />
             )}
-            {maxLessons.trim() !== '' && <input type="hidden" name="maxLessons" value={maxLessons} />}
+            <input type="hidden" name="maxLessons" value={maxLessons} />
             {skillIds.map((id, index) => (
               <input key={id} type="hidden" name={`skillIds[${index}]`} value={id} />
             ))}
@@ -206,12 +206,12 @@ export default function ClassForm({
               />
               <TextInput
                 label="Max lessons"
-                description="Leave blank for no limit."
                 type="number"
                 w={180}
                 value={maxLessons}
                 onChange={(event) => setMaxLessons(event.currentTarget.value)}
                 error={errors.maxLessons}
+                required
               />
               <NativeSelect
                 label="Term"

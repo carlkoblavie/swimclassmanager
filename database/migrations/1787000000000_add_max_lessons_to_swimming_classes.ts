@@ -5,7 +5,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
-      table.integer('max_lessons').unsigned().nullable()
+      table.integer('max_lessons').unsigned().notNullable()
     })
   }
 
