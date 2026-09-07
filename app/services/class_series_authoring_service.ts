@@ -409,7 +409,7 @@ export default class ClassSeriesAuthoringService {
       swimmingClass.useTransaction(trx)
       const lesson = await swimmingClass.related('lessons').create({
         date,
-        objectives: data.objectives,
+        objectives: data.objectives.join('\n'),
         equipment: serializeEquipment(data.equipment),
         notes: data.notes ?? null,
         observation: data.observation ?? null,
@@ -556,7 +556,7 @@ export default class ClassSeriesAuthoringService {
       this.assertConclusionObservation(data)
 
       lesson.useTransaction(trx)
-      lesson.objectives = data.objectives
+      lesson.objectives = data.objectives.join('\n')
       lesson.equipment = serializeEquipment(data.equipment)
       lesson.notes = data.notes ?? null
       lesson.observation = data.observation ?? null

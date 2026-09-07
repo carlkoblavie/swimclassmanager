@@ -87,7 +87,7 @@ export const updateSwimmingClassValidator = vine.create({
 })
 
 export const storeClassLessonValidator = vine.create({
-  objectives: vine.string().trim().minLength(1).maxLength(2000),
+  objectives: vine.array(vine.string().trim().minLength(1).maxLength(500)).minLength(1),
   equipment: vine.array(vine.string().trim().minLength(1).maxLength(120)).distinct().optional(),
   schoolActivityIds: vine.array(vine.number().withoutDecimals().positive()).optional(),
   schoolActivityDurations: vine.array(vine.number().withoutDecimals().positive()).optional(),

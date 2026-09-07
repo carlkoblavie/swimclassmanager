@@ -791,6 +791,7 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                     skills={skillsForLessons}
                     activityBank={activityBank}
                     durationMinutes={lesson.durationMinutes}
+                    assessmentGoals={swimmingClass.assessmentGoals}
                     onCancel={() => setEditingLessonId(null)}
                   />
                 )}

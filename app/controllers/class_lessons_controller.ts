@@ -180,9 +180,10 @@ export default class ClassLessonsController {
       .whereHas('swimmingClass', (classQuery) => classQuery.where('schoolId', schoolId))
       .firstOrFail()
 
+    const classId = lesson.swimmingClassId
     await authoring.removeLesson(lesson)
 
     session.flash('success', 'Lesson removed.')
-    return response.redirect().toRoute('swimming_classes.show', { id: lesson.swimmingClassId })
+    return response.redirect().toRoute('lessons.index', {}, { qs: { classId } })
   }
 }
