@@ -616,19 +616,6 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                           {swimmingClass.aim || 'Not specified'}
                         </Text>
                       </Group>
-                      <Group
-                        gap="sm"
-                        wrap="nowrap"
-                        p="sm"
-                        style={{ borderTop: '1px solid var(--mantine-color-aqua-2)' }}
-                      >
-                        <Text size="xs" fw={800} tt="uppercase" c="aqua.8" lts="0.08em">
-                          This lesson
-                        </Text>
-                        <Text fw={800} size="sm">
-                          {lesson.objectives || 'Not specified'}
-                        </Text>
-                      </Group>
                     </Stack>
 
                     {(() => {
