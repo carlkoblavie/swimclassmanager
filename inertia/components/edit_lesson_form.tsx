@@ -3,7 +3,6 @@ import { Form } from '@adonisjs/inertia/react'
 import {
   ActionIcon,
   Badge,
-  Box,
   Button,
   Checkbox,
   Group,
@@ -46,13 +45,11 @@ export default function EditLessonForm({
   const [conclude, setConclude] = useState(lesson.isConcluded)
   const [equipment, setEquipment] = useState<string[]>(lesson.equipment ?? [])
   const [equipmentDraft, setEquipmentDraft] = useState('')
-  const [objectives, setObjectives] = useState<string[]>(() => {
-    const saved = (lesson.objectives ?? '')
-      .split('\n')
-      .map((goal) => goal.trim())
-      .filter(Boolean)
-    return saved.filter((goal) => assessmentGoals.includes(goal))
-  })
+  const objectives = (lesson.objectives ?? '')
+    .split('\n')
+    .map((goal) => goal.trim())
+    .filter(Boolean)
+    .filter((goal) => assessmentGoals.includes(goal))
 
   const addEquipment = () => {
     const nextItem = equipmentDraft.trim()
@@ -70,53 +67,9 @@ export default function EditLessonForm({
       {({ processing }) => (
         <Stack gap="sm">
           <LessonStageSkills skills={skills} variant="tiles" />
-          <Box>
-            <Group justify="space-between" align="baseline">
-              <Text size="sm" fw={500}>
-                Lesson objectives
-              </Text>
-              <Text size="xs" c={objectives.length === 0 ? 'red' : 'dimmed'}>
-                {objectives.length || 'pick at least one'}
-              </Text>
-            </Group>
-            <Text size="xs" c="dimmed" mb="xs">
-              Choose the class goals this lesson works toward.
-            </Text>
-            {objectives.map((goal, index) => (
-              <input key={goal} type="hidden" name={`objectives[${index}]`} value={goal} />
-            ))}
-            <Stack gap="xs">
-              {assessmentGoals.length === 0 ? (
-                <Text size="sm" c="dimmed">
-                  This class has no assessment goals yet.
-                </Text>
-              ) : (
-                assessmentGoals.map((goal) => {
-                  const checked = objectives.includes(goal)
-                  return (
-                    <Box
-                      key={goal}
-                      p="sm"
-                      style={{
-                        border: '1px solid var(--mantine-color-gray-3)',
-                        borderRadius: 10,
-                      }}
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onChange={() =>
-                          setObjectives((current) =>
-                            checked ? current.filter((item) => item !== goal) : [...current, goal]
-                          )
-                        }
-                        label={<Text>{goal}</Text>}
-                      />
-                    </Box>
-                  )
-                })
-              )}
-            </Stack>
-          </Box>
+          {objectives.map((goal, index) => (
+            <input key={goal} type="hidden" name={`objectives[${index}]`} value={goal} />
+          ))}
           <LessonActivityBankBuilder
             activityBank={activityBank}
             durationMinutes={durationMinutes}
