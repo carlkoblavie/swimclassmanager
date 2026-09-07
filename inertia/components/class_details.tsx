@@ -195,7 +195,11 @@ export default function ClassDetails({
               }
               note="per lesson"
             />
-            <MetaCell label="Lessons" value={lessons.value} note={lessons.note} />
+            <MetaCell
+              label="Lessons"
+              value={`${lessons.value} / ${swimmingClass.maxLessons}`}
+              note={lessons.note}
+            />
             <MetaCell label="Term" value={term.value} note={term.note} />
             <MetaCell
               label="Skills"

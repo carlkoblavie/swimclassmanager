@@ -808,7 +808,7 @@ export class SwimYearSchema extends BaseModel {
 }
 
 export class SwimmingClassSchema extends BaseModel {
-  static $columns = ['aim', 'assessmentGoals', 'cancelledAt', 'code', 'createdAt', 'durationMinutes', 'id', 'levelId', 'levelStageId', 'location', 'name', 'prerequisiteStageId', 'schoolId', 'startTime', 'termId', 'updatedAt', 'weekday'] as const
+  static $columns = ['aim', 'assessmentGoals', 'cancelledAt', 'code', 'createdAt', 'durationMinutes', 'id', 'levelId', 'levelStageId', 'location', 'maxLessons', 'name', 'prerequisiteStageId', 'schoolId', 'startTime', 'termId', 'updatedAt', 'weekday'] as const
   $columns = SwimmingClassSchema.$columns
   @column()
   declare aim: string | null
@@ -830,6 +830,8 @@ export class SwimmingClassSchema extends BaseModel {
   declare levelStageId: number
   @column()
   declare location: string | null
+  @column()
+  declare maxLessons: number
   @column()
   declare name: string
   @column()
