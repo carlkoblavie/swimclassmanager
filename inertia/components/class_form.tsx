@@ -68,6 +68,7 @@ export default function ClassForm({
   const [assessmentGoals, setAssessmentGoals] = useState([''])
   const [prerequisiteStageId, setPrerequisiteStageId] = useState('none')
   const [durationMinutes, setDurationMinutes] = useState('45')
+  const [maxLessons, setMaxLessons] = useState('')
   const defaultSkillIdsForStage = (candidate: FormLevel['stages'][number] | undefined) => {
     if (!candidate) {
       return []
@@ -149,6 +150,7 @@ export default function ClassForm({
             {prerequisiteStageId !== 'none' && (
               <input type="hidden" name="prerequisiteStageId" value={prerequisiteStageId} />
             )}
+            {maxLessons.trim() !== '' && <input type="hidden" name="maxLessons" value={maxLessons} />}
             {skillIds.map((id, index) => (
               <input key={id} type="hidden" name={`skillIds[${index}]`} value={id} />
             ))}
@@ -201,6 +203,15 @@ export default function ClassForm({
                 }
                 rightSectionWidth={52}
                 error={errors.durationMinutes}
+              />
+              <TextInput
+                label="Max lessons"
+                description="Leave blank for no limit."
+                type="number"
+                w={180}
+                value={maxLessons}
+                onChange={(event) => setMaxLessons(event.currentTarget.value)}
+                error={errors.maxLessons}
               />
               <NativeSelect
                 label="Term"

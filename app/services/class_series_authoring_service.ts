@@ -157,6 +157,7 @@ export default class ClassSeriesAuthoringService {
         code,
         durationMinutes: data.durationMinutes,
         location: null,
+        maxLessons: data.maxLessons ?? null,
       })
       await swimmingClass.save()
       await this.syncInstructors(swimmingClass, instructors, trx)
@@ -313,6 +314,7 @@ export default class ClassSeriesAuthoringService {
         code,
         durationMinutes: data.durationMinutes,
         location: data.location ?? null,
+        maxLessons: data.maxLessons ?? swimmingClass.maxLessons,
       })
       await swimmingClass.save()
 
@@ -360,6 +362,20 @@ export default class ClassSeriesAuthoringService {
         trx
       )
       this.assertConclusionObservation(data)
+
+      // Check class-level lesson limit
+      if (swimmingClass.maxLessons !== null) {
+        const classLessonCount = await ClassLesson.query({ client: trx })
+          .where('swimmingClassId', swimmingClass.id)
+          .count('* as total')
+          .first()
+        const count = Number(classLessonCount?.$extras.total ?? 0)
+        if (count >= swimmingClass.maxLessons) {
+          throw new ClassAuthoringException(
+            `This class already has all ${swimmingClass.maxLessons} ${swimmingClass.maxLessons === 1 ? 'lesson' : 'lessons'} it allows.`
+          )
+        }
+      }
 
       // The level's curriculum length is shared by every class in the level.
       const level = await Level.findOrFail(swimmingClass.levelId, { client: trx })
@@ -432,6 +448,16 @@ export default class ClassSeriesAuthoringService {
         const term = await Term.findOrFail(swimmingClass.termId, { client: trx })
         for (const date of dates) {
           this.assertDateWithinTerm(date, term)
+        }
+      }
+
+      // Check class-level lesson limit
+      if (swimmingClass.maxLessons !== null) {
+        const currentCount = existingLessons.length
+        if (currentCount + dates.length > swimmingClass.maxLessons) {
+          throw new ClassAuthoringException(
+            `This class can only have ${swimmingClass.maxLessons} ${swimmingClass.maxLessons === 1 ? 'lesson' : 'lessons'}. You're trying to add ${dates.length} more, but only ${swimmingClass.maxLessons - currentCount} ${swimmingClass.maxLessons - currentCount === 1 ? 'slot' : 'slots'} remaining.`
+          )
         }
       }
 
