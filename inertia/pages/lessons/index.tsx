@@ -464,14 +464,14 @@ export default function LessonsIndex({
     () => countLessons(startDate, endDate, weekdays),
     [startDate, endDate, weekdays]
   )
-  const levelLessonCount = generationClass?.levelLessonCount ?? null
-  const levelLessonAllowance = generationClass?.lessonAllowance ?? null
-  const levelLessonsRemaining =
-    typeof levelLessonCount === 'number' && typeof levelLessonAllowance === 'number'
-      ? Math.max(levelLessonAllowance - levelLessonCount, 0)
+  const classLessonCount = generationClass?.lessons.length ?? 0
+  const classMaxLessons = generationClass?.maxLessons ?? null
+  const classLessonsRemaining =
+    typeof classMaxLessons === 'number'
+      ? Math.max(classMaxLessons - classLessonCount, 0)
       : null
-  const exceedsLevelAllowance =
-    levelLessonsRemaining !== null && lessonCount > levelLessonsRemaining
+  const exceedsClassAllowance =
+    classLessonsRemaining !== null && lessonCount > classLessonsRemaining
   const endsAt = endTime(startTime, generationClass?.durationMinutes ?? null)
   const scheduledStart = selectedClass?.startTime?.raw ?? startTime
   const editingLesson =
@@ -717,18 +717,18 @@ export default function LessonsIndex({
                             {generationClass.durationMinutes} min each
                           </Text>
                         )}
-                        {levelLessonsRemaining !== null && (
-                          <Text size="sm" c={exceedsLevelAllowance ? 'red' : 'dimmed'} mt={4}>
-                            Level total: {levelLessonCount} of {levelLessonAllowance} lessons ·{' '}
-                            {levelLessonsRemaining} remaining
-                            {exceedsLevelAllowance && ' — reduce the date range or weekdays'}
+                        {classLessonsRemaining !== null && (
+                          <Text size="sm" c={exceedsClassAllowance ? 'red' : 'dimmed'} mt={4}>
+                            Class total: {classLessonCount} of {classMaxLessons} lessons ·{' '}
+                            {classLessonsRemaining} remaining
+                            {exceedsClassAllowance && ' — reduce the date range or weekdays'}
                           </Text>
                         )}
                       </Box>
                       <Button
                         type="submit"
                         loading={processing}
-                        disabled={!generationClass || lessonCount === 0 || exceedsLevelAllowance}
+                        disabled={!generationClass || lessonCount === 0 || exceedsClassAllowance}
                       >
                         Generate lessons
                       </Button>
