@@ -138,12 +138,7 @@ function formatClock(value: string | null | undefined) {
 }
 
 function lessonSummary(swimmingClass: Data.SwimmingClass) {
-  if (swimmingClass.lessons.length === 0) {
-    return 'No lessons yet'
-  }
-  const first = swimmingClass.lessons[0]
-  const last = swimmingClass.lessons[swimmingClass.lessons.length - 1]
-  return `${swimmingClass.lessons.length} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · ${first.date.formatted}${last.id !== first.id ? ` – ${last.date.formatted}` : ''}`
+  return `${swimmingClass.lessons.length} / ${swimmingClass.maxLessons} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'}`
 }
 
 function classLabel(swimmingClass: Data.SwimmingClass) {
