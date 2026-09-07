@@ -178,6 +178,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
         'location',
         'weekday',
         'durationMinutes',
+        'maxLessons',
       ]),
       weekdayName: this.resource.weekday
         ? (WEEKDAY_NAMES[this.resource.weekday] ?? String(this.resource.weekday))
