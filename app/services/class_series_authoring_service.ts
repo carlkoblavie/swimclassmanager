@@ -82,6 +82,7 @@ type InstructorSelection = Pick<
 > & {
   date?: DateTime
   durationMinutes?: number
+  objectives?: string[]
 }
 
 type InstructorAssignment = {
@@ -635,8 +636,8 @@ export default class ClassSeriesAuthoringService {
       if (data.date) {
         lesson.date = data.date
       }
-      if (data.durationMinutes !== undefined) {
-        lesson.durationMinutes = data.durationMinutes
+      if (data.objectives !== undefined) {
+        lesson.objectives = data.objectives.join('\n')
       }
       await lesson.save()
       await lesson.related('lessonInstructors').createMany(instructors.assignments)

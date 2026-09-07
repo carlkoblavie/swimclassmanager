@@ -56,6 +56,7 @@ export default function EditLessonInstructorsDrawer({
   lesson,
   lessonNumber,
   className,
+  classAssessmentGoals,
   opened,
   instructorOptions,
   pendingInstructorOptions,
@@ -64,6 +65,7 @@ export default function EditLessonInstructorsDrawer({
   lesson: Lesson | null
   lessonNumber: number
   className: string
+  classAssessmentGoals: string[]
   opened: boolean
   instructorOptions: Membership[]
   pendingInstructorOptions: Invitation[]
@@ -71,11 +73,13 @@ export default function EditLessonInstructorsDrawer({
 }) {
   const [lead, setLead] = useState<string | null>(null)
   const [supporting, setSupporting] = useState<string[]>([])
+  const [objectives, setObjectives] = useState<string[]>([])
 
   useEffect(() => {
     if (!lesson) {
       setLead(null)
       setSupporting([])
+      setObjectives([])
       return
     }
 
@@ -83,7 +87,13 @@ export default function EditLessonInstructorsDrawer({
       instructor.type === 'membership' ? membershipKey(instructor.id) : invitationKey(instructor.id)
     setLead(lesson.leadInstructor ? keyForInstructor(lesson.leadInstructor) : null)
     setSupporting(lesson.supportingInstructors.map(keyForInstructor))
-  }, [lesson])
+    // Pre-select goals already saved on the lesson (stored as newline-joined objectives)
+    const savedGoals = (lesson.objectives ?? '')
+      .split('\n')
+      .map((goal) => goal.trim())
+      .filter(Boolean)
+    setObjectives(savedGoals.filter((goal) => classAssessmentGoals.includes(goal)))
+  }, [lesson, classAssessmentGoals])
 
   const options = useMemo(
     () => [
@@ -162,14 +172,60 @@ export default function EditLessonInstructorsDrawer({
                     />
                     <TextInput
                       label="Duration"
-                      name="durationMinutes"
                       type="number"
-                      min={1}
-                      defaultValue={lesson.durationMinutes}
+                      value={lesson.durationMinutes}
                       rightSection={<Text size="xs">min</Text>}
-                      required
+                      disabled
+                      readOnly
                     />
                   </SimpleGrid>
+                </Box>
+
+                <Box>
+                  <Group justify="space-between" align="baseline">
+                    <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
+                      Objectives
+                    </Text>
+                    <Text size="sm" c={objectives.length === 0 ? 'red' : 'dimmed'}>
+                      {objectives.length || 'pick at least one'}
+                    </Text>
+                  </Group>
+                  <Text size="sm" c="dimmed" mt={4}>
+                    Choose the class goals this lesson works toward.
+                  </Text>
+                  <Stack gap="xs" mt="xs">
+                    {classAssessmentGoals.length === 0 ? (
+                      <Text size="sm" c="dimmed">
+                        This class has no assessment goals yet.
+                      </Text>
+                    ) : (
+                      classAssessmentGoals.map((goal) => {
+                        const checked = objectives.includes(goal)
+                        return (
+                          <Box
+                            key={goal}
+                            p="sm"
+                            style={{
+                              border: '1px solid var(--mantine-color-gray-3)',
+                              borderRadius: 10,
+                            }}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onChange={() =>
+                                setObjectives((current) =>
+                                  checked
+                                    ? current.filter((item) => item !== goal)
+                                    : [...current, goal]
+                                )
+                              }
+                              label={<Text>{goal}</Text>}
+                            />
+                          </Box>
+                        )
+                      })
+                    )}
+                  </Stack>
                 </Box>
 
                 <Box>
@@ -248,6 +304,9 @@ export default function EditLessonInstructorsDrawer({
                 </Text>
               </Stack>
 
+              {objectives.map((goal, index) => (
+                <input key={goal} type="hidden" name={`objectives[${index}]`} value={goal} />
+              ))}
               {lead?.startsWith(MEMBERSHIP_PREFIX) && (
                 <input
                   type="hidden"
@@ -288,7 +347,7 @@ export default function EditLessonInstructorsDrawer({
                   <Button type="button" variant="default" onClick={onClose}>
                     Cancel
                   </Button>
-                  <Button type="submit" loading={processing}>
+                  <Button type="submit" loading={processing} disabled={objectives.length === 0}>
                     Save changes
                   </Button>
                 </Group>

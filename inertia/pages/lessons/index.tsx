@@ -1227,6 +1227,7 @@ export default function LessonsIndex({
             : 0
         }
         className={selectedClass ? classLabel(selectedClass) : ''}
+        classAssessmentGoals={selectedClass?.assessmentGoals ?? []}
         opened={Boolean(editingLesson)}
         instructorOptions={instructorOptions}
         pendingInstructorOptions={pendingInstructorOptions}
