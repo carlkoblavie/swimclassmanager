@@ -631,27 +631,36 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                       </Group>
                     </Stack>
 
-                    {swimmingClass.assessmentGoals.length > 0 && (
-                      <Box
-                        mt="md"
-                        p="sm"
-                        style={{
-                          border: '1px solid var(--mantine-color-gray-3)',
-                          borderRadius: 12,
-                        }}
-                      >
-                        <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.08em">
-                          Assessment goals
-                        </Text>
-                        <Stack gap={2} mt={4}>
-                          {swimmingClass.assessmentGoals.map((goal, index) => (
-                            <Text key={index} size="sm">
-                              • {goal}
-                            </Text>
-                          ))}
-                        </Stack>
-                      </Box>
-                    )}
+                    {(() => {
+                      const lessonGoals = (lesson.objectives ?? '')
+                        .split('\n')
+                        .map((goal) => goal.trim())
+                        .filter(Boolean)
+                      if (lessonGoals.length === 0) {
+                        return null
+                      }
+                      return (
+                        <Box
+                          mt="md"
+                          p="sm"
+                          style={{
+                            border: '1px solid var(--mantine-color-gray-3)',
+                            borderRadius: 12,
+                          }}
+                        >
+                          <Text size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.08em">
+                            Assessment goals
+                          </Text>
+                          <Stack gap={2} mt={4}>
+                            {lessonGoals.map((goal, index) => (
+                              <Text key={index} size="sm">
+                                • {goal}
+                              </Text>
+                            ))}
+                          </Stack>
+                        </Box>
+                      )
+                    })()}
 
                     {skillsForLessons.length > 0 && (
                       <Box
