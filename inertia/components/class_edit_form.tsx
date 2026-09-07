@@ -62,9 +62,6 @@ export default function ClassEditForm({
   const [prerequisiteStageId, setPrerequisiteStageId] = useState(
     swimmingClass.prerequisiteStageId ? String(swimmingClass.prerequisiteStageId) : 'none'
   )
-  const [maxLessons, setMaxLessons] = useState(
-    swimmingClass.maxLessons ? String(swimmingClass.maxLessons) : '0'
-  )
   const [skillIds, setSkillIds] = useState<string[]>(initialSkillIds)
   const stage = stages.find((candidate) => String(candidate.id) === levelStageId)
 
@@ -110,8 +107,7 @@ export default function ClassEditForm({
                   name="maxLessons"
                   type="number"
                   w={180}
-                  value={maxLessons}
-                  onChange={(event) => setMaxLessons(event.currentTarget.value)}
+                  defaultValue={String(swimmingClass.maxLessons)}
                   error={errors.maxLessons}
                   required
                 />
