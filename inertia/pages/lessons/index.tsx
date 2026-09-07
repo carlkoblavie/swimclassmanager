@@ -138,7 +138,11 @@ function formatClock(value: string | null | undefined) {
 }
 
 function lessonSummary(swimmingClass: Data.SwimmingClass) {
-  return `${swimmingClass.lessons.length} / ${swimmingClass.maxLessons} ${swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'}`
+  const count = swimmingClass.lessons.length
+  const label = count === 1 ? 'lesson' : 'lessons'
+  return swimmingClass.maxLessons
+    ? `${count} / ${swimmingClass.maxLessons} ${label}`
+    : `${count} ${label}`
 }
 
 function classLabel(swimmingClass: Data.SwimmingClass) {
