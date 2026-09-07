@@ -662,27 +662,36 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                       )
                     })()}
 
-                    {skillsForLessons.length > 0 && (
-                      <Box
-                        mt="lg"
-                        pt="lg"
-                        style={{ borderTop: '2px solid var(--mantine-color-gray-9)' }}
-                      >
-                        <Group gap="lg" align="baseline" wrap="wrap">
-                          <Text
-                            size="xs"
-                            fw={800}
-                            tt="uppercase"
-                            c="dimmed"
-                            lts="0.12em"
-                            style={{ flexShrink: 0 }}
-                          >
-                            Skills assessed
-                          </Text>
-                          <LessonSkillTiles skills={skillsForLessons} />
-                        </Group>
-                      </Box>
-                    )}
+                    {(() => {
+                      const lessonSkillsSelected =
+                        lesson.skillIds && lesson.skillIds.length > 0
+                          ? skillsForLessons.filter((skill) => lesson.skillIds.includes(skill.id))
+                          : skillsForLessons
+                      if (lessonSkillsSelected.length === 0) {
+                        return null
+                      }
+                      return (
+                        <Box
+                          mt="lg"
+                          pt="lg"
+                          style={{ borderTop: '2px solid var(--mantine-color-gray-9)' }}
+                        >
+                          <Group gap="lg" align="baseline" wrap="wrap">
+                            <Text
+                              size="xs"
+                              fw={800}
+                              tt="uppercase"
+                              c="dimmed"
+                              lts="0.12em"
+                              style={{ flexShrink: 0 }}
+                            >
+                              Skills assessed
+                            </Text>
+                            <LessonSkillTiles skills={lessonSkillsSelected} />
+                          </Group>
+                        </Box>
+                      )
+                    })()}
 
                     <Text mt="xl" size="xs" fw={800} tt="uppercase" c="dimmed" lts="0.12em">
                       Session plan

@@ -57,6 +57,7 @@ export default function EditLessonInstructorsDrawer({
   lessonNumber,
   className,
   classAssessmentGoals,
+  classSkills,
   opened,
   instructorOptions,
   pendingInstructorOptions,
@@ -67,6 +68,7 @@ export default function EditLessonInstructorsDrawer({
   lessonNumber: number
   className: string
   classAssessmentGoals: string[]
+  classSkills: Data.SwimmingClass['skills']
   opened: boolean
   instructorOptions: Membership[]
   pendingInstructorOptions: Invitation[]
@@ -76,12 +78,14 @@ export default function EditLessonInstructorsDrawer({
   const [lead, setLead] = useState<string | null>(null)
   const [supporting, setSupporting] = useState<string[]>([])
   const [objectives, setObjectives] = useState<string[]>([])
+  const [skillIds, setSkillIds] = useState<number[]>([])
 
   useEffect(() => {
     if (!lesson) {
       setLead(null)
       setSupporting([])
       setObjectives([])
+      setSkillIds([])
       return
     }
 
@@ -95,8 +99,15 @@ export default function EditLessonInstructorsDrawer({
       .map((goal) => goal.trim())
       .filter(Boolean)
     setObjectives(savedGoals.filter((goal) => classAssessmentGoals.includes(goal)))
-    // Only reset when switching to a different lesson — not when the goals array
-    // reference changes on re-render (which would wipe in-progress selections).
+    // Pre-select skills already saved on the lesson, falling back to all class skills
+    const savedSkillIds = lesson.skillIds ?? []
+    setSkillIds(
+      savedSkillIds.length > 0
+        ? savedSkillIds
+        : classSkills.map((skill) => skill.id)
+    )
+    // Only reset when switching to a different lesson — not when the array
+    // references change on re-render (which would wipe in-progress selections).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson?.id])
 
@@ -232,6 +243,53 @@ export default function EditLessonInstructorsDrawer({
                 </Box>
 
                 <Box>
+                  <Group justify="space-between" align="baseline">
+                    <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
+                      Skills
+                    </Text>
+                    <Text size="sm" c={skillIds.length === 0 ? 'red' : 'dimmed'}>
+                      {skillIds.length || 'pick at least one'}
+                    </Text>
+                  </Group>
+                  <Text size="sm" c="dimmed" mt={4}>
+                    Choose the class skills this lesson covers.
+                  </Text>
+                  <Stack gap="xs" mt="xs">
+                    {classSkills.length === 0 ? (
+                      <Text size="sm" c="dimmed">
+                        This class has no skills yet.
+                      </Text>
+                    ) : (
+                      classSkills.map((skill) => {
+                        const checked = skillIds.includes(skill.id)
+                        return (
+                          <Box
+                            key={skill.id}
+                            p="sm"
+                            style={{
+                              border: '1px solid var(--mantine-color-gray-3)',
+                              borderRadius: 10,
+                            }}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onChange={() =>
+                                setSkillIds((current) =>
+                                  checked
+                                    ? current.filter((id) => id !== skill.id)
+                                    : [...current, skill.id]
+                                )
+                              }
+                              label={<Text>{skill.name}</Text>}
+                            />
+                          </Box>
+                        )
+                      })
+                    )}
+                  </Stack>
+                </Box>
+
+                <Box>
                   <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
                     Lead instructor
                   </Text>
@@ -310,6 +368,9 @@ export default function EditLessonInstructorsDrawer({
               {objectives.map((goal, index) => (
                 <input key={goal} type="hidden" name={`objectives[${index}]`} value={goal} />
               ))}
+              {skillIds.map((id, index) => (
+                <input key={id} type="hidden" name={`skillIds[${index}]`} value={id} />
+              ))}
               {lead?.startsWith(MEMBERSHIP_PREFIX) && (
                 <input
                   type="hidden"
@@ -350,7 +411,11 @@ export default function EditLessonInstructorsDrawer({
                   <Button type="button" variant="default" onClick={onClose}>
                     Cancel
                   </Button>
-                  <Button type="submit" loading={processing} disabled={objectives.length === 0}>
+                  <Button
+                    type="submit"
+                    loading={processing}
+                    disabled={objectives.length === 0 || skillIds.length === 0}
+                  >
                     Save changes
                   </Button>
                 </Group>

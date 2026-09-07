@@ -79,6 +79,23 @@ function parseEquipment(value: string | null): string[] {
     .filter(Boolean)
 }
 
+function parseSkillIds(value: string | null): number[] {
+  if (!value) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is number => typeof item === 'number')
+    }
+  } catch {
+    return []
+  }
+
+  return []
+}
+
 function parseAssessmentGoals(value: string | null): string[] {
   if (!value) {
     return []
@@ -299,6 +316,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
             formatted: lesson.date.toFormat('cccc d LLL yyyy'),
           },
           objectives: lesson.objectives,
+          skillIds: parseSkillIds(lesson.skills),
           equipment: parseEquipment(lesson.equipment),
           notes: lesson.notes,
           observation: lesson.observation,
