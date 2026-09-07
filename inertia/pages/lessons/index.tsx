@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { usePage } from '@inertiajs/react'
+import { router, usePage } from '@inertiajs/react'
 import { Form, Link } from '@adonisjs/inertia/react'
 import type { Data } from '@generated/data'
 import {
@@ -1232,6 +1232,14 @@ export default function LessonsIndex({
         instructorOptions={instructorOptions}
         pendingInstructorOptions={pendingInstructorOptions}
         onClose={() => setEditingLessonId(null)}
+        onSaved={(lessonId) => {
+          setEditingLessonId(null)
+          if (selectedClass) {
+            router.visit(
+              `${urlFor('swimming_classes.show', { id: selectedClass.id })}?editLessonId=${lessonId}`
+            )
+          }
+        }}
       />
     </Container>
   )

@@ -61,6 +61,7 @@ export default function EditLessonInstructorsDrawer({
   instructorOptions,
   pendingInstructorOptions,
   onClose,
+  onSaved,
 }: {
   lesson: Lesson | null
   lessonNumber: number
@@ -70,6 +71,7 @@ export default function EditLessonInstructorsDrawer({
   instructorOptions: Membership[]
   pendingInstructorOptions: Invitation[]
   onClose: () => void
+  onSaved?: (lessonId: number) => void
 }) {
   const [lead, setLead] = useState<string | null>(null)
   const [supporting, setSupporting] = useState<string[]>([])
@@ -93,7 +95,10 @@ export default function EditLessonInstructorsDrawer({
       .map((goal) => goal.trim())
       .filter(Boolean)
     setObjectives(savedGoals.filter((goal) => classAssessmentGoals.includes(goal)))
-  }, [lesson, classAssessmentGoals])
+    // Only reset when switching to a different lesson — not when the goals array
+    // reference changes on re-render (which would wipe in-progress selections).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson?.id])
 
   const options = useMemo(
     () => [
@@ -134,7 +139,7 @@ export default function EditLessonInstructorsDrawer({
         <Form
           route="class_lessons.assign_instructors"
           routeParams={{ id: lesson.id }}
-          onSuccess={onClose}
+          onSuccess={() => (onSaved ? onSaved(lesson.id) : onClose())}
         >
           {({ processing }) => (
             <Stack gap={0} mih="100%">
