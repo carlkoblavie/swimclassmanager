@@ -313,7 +313,7 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
           durationMinutes: lesson.durationMinutes ?? this.resource.durationMinutes,
           date: {
             raw: lesson.date.toISODate() ?? '',
-            formatted: lesson.date.toFormat('cccc d LLL yyyy'),
+            formatted: lesson.date.toFormat('ccc d LLL yyyy'),
           },
           objectives: lesson.objectives,
           skillIds: parseSkillIds(lesson.skills),
