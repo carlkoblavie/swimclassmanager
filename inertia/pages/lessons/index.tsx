@@ -113,6 +113,30 @@ function countLessons(startDate: string, endDate: string, weekdays: number[]) {
   return count
 }
 
+/** The date of the Nth lesson on the selected weekdays, starting from startDate. */
+function endDateForCount(startDate: string, weekdays: number[], count: number) {
+  const start = parseIsoDate(startDate)
+  if (!start || weekdays.length === 0 || count <= 0) {
+    return ''
+  }
+
+  const allowed = new Set(weekdays)
+  let cursor = start
+  let found = 0
+  // Cap the search so a bad input can't loop forever (~10 years of days).
+  for (let i = 0; i < 3700; i += 1) {
+    const day = cursor.getUTCDay() === 0 ? 7 : cursor.getUTCDay()
+    if (allowed.has(day)) {
+      found += 1
+      if (found === count) {
+        return isoDate(cursor)
+      }
+    }
+    cursor = addDays(cursor, 1)
+  }
+  return isoDate(cursor)
+}
+
 function endTime(startTime: string, durationMinutes: number | null) {
   const [hours, minutes] = startTime.split(':').map(Number)
   if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !durationMinutes) {
@@ -302,7 +326,6 @@ export default function LessonsIndex({
     activityStatus: 'all',
   })
   const [startDate, setStartDate] = useState(todayIso())
-  const [endDate, setEndDate] = useState(isoDate(addDays(new Date(), 84)))
   const [startTime, setStartTime] = useState('17:00')
   const [weekdays, setWeekdays] = useState<number[]>([4])
   const [copySourceLessonId, setCopySourceLessonId] = useState<number | null>(null)
@@ -460,16 +483,23 @@ export default function LessonsIndex({
     )
   }
 
-  const lessonCount = useMemo(
-    () => countLessons(startDate, endDate, weekdays),
-    [startDate, endDate, weekdays]
-  )
   const classLessonCount = generationClass?.lessons.length ?? 0
   const classMaxLessons = generationClass?.maxLessons ?? null
   const classLessonsRemaining =
     typeof classMaxLessons === 'number'
       ? Math.max(classMaxLessons - classLessonCount, 0)
       : null
+  // We generate exactly the remaining lessons; the end date is derived so the
+  // last selected weekday lands on lesson number `classLessonsRemaining`.
+  const targetCount = classLessonsRemaining ?? 0
+  const endDate = useMemo(
+    () => endDateForCount(startDate, weekdays, targetCount),
+    [startDate, weekdays, targetCount]
+  )
+  const lessonCount = useMemo(
+    () => countLessons(startDate, endDate, weekdays),
+    [startDate, endDate, weekdays]
+  )
   const exceedsClassAllowance =
     classLessonsRemaining !== null && lessonCount > classLessonsRemaining
   const endsAt = endTime(startTime, generationClass?.durationMinutes ?? null)
@@ -648,7 +678,8 @@ export default function LessonsIndex({
                     <Box p="lg" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
                       <Text fw={800}>Date range</Text>
                       <Text c="dimmed" size="sm" mb="md">
-                        Lessons are created for every selected weekday between these dates.
+                        Pick a start date — lessons repeat on the selected weekday until all{' '}
+                        {targetCount} {targetCount === 1 ? 'lesson is' : 'lessons are'} scheduled.
                       </Text>
                       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
                         <TextInput
@@ -658,13 +689,19 @@ export default function LessonsIndex({
                           onChange={(event) => setStartDate(event.currentTarget.value)}
                           leftSection={<IconCalendar size={16} />}
                         />
-                        <TextInput
-                          type="date"
-                          label="End date"
-                          value={endDate}
-                          onChange={(event) => setEndDate(event.currentTarget.value)}
-                          leftSection={<IconCalendar size={16} />}
-                        />
+                        <Box>
+                          <TextInput
+                            type="date"
+                            label="End date"
+                            value={endDate}
+                            readOnly
+                            disabled
+                            leftSection={<IconCalendar size={16} />}
+                          />
+                          <Text size="sm" c="dimmed" mt={6}>
+                            Auto-set from start date
+                          </Text>
+                        </Box>
                         <Box>
                           <TextInput
                             type="time"
