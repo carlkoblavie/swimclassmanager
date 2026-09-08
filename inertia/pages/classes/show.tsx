@@ -95,6 +95,21 @@ function lessonPlanCode(lesson: Lesson) {
   return `LP-${String(lesson.id).padStart(4, '0')}`
 }
 
+/** Turn a lesson's newline-joined goals into "a", "a and b", or "a, b and c". */
+function formatObjectives(objectives: string | null): string {
+  const goals = (objectives ?? '')
+    .split('\n')
+    .map((goal) => goal.trim())
+    .filter(Boolean)
+  if (goals.length === 0) {
+    return ''
+  }
+  if (goals.length === 1) {
+    return goals[0]
+  }
+  return `${goals.slice(0, -1).join(', ')} and ${goals[goals.length - 1]}`
+}
+
 function isLessonPlanned(lesson: Lesson) {
   return lesson.activities.length > 0 || Boolean(lesson.objectives)
 }
@@ -878,7 +893,7 @@ export default function ClassShow({
                           fw={600}
                           style={{ flex: 1, textDecoration: 'none' }}
                         >
-                          {lesson.objectives}
+                          {formatObjectives(lesson.objectives)}
                         </Anchor>
                       ) : (
                         <Text c="gray.5" style={{ flex: 1 }}>
