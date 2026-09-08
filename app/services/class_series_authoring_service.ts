@@ -84,6 +84,7 @@ type InstructorSelection = Pick<
   durationMinutes?: number
   objectives?: string[]
   skillIds?: number[]
+  startTime?: string
 }
 
 type InstructorAssignment = {
@@ -642,6 +643,9 @@ export default class ClassSeriesAuthoringService {
       }
       if (data.skillIds !== undefined) {
         lesson.skills = JSON.stringify(data.skillIds)
+      }
+      if (data.startTime !== undefined) {
+        lesson.startTime = data.startTime
       }
       await lesson.save()
       await lesson.related('lessonInstructors').createMany(instructors.assignments)

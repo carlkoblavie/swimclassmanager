@@ -50,7 +50,7 @@ export class ClassInstructorSchema extends BaseModel {
 }
 
 export class ClassLessonSchema extends BaseModel {
-  static $columns = ['concludedAt', 'createdAt', 'date', 'durationMinutes', 'equipment', 'id', 'notes', 'objectives', 'observation', 'skills', 'swimmingClassId', 'updatedAt'] as const
+  static $columns = ['concludedAt', 'createdAt', 'date', 'durationMinutes', 'equipment', 'id', 'notes', 'objectives', 'observation', 'skills', 'startTime', 'swimmingClassId', 'updatedAt'] as const
   $columns = ClassLessonSchema.$columns
   @column.dateTime()
   declare concludedAt: DateTime | null
@@ -72,6 +72,8 @@ export class ClassLessonSchema extends BaseModel {
   declare observation: string | null
   @column()
   declare skills: string | null
+  @column()
+  declare startTime: string | null
   @column()
   declare swimmingClassId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })

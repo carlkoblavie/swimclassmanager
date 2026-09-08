@@ -317,6 +317,9 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
           },
           objectives: lesson.objectives,
           skillIds: parseSkillIds(lesson.skills),
+          startTime: lesson.startTime
+            ? { raw: lesson.startTime, formatted: formatTime(lesson.startTime) }
+            : null,
           equipment: parseEquipment(lesson.equipment),
           notes: lesson.notes,
           observation: lesson.observation,

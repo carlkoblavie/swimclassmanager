@@ -105,13 +105,15 @@ function formatClock(date: Date) {
 
 function lessonTimeRange(
   swimmingClass: Data.SwimmingClass,
-  durationMinutes = swimmingClass.durationMinutes
+  durationMinutes = swimmingClass.durationMinutes,
+  startTimeRaw?: string | null
 ) {
-  if (!swimmingClass.startTime?.raw) {
+  const raw = startTimeRaw ?? swimmingClass.startTime?.raw
+  if (!raw) {
     return null
   }
 
-  const [hour, minute] = swimmingClass.startTime.raw.split(':').map(Number)
+  const [hour, minute] = raw.split(':').map(Number)
   const start = new Date(2000, 0, 1, hour, minute)
   const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
   return `${formatClock(start)} – ${formatClock(end)}`
@@ -393,7 +395,12 @@ export default function ClassShow({
           const lessonNumber = swimmingClass.lessons.findIndex((item) => item.id === lesson.id) + 1
           const isPlanned = isLessonPlanned(lesson)
           const plannedMinutes = lessonPlannedMinutes(lesson)
-          const timeRange = lessonTimeRange(swimmingClass, lesson.durationMinutes)
+          const timeRange = lessonTimeRange(
+            swimmingClass,
+            lesson.durationMinutes,
+            lesson.startTime?.raw
+          )
+          const lessonStartFormatted = lesson.startTime?.formatted ?? swimmingClass.startTime?.formatted
 
           return (
             <Card className="lesson-print-card" key={lesson.id} padding={0}>
@@ -408,7 +415,7 @@ export default function ClassShow({
                     {lesson.date.formatted}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    {swimmingClass.startTime ? `${swimmingClass.startTime.formatted} · ` : ''}
+                    {lessonStartFormatted ? `${lessonStartFormatted} · ` : ''}
                     {lesson.durationMinutes} min · {plannedMinutes} planned
                   </Text>
                 </div>
@@ -917,7 +924,7 @@ export default function ClassShow({
         }
         classAssessmentGoals={swimmingClass.assessmentGoals}
         classSkills={swimmingClass.skills}
-        classStartTime={swimmingClass.startTime?.formatted ?? null}
+        classStartTime={swimmingClass.startTime?.raw ?? null}
         opened={Boolean(drawerLessonId)}
         instructorOptions={instructorOptions}
         pendingInstructorOptions={pendingInstructorOptions}

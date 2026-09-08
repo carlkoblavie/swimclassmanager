@@ -157,6 +157,11 @@ export const copyLessonActivitiesValidator = vine.create({
 
 export const assignLessonInstructorsValidator = vine.create({
   date: vine.date({ formats: ['YYYY-MM-DD'] }).optional(),
+  startTime: vine
+    .string()
+    .trim()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional(),
   objectives: vine.array(vine.string().trim().minLength(1).maxLength(500)).minLength(1),
   skillIds: vine.array(vine.number().withoutDecimals().positive()).distinct().minLength(1),
   leadInstructorMembershipId: vine.number().withoutDecimals().positive().optional(),
