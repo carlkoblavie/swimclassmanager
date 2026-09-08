@@ -25,12 +25,15 @@ import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
 import EditLessonForm from '~/components/edit_lesson_form'
 import EditLessonActivitiesForm from '~/components/edit_lesson_activities_form'
+import EditLessonInstructorsDrawer from '~/components/edit_lesson_instructors_drawer'
 import LessonSkillTiles from '~/components/lesson_skill_tiles'
 import MetaStrip from '~/components/meta_strip'
 
 type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
   activityBank: Data.SchoolActivityCategory[]
+  instructorOptions: Data.Membership[]
+  pendingInstructorOptions: Data.Invitation[]
 }>
 
 type Lesson = Data.SwimmingClass['lessons'][number]
@@ -114,8 +117,14 @@ function lessonTimeRange(
   return `${formatClock(start)} – ${formatClock(end)}`
 }
 
-export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
+export default function ClassShow({
+  swimmingClass,
+  activityBank,
+  instructorOptions,
+  pendingInstructorOptions,
+}: PageProps) {
   const { url, props } = usePage()
+  const [drawerLessonId, setDrawerLessonId] = useState<number | null>(null)
   const canEditLesson = ((props.userPermissions as string[] | undefined) ?? []).includes(
     'lesson.edit'
   )
@@ -840,33 +849,46 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
                   })}?${planned ? 'lessonId' : 'editLessonId'}=${lesson.id}`
 
                   return (
-                    <Anchor
+                    <Group
                       key={lesson.id}
-                      component={Link}
-                      href={lessonHref}
-                      underline="never"
-                      style={{ display: 'block', textDecoration: 'none' }}
+                      gap="md"
+                      wrap="nowrap"
+                      py="sm"
+                      style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}
                     >
-                      <Group
-                        gap="md"
-                        wrap="nowrap"
-                        py="sm"
-                        style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}
+                      <Text c="gray.5" fw={800} w={40} style={{ flexShrink: 0 }}>
+                        #{lessonNumber}
+                      </Text>
+                      <Text c="dimmed" size="sm" w={190} style={{ flexShrink: 0 }}>
+                        {lesson.date.formatted}
+                      </Text>
+                      <Anchor
+                        component={Link}
+                        href={lessonHref}
+                        underline="never"
+                        c="blue.7"
+                        fw={600}
+                        style={{ flex: 1, textDecoration: 'none' }}
                       >
-                        <Text c="gray.5" fw={800} w={40} style={{ flexShrink: 0 }}>
-                          #{lessonNumber}
-                        </Text>
-                        <Text c="dimmed" size="sm" w={190} style={{ flexShrink: 0 }}>
-                          {lesson.date.formatted}
-                        </Text>
-                        <Text c="blue.7" fw={600} style={{ flex: 1 }}>
-                          {lesson.objectives || 'Add a lesson aim'}
-                        </Text>
-                        <Text c={planned ? 'teal.7' : 'gray.5'} size="sm" style={{ flexShrink: 0 }}>
-                          {planned ? 'Planned' : 'Not planned'}
-                        </Text>
-                      </Group>
-                    </Anchor>
+                        {lesson.objectives || 'Add a lesson aim'}
+                      </Anchor>
+                      <Text c={planned ? 'teal.7' : 'gray.5'} size="sm" style={{ flexShrink: 0 }}>
+                        {planned ? 'Planned' : 'Not planned'}
+                      </Text>
+                      <Guard for="lesson.instructors.manage">
+                        <Tooltip label="Edit lesson">
+                          <ActionIcon
+                            variant="subtle"
+                            color="blue"
+                            aria-label={`Edit ${lesson.date.formatted}`}
+                            onClick={() => setDrawerLessonId(lesson.id)}
+                            style={{ flexShrink: 0 }}
+                          >
+                            <IconPencil size={16} />
+                          </ActionIcon>
+                        </Tooltip>
+                      </Guard>
+                    </Group>
                   )
                 })}
               </Stack>
@@ -874,6 +896,32 @@ export default function ClassShow({ swimmingClass, activityBank }: PageProps) {
           </Card>
         )}
       </Stack>
+
+      <EditLessonInstructorsDrawer
+        lesson={swimmingClass.lessons.find((lesson) => lesson.id === drawerLessonId) ?? null}
+        lessonNumber={
+          drawerLessonId
+            ? swimmingClass.lessons.findIndex((lesson) => lesson.id === drawerLessonId) + 1
+            : 0
+        }
+        className={
+          [swimmingClass.level?.programName, swimmingClass.level?.name, swimmingClass.stage?.name]
+            .filter(Boolean)
+            .join(' · ') || swimmingClass.name
+        }
+        classAssessmentGoals={swimmingClass.assessmentGoals}
+        classSkills={swimmingClass.skills}
+        opened={Boolean(drawerLessonId)}
+        instructorOptions={instructorOptions}
+        pendingInstructorOptions={pendingInstructorOptions}
+        onClose={() => setDrawerLessonId(null)}
+        onSaved={(lessonId) => {
+          setDrawerLessonId(null)
+          router.visit(
+            `${urlFor('swimming_classes.show', { id: swimmingClass.id })}?editLessonId=${lessonId}`
+          )
+        }}
+      />
     </Container>
   )
 }

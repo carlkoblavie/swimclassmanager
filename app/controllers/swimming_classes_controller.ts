@@ -186,9 +186,32 @@ export default class SwimmingClassesController {
           )
     )
 
+    const [instructorMemberships, pendingInstructorInvitations] = await Promise.all([
+      Membership.query()
+        .where('schoolId', schoolId)
+        .whereHas('roles', (rolesQuery) =>
+          rolesQuery.whereIn('name', [
+            RoleName.TEACHER,
+            RoleName.ASSISTANT_COACH,
+            RoleName.HEAD_COACH,
+          ])
+        )
+        .preload('user')
+        .orderBy('id'),
+      Invitation.query()
+        .where('schoolId', schoolId)
+        .whereHas('role', (roleQuery) =>
+          roleQuery.whereIn('name', [RoleName.TEACHER, RoleName.ASSISTANT_COACH])
+        )
+        .whereNull('acceptedAt')
+        .orderBy('id'),
+    ])
+
     return inertia.render('classes/show', {
       swimmingClass: SwimmingClassTransformer.transform(swimmingClass, levelLessonCounts),
       activityBank: SchoolActivityCategoryTransformer.transform(bank),
+      instructorOptions: MembershipTransformer.transform(instructorMemberships),
+      pendingInstructorOptions: InvitationTransformer.transform(pendingInstructorInvitations),
     })
   }
 
