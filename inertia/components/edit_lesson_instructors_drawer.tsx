@@ -58,7 +58,7 @@ export default function EditLessonInstructorsDrawer({
   className,
   classAssessmentGoals,
   classSkills,
-  classStartTime,
+  classStartTimeFormatted,
   opened,
   instructorOptions,
   pendingInstructorOptions,
@@ -70,7 +70,7 @@ export default function EditLessonInstructorsDrawer({
   className: string
   classAssessmentGoals: string[]
   classSkills: Data.SwimmingClass['skills']
-  classStartTime: string | null
+  classStartTimeFormatted: string | null
   opened: boolean
   instructorOptions: Membership[]
   pendingInstructorOptions: Invitation[]
@@ -81,7 +81,6 @@ export default function EditLessonInstructorsDrawer({
   const [supporting, setSupporting] = useState<string[]>([])
   const [objectives, setObjectives] = useState<string[]>([])
   const [skillIds, setSkillIds] = useState<number[]>([])
-  const [startTime, setStartTime] = useState('')
 
   useEffect(() => {
     if (!lesson) {
@@ -89,11 +88,8 @@ export default function EditLessonInstructorsDrawer({
       setSupporting([])
       setObjectives([])
       setSkillIds([])
-      setStartTime('')
       return
     }
-
-    setStartTime(lesson.startTime?.raw ?? classStartTime ?? '')
 
     const keyForInstructor = (instructor: Lesson['instructors'][number]) =>
       instructor.type === 'membership' ? membershipKey(instructor.id) : invitationKey(instructor.id)
@@ -191,13 +187,14 @@ export default function EditLessonInstructorsDrawer({
                       </Text>
                       <Text mt={8}>{lesson.date.formatted}</Text>
                     </Box>
-                    <TextInput
-                      label="Start time"
-                      name="startTime"
-                      type="time"
-                      value={startTime}
-                      onChange={(event) => setStartTime(event.currentTarget.value)}
-                    />
+                    <Box>
+                      <Text size="sm" fw={500}>
+                        Start time
+                      </Text>
+                      <Text mt={8}>
+                        {lesson.startTime?.formatted ?? classStartTimeFormatted ?? 'Not set'}
+                      </Text>
+                    </Box>
                     <Box>
                       <Text size="sm" fw={500}>
                         Duration

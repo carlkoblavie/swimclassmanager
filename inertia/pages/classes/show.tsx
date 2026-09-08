@@ -924,7 +924,7 @@ export default function ClassShow({
         }
         classAssessmentGoals={swimmingClass.assessmentGoals}
         classSkills={swimmingClass.skills}
-        classStartTime={swimmingClass.startTime?.raw ?? null}
+        classStartTimeFormatted={swimmingClass.startTime?.formatted ?? null}
         opened={Boolean(drawerLessonId)}
         instructorOptions={instructorOptions}
         pendingInstructorOptions={pendingInstructorOptions}
