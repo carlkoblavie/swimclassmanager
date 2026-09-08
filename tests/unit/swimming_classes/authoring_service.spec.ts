@@ -91,6 +91,7 @@ async function setupContext() {
     levelStageId: curriculum.stage.id,
     skillIds: [bankSkill.id],
     durationMinutes: 45,
+    maxLessons: 5,
     name: 'Evening squad',
     aim: 'Build confidence in the water.',
     assessmentGoals: ['Float unaided for 10 seconds.'],
@@ -420,7 +421,7 @@ test.group('Class series authoring service', (group) => {
       assert,
       () =>
         new ClassSeriesAuthoringService().planLesson(created, {
-          objectives: 'Cannot plan before the class has a schedule.',
+          objectives: ['Cannot plan before the class has a schedule.'],
         }),
       'Set this class’s schedule before planning lessons.'
     )
@@ -613,7 +614,7 @@ test.group('Class series authoring service', (group) => {
       assert,
       () =>
         new ClassSeriesAuthoringService().planLesson(created, {
-          objectives: 'Keep the selected activities within class skills.',
+          objectives: ['Keep the selected activities within class skills.'],
           activityIds: [foreignActivity.id],
         }),
       'A selected activity does not belong to the class skills.'
@@ -632,7 +633,7 @@ test.group('Class series authoring service', (group) => {
     const activity = bank[0].activities[0]
 
     const lesson = await new ClassSeriesAuthoringService().planLesson(scheduled, {
-      objectives: 'Float calmly and return to the wall.',
+      objectives: ['Float calmly and return to the wall.'],
       equipment: ['Kickboards x6', 'Lane rope'],
       schoolActivityIds: [activity.id, activity.id],
       schoolActivityDurations: [9, 4],
@@ -664,7 +665,7 @@ test.group('Class series authoring service', (group) => {
     const category = bank[0]
 
     const lesson = await new ClassSeriesAuthoringService().planLesson(scheduled, {
-      objectives: 'Add a custom activity from the lesson planner.',
+      objectives: ['Add a custom activity from the lesson planner.'],
       customActivityNames: ['Wall balance float'],
       customActivityCategoryIds: [category.id],
       customActivityDurations: [7],
@@ -753,7 +754,7 @@ test.group('Class series authoring service', (group) => {
       assert,
       () =>
         new ClassSeriesAuthoringService().planLesson(created, {
-          objectives: 'Keep activities in scope for this class.',
+          objectives: ['Keep activities in scope for this class.'],
           schoolActivityIds: [adultActivity.id],
         }),
       'A selected activity bank item does not match this class curriculum.'
@@ -774,14 +775,14 @@ test.group('Class series authoring service', (group) => {
 
     // First lesson fills the one-lesson allowance.
     await new ClassSeriesAuthoringService().planLesson(scheduled, {
-      objectives: 'The single allowed lesson.',
+      objectives: ['The single allowed lesson.'],
     })
 
     await expectAuthoringError(
       assert,
       () =>
         new ClassSeriesAuthoringService().planLesson(scheduled, {
-          objectives: 'This should fail before creating another lesson.',
+          objectives: ['This should fail before creating another lesson.'],
         }),
       'This level already has all 1 lesson it allows.'
     )
@@ -806,17 +807,17 @@ test.group('Class series authoring service', (group) => {
     const scheduledSecond = await scheduleClass(second.id)
 
     await new ClassSeriesAuthoringService().planLesson(scheduledFirst, {
-      objectives: 'First shared lesson.',
+      objectives: ['First shared lesson.'],
     })
     await new ClassSeriesAuthoringService().planLesson(scheduledSecond, {
-      objectives: 'Second shared lesson.',
+      objectives: ['Second shared lesson.'],
     })
 
     await expectAuthoringError(
       assert,
       () =>
         new ClassSeriesAuthoringService().planLesson(scheduledFirst, {
-          objectives: 'This should exceed the level allowance.',
+          objectives: ['This should exceed the level allowance.'],
         }),
       'This level already has all 2 lessons it allows.'
     )
