@@ -94,6 +94,11 @@ function StageAccordion({
     }
   }, [duplicatingClassId])
 
+  const stageLessonCount = stageClasses.reduce(
+    (total, swimmingClass) => total + swimmingClass.lessons.length,
+    0
+  )
+
   return (
     <Card withBorder shadow="none" padding={0} radius="md">
       <UnstyledButton w="100%" p="sm" px="md" onClick={onToggle}>
@@ -115,6 +120,8 @@ function StageAccordion({
           </Box>
           <Text size="xs" fw={700} c="dimmed" style={{ flexShrink: 0 }}>
             {stageClasses.length} {stageClasses.length === 1 ? 'CLASS' : 'CLASSES'}
+            {' · '}
+            {stageLessonCount} {stageLessonCount === 1 ? 'LESSON' : 'LESSONS'}
           </Text>
           <IconChevronDown
             size={14}
