@@ -114,6 +114,24 @@ function isLessonPlanned(lesson: Lesson) {
   return lesson.activities.length > 0 || Boolean(lesson.objectives)
 }
 
+type LessonStatus = { label: string; color: string }
+
+/**
+ * A lesson is fully "Planned" only when its activities fill the lesson
+ * duration. Some activities but short of the duration is "Partially planned";
+ * nothing yet is "Not planned".
+ */
+function lessonStatus(lesson: Lesson): LessonStatus {
+  const plannedMinutes = lessonPlannedMinutes(lesson)
+  if (plannedMinutes >= lesson.durationMinutes && lesson.durationMinutes > 0) {
+    return { label: 'Planned', color: 'teal.7' }
+  }
+  if (plannedMinutes > 0) {
+    return { label: 'Partially planned', color: 'yellow.7' }
+  }
+  return { label: 'Not planned', color: 'gray.5' }
+}
+
 function formatClock(date: Date) {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
 }
@@ -168,7 +186,9 @@ export default function ClassShow({
   const nextLessons = focusedLessonId
     ? swimmingClass.lessons.filter((lesson) => lesson.id !== focusedLessonId)
     : []
-  const nextLessonsToPlan = nextLessons.filter((lesson) => !isLessonPlanned(lesson)).length
+  const nextLessonsToPlan = nextLessons.filter(
+    (lesson) => lessonStatus(lesson).label !== 'Planned'
+  ).length
 
   const plannedCount = swimmingClass.lessons.filter(
     (lesson) => lesson.activities.length > 0 || Boolean(lesson.objectives)
@@ -409,6 +429,7 @@ export default function ClassShow({
         {displayedLessons.map((lesson) => {
           const lessonNumber = swimmingClass.lessons.findIndex((item) => item.id === lesson.id) + 1
           const isPlanned = isLessonPlanned(lesson)
+          const status = lessonStatus(lesson)
           const plannedMinutes = lessonPlannedMinutes(lesson)
           const timeRange = lessonTimeRange(
             swimmingClass,
@@ -445,15 +466,19 @@ export default function ClassShow({
                       </Text>
                     </Box>
                   )}
-                  {isPlanned ? (
-                    <Badge variant="light" color="green" size="sm">
-                      Planned
-                    </Badge>
-                  ) : (
-                    <Badge variant="light" color="yellow" size="sm">
-                      Draft
-                    </Badge>
-                  )}
+                  <Badge
+                    variant="light"
+                    color={
+                      status.label === 'Planned'
+                        ? 'green'
+                        : status.label === 'Partially planned'
+                          ? 'yellow'
+                          : 'gray'
+                    }
+                    size="sm"
+                  >
+                    {status.label}
+                  </Badge>
                   <Button
                     type="button"
                     variant="default"
@@ -865,10 +890,10 @@ export default function ClassShow({
                 {nextLessons.map((lesson) => {
                   const lessonNumber =
                     swimmingClass.lessons.findIndex((item) => item.id === lesson.id) + 1
-                  const planned = isLessonPlanned(lesson)
+                  const status = lessonStatus(lesson)
                   const lessonHref = `${urlFor('swimming_classes.show', {
                     id: swimmingClass.id,
-                  })}?${planned ? 'lessonId' : 'editLessonId'}=${lesson.id}`
+                  })}?${lesson.objectives ? 'lessonId' : 'editLessonId'}=${lesson.id}`
 
                   return (
                     <Group
@@ -900,8 +925,8 @@ export default function ClassShow({
                           —
                         </Text>
                       )}
-                      <Text c={planned ? 'teal.7' : 'gray.5'} size="sm" style={{ flexShrink: 0 }}>
-                        {planned ? 'Planned' : 'Not planned'}
+                      <Text c={status.color} size="sm" style={{ flexShrink: 0 }}>
+                        {status.label}
                       </Text>
                       <Guard for="lesson.instructors.manage">
                         <Tooltip label="Edit lesson">
