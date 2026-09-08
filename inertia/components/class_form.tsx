@@ -68,7 +68,7 @@ export default function ClassForm({
   const [assessmentGoals, setAssessmentGoals] = useState([''])
   const [prerequisiteStageId, setPrerequisiteStageId] = useState('none')
   const [durationMinutes, setDurationMinutes] = useState('45')
-  const [maxLessons, setMaxLessons] = useState('')
+  const [maxLessons, setMaxLessons] = useState('5')
   const defaultSkillIdsForStage = (candidate: FormLevel['stages'][number] | undefined) => {
     if (!candidate) {
       return []
