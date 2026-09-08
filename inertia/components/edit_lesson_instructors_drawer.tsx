@@ -185,13 +185,12 @@ export default function EditLessonInstructorsDrawer({
                     Schedule
                   </Text>
                   <SimpleGrid cols={{ base: 1, sm: 3 }} mt="xs">
-                    <TextInput
-                      label="Date"
-                      name="date"
-                      type="date"
-                      defaultValue={lesson.date.raw}
-                      required
-                    />
+                    <Box>
+                      <Text size="sm" fw={500}>
+                        Date
+                      </Text>
+                      <Text mt={8}>{lesson.date.formatted}</Text>
+                    </Box>
                     <TextInput
                       label="Start time"
                       name="startTime"
