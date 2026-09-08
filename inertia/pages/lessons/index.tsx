@@ -956,15 +956,15 @@ export default function LessonsIndex({
                               </Text>
                             )}
                           </Group>
-                          <Button
-                            component={Link}
-                            href={`${urlFor('swimming_classes.show', { id: selectedClass.id })}?${lesson.activities.length > 0 || lesson.objectives ? 'lessonId' : 'editLessonId'}=${lesson.id}`}
-                            variant="subtle"
-                          >
-                            {lesson.activities.length > 0 || lesson.objectives
-                              ? 'View lesson'
-                              : 'Add activities'}
-                          </Button>
+                          {(lesson.activities.length > 0 || lesson.objectives) && (
+                            <Button
+                              component={Link}
+                              href={`${urlFor('swimming_classes.show', { id: selectedClass.id })}?lessonId=${lesson.id}`}
+                              variant="subtle"
+                            >
+                              View lesson
+                            </Button>
+                          )}
                           <Group gap={2} wrap="nowrap">
                             <Guard for="lesson.instructors.manage">
                               <Tooltip label="Edit instructors">
