@@ -862,16 +862,22 @@ export default function ClassShow({
                       <Text c="dimmed" size="sm" w={190} style={{ flexShrink: 0 }}>
                         {lesson.date.formatted}
                       </Text>
-                      <Anchor
-                        component={Link}
-                        href={lessonHref}
-                        underline="never"
-                        c="blue.7"
-                        fw={600}
-                        style={{ flex: 1, textDecoration: 'none' }}
-                      >
-                        {lesson.objectives || 'Add a lesson aim'}
-                      </Anchor>
+                      {lesson.objectives ? (
+                        <Anchor
+                          component={Link}
+                          href={lessonHref}
+                          underline="never"
+                          c="blue.7"
+                          fw={600}
+                          style={{ flex: 1, textDecoration: 'none' }}
+                        >
+                          {lesson.objectives}
+                        </Anchor>
+                      ) : (
+                        <Text c="gray.5" style={{ flex: 1 }}>
+                          —
+                        </Text>
+                      )}
                       <Text c={planned ? 'teal.7' : 'gray.5'} size="sm" style={{ flexShrink: 0 }}>
                         {planned ? 'Planned' : 'Not planned'}
                       </Text>
