@@ -58,6 +58,7 @@ export default function EditLessonInstructorsDrawer({
   className,
   classAssessmentGoals,
   classSkills,
+  classStartTime,
   opened,
   instructorOptions,
   pendingInstructorOptions,
@@ -69,6 +70,7 @@ export default function EditLessonInstructorsDrawer({
   className: string
   classAssessmentGoals: string[]
   classSkills: Data.SwimmingClass['skills']
+  classStartTime: string | null
   opened: boolean
   instructorOptions: Membership[]
   pendingInstructorOptions: Invitation[]
@@ -178,7 +180,7 @@ export default function EditLessonInstructorsDrawer({
                   <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
                     Schedule
                   </Text>
-                  <SimpleGrid cols={{ base: 1, sm: 2 }} mt="xs">
+                  <SimpleGrid cols={{ base: 1, sm: 3 }} mt="xs">
                     <TextInput
                       label="Date"
                       name="date"
@@ -186,6 +188,12 @@ export default function EditLessonInstructorsDrawer({
                       defaultValue={lesson.date.raw}
                       required
                     />
+                    <Box>
+                      <Text size="sm" fw={500}>
+                        Start time
+                      </Text>
+                      <Text mt={8}>{classStartTime ?? 'Not set'}</Text>
+                    </Box>
                     <Box>
                       <Text size="sm" fw={500}>
                         Duration
