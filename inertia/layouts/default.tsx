@@ -22,6 +22,7 @@ import {
   ThemeIcon,
 } from '@mantine/core'
 import {
+  IconBook,
   IconClipboardList,
   IconCreditCard,
   IconCalendarEvent,
@@ -284,6 +285,12 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                   active={url.startsWith('/settings')}
                 />
               </Guard>
+              <SidebarLink
+                route="docs.index"
+                label="Guides"
+                icon={<IconBook size={18} stroke={1.6} />}
+                active={url.startsWith('/docs')}
+              />
             </Stack>
 
             <Stack gap={4}>

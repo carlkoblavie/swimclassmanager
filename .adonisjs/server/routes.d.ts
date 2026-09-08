@@ -7,6 +7,7 @@ export type ScannedRoutes = {
     'landing': { paramsTuple?: []; params?: {} }
     'home': { paramsTuple?: []; params?: {} }
     'release.index': { paramsTuple?: []; params?: {} }
+    'docs.index': { paramsTuple?: []; params?: {} }
     'sign_in_links.create': { paramsTuple?: []; params?: {} }
     'sessions.store': { paramsTuple?: []; params?: {} }
     'sign_in_links.store': { paramsTuple?: []; params?: {} }
@@ -90,6 +91,7 @@ export type ScannedRoutes = {
     'landing': { paramsTuple?: []; params?: {} }
     'home': { paramsTuple?: []; params?: {} }
     'release.index': { paramsTuple?: []; params?: {} }
+    'docs.index': { paramsTuple?: []; params?: {} }
     'sign_in_links.create': { paramsTuple?: []; params?: {} }
     'account_registrations.create': { paramsTuple?: []; params?: {} }
     'auth.verify': { paramsTuple?: []; params?: {} }
@@ -124,6 +126,7 @@ export type ScannedRoutes = {
     'landing': { paramsTuple?: []; params?: {} }
     'home': { paramsTuple?: []; params?: {} }
     'release.index': { paramsTuple?: []; params?: {} }
+    'docs.index': { paramsTuple?: []; params?: {} }
     'sign_in_links.create': { paramsTuple?: []; params?: {} }
     'account_registrations.create': { paramsTuple?: []; params?: {} }
     'auth.verify': { paramsTuple?: []; params?: {} }

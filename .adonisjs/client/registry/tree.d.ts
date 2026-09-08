@@ -7,6 +7,9 @@ export interface ApiDefinition {
   release: {
     index: typeof routes['release.index']
   }
+  docs: {
+    index: typeof routes['docs.index']
+  }
   signInLinks: {
     create: typeof routes['sign_in_links.create']
     store: typeof routes['sign_in_links.store']
