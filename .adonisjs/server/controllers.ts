@@ -14,7 +14,6 @@ export const controllers = {
   ClassLessons: () => import('#controllers/class_lessons_controller'),
   CustomerPlans: () => import('#controllers/customer_plans_controller'),
   CustomerPurchases: () => import('#controllers/customer_purchases_controller'),
-  Docs: () => import('#controllers/docs_controller'),
   Invitations: () => import('#controllers/invitations_controller'),
   LevelSettings: () => import('#controllers/level_settings_controller'),
   Levels: () => import('#controllers/levels_controller'),
@@ -36,4 +35,6 @@ export const controllers = {
   LessonSchedules: () => import('#controllers/lesson_schedules_controller'),
   Members: () => import('#controllers/members_controller'),
   Release: () => import('#controllers/release_controller'),
+  Docs: () => import('#controllers/docs_controller'),
+  StageInstructors: () => import('#controllers/stage_instructors_controller'),
 }

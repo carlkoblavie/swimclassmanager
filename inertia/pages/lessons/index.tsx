@@ -13,7 +13,6 @@ import {
   Group,
   LoadingOverlay,
   NativeSelect,
-  Paper,
   Radio,
   SimpleGrid,
   Stack,
@@ -27,7 +26,6 @@ import {
 import {
   IconAdjustments,
   IconCalendar,
-  IconChevronDown,
   IconClock,
   IconCopy,
   IconList,
@@ -38,15 +36,14 @@ import {
 import { urlFor } from '~/client'
 import type { InertiaProps } from '~/types'
 import EditLessonInstructorsDrawer from '~/components/edit_lesson_instructors_drawer'
-import BulkAssignLessonInstructorsDrawer from '~/components/bulk_assign_lesson_instructors_drawer'
 import { Guard } from '~/utils/permissions'
 
 type PageProps = InertiaProps<{
   classes: Data.SwimmingClass[]
-  instructorOptions: Data.Membership[]
-  pendingInstructorOptions: Data.Invitation[]
   selectedClassId: number | null
   showGenerator: boolean
+  // Stages this user may generate for; null = no per-stage restriction (managers).
+  leadStageIds: number[] | null
 }>
 
 type ActivityFilter = 'all' | 'with-activities' | 'without-activities'
@@ -55,7 +52,6 @@ type LessonFilters = {
   levelId: string
   stageId: string
   classId: string
-  instructorId: string
   startDate: string
   endDate: string
   activityStatus: ActivityFilter
@@ -261,19 +257,13 @@ function stageOptionsFor(classes: Data.SwimmingClass[], levelId: string) {
 
 export default function LessonsIndex({
   classes,
-  instructorOptions,
-  pendingInstructorOptions,
   selectedClassId,
   showGenerator: initialShowGenerator,
+  leadStageIds,
 }: PageProps) {
   const { props } = usePage()
   const userPermissions = (props.userPermissions as string[] | undefined) ?? []
-  const activeRole = props.activeRole as string | undefined
   const canGenerateLessons = userPermissions.includes('lesson.generate')
-  const canFilterByInstructor = userPermissions.includes('lesson.instructors.manage')
-  const canBulkAssignInstructors = userPermissions.includes('lesson.instructors.bulk_manage')
-  const isInstructorView = activeRole === 'Teacher' || activeRole === 'Assistant Coach'
-  const canShowLessonSelection = canBulkAssignInstructors || isInstructorView
   const lockedClass = selectedClassId
     ? classes.find((swimmingClass) => swimmingClass.id === selectedClassId)
     : undefined
@@ -282,45 +272,16 @@ export default function LessonsIndex({
     ? String(lockedClass?.levelStageId ?? stageOptionsFor(classes, initialLevelId)[0]?.value ?? '')
     : ''
   const initialClassId = String(lockedClass?.id ?? classes[0]?.id ?? '')
-  const instructorFilterOptions = useMemo(
-    () => [
-      { value: '', label: 'All instructors' },
-      ...instructorOptions.map((member) => ({
-        value: `membership:${member.id}`,
-        label: member.label,
-      })),
-      ...pendingInstructorOptions.map((invitation) => ({
-        value: `invitation:${invitation.id}`,
-        label: `${invitation.label} · invited`,
-      })),
-    ],
-    [instructorOptions, pendingInstructorOptions]
-  )
-  const bulkInstructorOptions = useMemo(
-    () => [
-      ...instructorOptions.map((member) => ({
-        value: `membership:${member.id}`,
-        label: member.label,
-      })),
-      ...pendingInstructorOptions.map((invitation) => ({
-        value: `invitation:${invitation.id}`,
-        label: `${invitation.label} · invited`,
-      })),
-    ],
-    [instructorOptions, pendingInstructorOptions]
-  )
   const [classId, setClassId] = useState(initialClassId)
   const [levelFilter, setLevelFilter] = useState(initialLevelId)
   const [stageFilter, setStageFilter] = useState(initialStageId)
   const [filterStartDate, setFilterStartDate] = useState('')
   const [filterEndDate, setFilterEndDate] = useState('')
-  const [filterInstructorId, setFilterInstructorId] = useState('')
   const [filterActivityStatus, setFilterActivityStatus] = useState<ActivityFilter>('all')
   const [appliedFilters, setAppliedFilters] = useState<LessonFilters>({
     levelId: initialLevelId,
     stageId: initialStageId,
     classId: initialClassId,
-    instructorId: '',
     startDate: '',
     endDate: '',
     activityStatus: 'all',
@@ -331,8 +292,6 @@ export default function LessonsIndex({
   const [copySourceLessonId, setCopySourceLessonId] = useState<number | null>(null)
   const [copyTargetLessonIds, setCopyTargetLessonIds] = useState<number[]>([])
   const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
-  const [selectedLessonIds, setSelectedLessonIds] = useState<number[]>([])
-  const [bulkAssignmentOpened, setBulkAssignmentOpened] = useState(false)
   const levelOptions = useMemo(() => levelOptionsFor(classes), [classes])
   const stageOptions = useMemo(() => stageOptionsFor(classes, levelFilter), [classes, levelFilter])
   const visibleClasses = useMemo(
@@ -347,6 +306,11 @@ export default function LessonsIndex({
   const selectedClass = classes.find(
     (swimmingClass) => String(swimmingClass.id) === appliedFilters.classId
   )
+  // Only the lead of a stage (or a manager) may edit its lessons; supporting
+  // instructors are read-only. leadStageIds === null means manager.
+  const canManageSelectedClass = selectedClass
+    ? leadStageIds === null || leadStageIds.includes(selectedClass.levelStageId)
+    : false
   const copyTargetLessons = selectedClass
     ? classes.flatMap((swimmingClass) =>
         swimmingClass.levelStageId === selectedClass.levelStageId
@@ -360,6 +324,12 @@ export default function LessonsIndex({
     lockedClass ??
     classes.find((swimmingClass) => String(swimmingClass.id) === classId) ??
     selectedClass
+  // Only the lead instructor of a stage may generate its lessons. Managers have
+  // leadStageIds === null (no restriction).
+  const canGenerateForClass =
+    canGenerateLessons &&
+    (leadStageIds === null ||
+      (generationClass ? leadStageIds.includes(generationClass.levelStageId) : false))
   const [showGenerator, setShowGenerator] = useState(() => initialShowGenerator)
 
   useEffect(() => {
@@ -413,14 +383,6 @@ export default function LessonsIndex({
       if (appliedFilters.endDate && lesson.date.raw > appliedFilters.endDate) {
         return false
       }
-      if (
-        appliedFilters.instructorId &&
-        !lesson.instructors.some(
-          (instructor) => `${instructor.type}:${instructor.id}` === appliedFilters.instructorId
-        )
-      ) {
-        return false
-      }
       if (appliedFilters.activityStatus === 'with-activities' && lesson.activities.length === 0) {
         return false
       }
@@ -436,12 +398,10 @@ export default function LessonsIndex({
       levelId: levelFilter,
       stageId: stageFilter,
       classId,
-      instructorId: filterInstructorId,
       startDate: filterStartDate,
       endDate: filterEndDate,
       activityStatus: filterActivityStatus,
     })
-    setSelectedLessonIds([])
     setShowGenerator(false)
   }
 
@@ -451,18 +411,15 @@ export default function LessonsIndex({
     setClassId(initialClassId)
     setFilterStartDate('')
     setFilterEndDate('')
-    setFilterInstructorId('')
     setFilterActivityStatus('all')
     setAppliedFilters({
       levelId: initialLevelId,
       stageId: initialStageId,
       classId: initialClassId,
-      instructorId: '',
       startDate: '',
       endDate: '',
       activityStatus: 'all',
     })
-    setSelectedLessonIds([])
   }
 
   const openCopyActivities = (lessonId: number) => {
@@ -506,21 +463,6 @@ export default function LessonsIndex({
   const scheduledStart = selectedClass?.startTime?.raw ?? startTime
   const editingLesson =
     selectedClass?.lessons.find((lesson) => lesson.id === editingLessonId) ?? null
-
-  const toggleLessonSelection = (lessonId: number) => {
-    setSelectedLessonIds((current) =>
-      current.includes(lessonId) ? current.filter((id) => id !== lessonId) : [...current, lessonId]
-    )
-  }
-
-  const toggleMonthSelection = (lessonIds: number[]) => {
-    setSelectedLessonIds((current) => {
-      const allSelected = lessonIds.every((lessonId) => current.includes(lessonId))
-      return allSelected
-        ? current.filter((lessonId) => !lessonIds.includes(lessonId))
-        : [...new Set([...current, ...lessonIds])]
-    })
-  }
 
   const toggleWeekday = (weekday: number) =>
     setWeekdays((current) =>
@@ -761,11 +703,21 @@ export default function LessonsIndex({
                             {exceedsClassAllowance && ' — reduce the date range or weekdays'}
                           </Text>
                         )}
+                        {generationClass && !canGenerateForClass && (
+                          <Text size="sm" c="red" mt={4}>
+                            Only the lead instructor for this stage can generate its lessons.
+                          </Text>
+                        )}
                       </Box>
                       <Button
                         type="submit"
                         loading={processing}
-                        disabled={!generationClass || lessonCount === 0 || exceedsClassAllowance}
+                        disabled={
+                          !generationClass ||
+                          lessonCount === 0 ||
+                          exceedsClassAllowance ||
+                          !canGenerateForClass
+                        }
                       >
                         Generate lessons
                       </Button>
@@ -808,23 +760,12 @@ export default function LessonsIndex({
                 <NativeSelect
                   label="Class"
                   value={classId}
-                  onChange={(event) => {
-                    setClassId(event.currentTarget.value)
-                    setSelectedLessonIds([])
-                  }}
+                  onChange={(event) => setClassId(event.currentTarget.value)}
                   data={visibleClasses.map((swimmingClass) => ({
                     value: String(swimmingClass.id),
                     label: swimmingClass.name,
                   }))}
                 />
-                {canFilterByInstructor && (
-                  <NativeSelect
-                    label="Instructor"
-                    value={filterInstructorId}
-                    onChange={(event) => setFilterInstructorId(event.currentTarget.value)}
-                    data={instructorFilterOptions}
-                  />
-                )}
               </SimpleGrid>
               <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
                 <TextInput
@@ -872,23 +813,6 @@ export default function LessonsIndex({
           <Stack gap="md">
             <Group justify="space-between" align="center">
               <Group gap="sm">
-                {canShowLessonSelection && (
-                  <Checkbox
-                    disabled={!canBulkAssignInstructors}
-                    checked={
-                      filteredLessons.length > 0 &&
-                      filteredLessons.every((lesson) => selectedLessonIds.includes(lesson.id))
-                    }
-                    indeterminate={
-                      filteredLessons.some((lesson) => selectedLessonIds.includes(lesson.id)) &&
-                      !filteredLessons.every((lesson) => selectedLessonIds.includes(lesson.id))
-                    }
-                    onChange={() =>
-                      toggleMonthSelection(filteredLessons.map((lesson) => lesson.id))
-                    }
-                    aria-label="Select all visible lessons"
-                  />
-                )}
                 <Title order={2} fz="xl">
                   {filteredLessons.length} {filteredLessons.length === 1 ? 'lesson' : 'lessons'} ·{' '}
                   {selectedClass.stage?.name ?? selectedClass.name}
@@ -910,21 +834,6 @@ export default function LessonsIndex({
               <Card key={month} withBorder shadow="none" padding={0} radius="md">
                 <Group justify="space-between" p="md">
                   <Group gap="sm">
-                    {canShowLessonSelection && (
-                      <Checkbox
-                        disabled={!canBulkAssignInstructors}
-                        checked={
-                          lessons.length > 0 &&
-                          lessons.every((lesson) => selectedLessonIds.includes(lesson.id))
-                        }
-                        indeterminate={
-                          lessons.some((lesson) => selectedLessonIds.includes(lesson.id)) &&
-                          !lessons.every((lesson) => selectedLessonIds.includes(lesson.id))
-                        }
-                        onChange={() => toggleMonthSelection(lessons.map((lesson) => lesson.id))}
-                        aria-label={`Select all ${month} lessons`}
-                      />
-                    )}
                     <Text size="sm" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
                       {month}
                     </Text>
@@ -952,14 +861,6 @@ export default function LessonsIndex({
                             minHeight: 72,
                           }}
                         >
-                          {canShowLessonSelection && (
-                            <Checkbox
-                              disabled={!canBulkAssignInstructors}
-                              checked={selectedLessonIds.includes(lesson.id)}
-                              onChange={() => toggleLessonSelection(lesson.id)}
-                              aria-label={`Select lesson on ${lesson.date.formatted}`}
-                            />
-                          )}
                           <Text c="gray.4" fw={800} style={{ width: 52, flexShrink: 0 }}>
                             {String(lessonNumber).padStart(2, '0')}
                           </Text>
@@ -993,43 +894,46 @@ export default function LessonsIndex({
                               </Text>
                             )}
                           </Group>
-                          {(lesson.activities.length > 0 || lesson.objectives) && (
-                            <Button
-                              component={Link}
-                              href={`${urlFor('swimming_classes.show', { id: selectedClass.id })}?lessonId=${lesson.id}`}
-                              variant="subtle"
-                            >
-                              View lesson
-                            </Button>
-                          )}
+                          <Button
+                            component={Link}
+                            href={`${urlFor('swimming_classes.show', { id: selectedClass.id })}?lessonId=${lesson.id}`}
+                            variant="subtle"
+                          >
+                            View lesson
+                          </Button>
                           <Group gap={2} wrap="nowrap">
-                            <Guard for="lesson.instructors.manage">
-                              <Tooltip label="Edit instructors">
-                                <ActionIcon
-                                  variant="subtle"
-                                  color="blue"
-                                  aria-label={`Edit instructors for ${lesson.date.formatted}`}
-                                  onClick={() => setEditingLessonId(lesson.id)}
-                                >
-                                  <IconPencil size={16} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </Guard>
-                            <Guard for="lesson.activities.manage">
-                              {lesson.activities.length > 0 && (
-                                <Tooltip label="Copy activities">
+                            {canManageSelectedClass && (
+                              <Guard for="lesson.edit">
+                                <Tooltip label="Edit lesson">
                                   <ActionIcon
                                     variant="subtle"
                                     color="blue"
-                                    aria-label={`Copy activities from ${lesson.date.formatted}`}
-                                    onClick={() => openCopyActivities(lesson.id)}
+                                    aria-label={`Edit lesson on ${lesson.date.formatted}`}
+                                    onClick={() => setEditingLessonId(lesson.id)}
                                   >
-                                    <IconCopy size={16} />
+                                    <IconPencil size={16} />
                                   </ActionIcon>
                                 </Tooltip>
-                              )}
-                            </Guard>
-                            <Guard for="class.manage">
+                              </Guard>
+                            )}
+                            {canManageSelectedClass && (
+                              <Guard for="lesson.activities.manage">
+                                {lesson.activities.length > 0 && (
+                                  <Tooltip label="Copy activities">
+                                    <ActionIcon
+                                      variant="subtle"
+                                      color="blue"
+                                      aria-label={`Copy activities from ${lesson.date.formatted}`}
+                                      onClick={() => openCopyActivities(lesson.id)}
+                                    >
+                                      <IconCopy size={16} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </Guard>
+                            )}
+                            {canManageSelectedClass && (
+                              <Guard for="class.manage">
                               <Form route="class_lessons.destroy" routeParams={{ id: lesson.id }}>
                                 {({ processing }) => (
                                   <Tooltip label="Remove lesson">
@@ -1045,7 +949,8 @@ export default function LessonsIndex({
                                   </Tooltip>
                                 )}
                               </Form>
-                            </Guard>
+                              </Guard>
+                            )}
                           </Group>
                         </Group>
                         {copySourceLessonId === lesson.id && (
@@ -1198,63 +1103,6 @@ export default function LessonsIndex({
           </Card>
         )}
       </Stack>
-      {canBulkAssignInstructors && selectedLessonIds.length > 0 && (
-        <Paper
-          withBorder
-          shadow="xl"
-          radius={0}
-          p="md"
-          pos="fixed"
-          right={0}
-          bottom={0}
-          style={{
-            zIndex: 100,
-            left: 'var(--app-shell-navbar-width, 0px)',
-            background: 'var(--mantine-color-dark-9)',
-          }}
-        >
-          <Group justify="space-between" align="center" gap="md">
-            <Group gap="md">
-              <Text c="white" fw={800}>
-                {selectedLessonIds.length} {selectedLessonIds.length === 1 ? 'lesson' : 'lessons'}
-              </Text>
-              <Text c="gray.4" size="sm" visibleFrom="sm">
-                Replaces the instructor already on these lessons.
-              </Text>
-            </Group>
-            <Group gap="sm">
-              <Button
-                type="button"
-                variant="subtle"
-                color="gray"
-                onClick={() => {
-                  setSelectedLessonIds([])
-                  setBulkAssignmentOpened(false)
-                }}
-              >
-                Clear
-              </Button>
-              <Button
-                type="button"
-                rightSection={<IconChevronDown size={16} />}
-                onClick={() => setBulkAssignmentOpened(true)}
-              >
-                Assign instructors
-              </Button>
-            </Group>
-          </Group>
-        </Paper>
-      )}
-      <BulkAssignLessonInstructorsDrawer
-        lessonIds={selectedLessonIds}
-        instructorOptions={bulkInstructorOptions}
-        opened={bulkAssignmentOpened}
-        onClose={() => setBulkAssignmentOpened(false)}
-        onSuccess={() => {
-          setSelectedLessonIds([])
-          setBulkAssignmentOpened(false)
-        }}
-      />
       <EditLessonInstructorsDrawer
         lesson={editingLesson}
         lessonNumber={
@@ -1268,8 +1116,6 @@ export default function LessonsIndex({
         classSkills={selectedClass?.skills ?? []}
         classStartTimeFormatted={selectedClass?.startTime?.formatted ?? null}
         opened={Boolean(editingLesson)}
-        instructorOptions={instructorOptions}
-        pendingInstructorOptions={pendingInstructorOptions}
         onClose={() => setEditingLessonId(null)}
         onSaved={(lessonId) => {
           setEditingLessonId(null)

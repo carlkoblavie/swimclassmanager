@@ -30,9 +30,9 @@ export class BankPackSchema extends BaseModel {
   declare version: string
 }
 
-export class ClassInstructorSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'invitationId', 'membershipId', 'role', 'swimmingClassId', 'updatedAt'] as const
-  $columns = ClassInstructorSchema.$columns
+export class StageInstructorSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'invitationId', 'levelStageId', 'membershipId', 'role', 'schoolId', 'updatedAt'] as const
+  $columns = StageInstructorSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
@@ -40,11 +40,13 @@ export class ClassInstructorSchema extends BaseModel {
   @column()
   declare invitationId: number | null
   @column()
+  declare levelStageId: number
+  @column()
   declare membershipId: number | null
   @column()
   declare role: number
   @column()
-  declare swimmingClassId: number
+  declare schoolId: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -236,25 +238,6 @@ export class LessonActivitySchema extends BaseModel {
   declare schoolActivityId: number | null
   @column()
   declare successCue: string | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class LessonInstructorSchema extends BaseModel {
-  static $columns = ['classLessonId', 'createdAt', 'id', 'invitationId', 'membershipId', 'role', 'updatedAt'] as const
-  $columns = LessonInstructorSchema.$columns
-  @column()
-  declare classLessonId: number
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare invitationId: number | null
-  @column()
-  declare membershipId: number | null
-  @column()
-  declare role: number
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

@@ -3,7 +3,6 @@ import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relat
 import { ClassLessonSchema } from '#database/schema'
 import SwimmingClass from '#models/swimming_class'
 import LessonActivity from '#models/lesson_activity'
-import LessonInstructor from '#models/lesson_instructor'
 import Enrollment from '#models/enrollment'
 
 export default class ClassLesson extends ClassLessonSchema {
@@ -12,9 +11,6 @@ export default class ClassLesson extends ClassLessonSchema {
 
   @hasMany(() => LessonActivity)
   declare lessonActivities: HasMany<typeof LessonActivity>
-
-  @hasMany(() => LessonInstructor)
-  declare lessonInstructors: HasMany<typeof LessonInstructor>
 
   @manyToMany(() => Enrollment, {
     pivotTable: 'enrollment_lessons',

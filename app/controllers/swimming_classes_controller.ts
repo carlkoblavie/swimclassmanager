@@ -5,14 +5,17 @@ import Invitation from '#models/invitation'
 import Level from '#models/level'
 import Membership from '#models/membership'
 import School from '#models/school'
+import StageInstructor from '#models/stage_instructor'
 import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import BankPackService from '#services/bank_pack_service'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
 import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
+import StageInstructorService from '#services/stage_instructor_service'
 import SchoolActivityBankService from '#services/school_activity_bank_service'
 import SkillBankFamilyService from '#services/skill_bank_family_service'
 import SkillBankService from '#services/skill_bank_service'
+import { ClassInstructorRole } from '#values/class_instructor_role'
 import { EnrollmentStatus } from '#values/enrollment_status'
 import InvitationTransformer from '#transformers/invitation_transformer'
 import LevelTransformer from '#transformers/level_transformer'
@@ -57,18 +60,33 @@ export default class SwimmingClassesController {
    * Display the school's day-based classes
    */
   async index({ auth, inertia }: HttpContext) {
-    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const user = auth.getUserOrFail()
+    const schoolId = user.activeSchoolId!
+    const membership = await Membership.query()
+      .where('schoolId', schoolId)
+      .where('userId', user.id)
+      .preload('roles')
+      .first()
+    const isInstructor = membership?.roles.some(
+      (role) => role.name === RoleName.TEACHER || role.name === RoleName.ASSISTANT_COACH
+    )
+
     const classes = await SwimmingClass.query()
       .where('schoolId', schoolId)
+      // Instructors only see classes in stages they staff.
+      .if(Boolean(isInstructor && membership), (query) =>
+        query.whereExists((existsQuery) => {
+          existsQuery
+            .from('stage_instructors')
+            .whereColumn('stage_instructors.level_stage_id', 'swimming_classes.level_stage_id')
+            .where('stage_instructors.school_id', schoolId)
+            .where('stage_instructors.membership_id', membership!.id)
+        })
+      )
       .preload('level', (levelQuery) => levelQuery.preload('program'))
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
       .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
-      .preload('classInstructors', (instructorsQuery) =>
-        instructorsQuery
-          .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-          .preload('invitation')
-      )
       .preload('classSkills', (skillsQuery) =>
         skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
       )
@@ -82,9 +100,25 @@ export default class SwimmingClassesController {
       schoolId,
       classes.map((swimmingClass) => swimmingClass.levelId)
     )
+    const stageInstructors = await new StageInstructorService().mapForSchool(
+      schoolId,
+      classes.map((swimmingClass) => swimmingClass.levelStageId)
+    )
+
+    // Stages this instructor leads; null for managers (no lead/assist split).
+    let leadStageIds: number[] | null = null
+    if (isInstructor && membership) {
+      const leadRows = await StageInstructor.query()
+        .where('schoolId', schoolId)
+        .where('membershipId', membership.id)
+        .where('role', ClassInstructorRole.LEAD)
+        .select('levelStageId')
+      leadStageIds = leadRows.map((row) => row.levelStageId)
+    }
 
     return inertia.render('classes/index', {
-      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts, stageInstructors),
+      leadStageIds,
     })
   }
 
@@ -102,10 +136,7 @@ export default class SwimmingClassesController {
 
     const swimmingClass = await authoring.createOne(school, payload)
 
-    session.flash(
-      'success',
-      payload.inviteTeacherEmail ? 'Class created. Instructor invited.' : 'Class created.'
-    )
+    session.flash('success', 'Class created.')
     if (payload.redirectTo === 'back') {
       return response.redirect().back()
     }
@@ -127,7 +158,6 @@ export default class SwimmingClassesController {
     const isInstructor = membership?.roles.some(
       (role) => role.name === RoleName.TEACHER || role.name === RoleName.ASSISTANT_COACH
     )
-    const instructorMembershipId = isInstructor ? membership?.id : null
     const swimmingClass = await SwimmingClass.query()
       .where('id', params.id)
       .where('schoolId', schoolId)
@@ -137,39 +167,42 @@ export default class SwimmingClassesController {
         stageQuery.preload('skills', (skillQuery) => skillQuery.preload('activities'))
       )
       .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
-      .preload('classInstructors', (instructorsQuery) =>
-        instructorsQuery
-          .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-          .preload('invitation')
-      )
       .preload('classSkills', (skillsQuery) =>
         skillsQuery
           .preload('skillBankSkill')
           .preload('levelStageSkill', (skillQuery) => skillQuery.preload('activities'))
       )
       .preload('lessons', (lessonsQuery) =>
-        (instructorMembershipId
-          ? lessonsQuery.whereHas('lessonInstructors', (instructorsQuery) =>
-              instructorsQuery.where('membershipId', instructorMembershipId)
-            )
-          : lessonsQuery
-        )
+        lessonsQuery
           .preload('lessonActivities', (activitiesQuery) =>
             activitiesQuery
               .preload('levelStageActivity')
               .preload('schoolActivity', (activityQuery) => activityQuery.preload('category'))
               .orderBy('position')
           )
-          .preload('lessonInstructors', (instructorsQuery) =>
-            instructorsQuery
-              .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-              .preload('invitation')
-          )
           .orderBy('date')
       )
       .firstOrFail()
+
+    // Instructors only see a class whose stage they staff; only the LEAD of a
+    // stage may manage (generate/plan/edit) its lessons — assistants read-only.
+    let canManageLessons = !isInstructor
+    if (isInstructor && membership) {
+      const staffing = await StageInstructor.query()
+        .where('schoolId', schoolId)
+        .where('levelStageId', swimmingClass.levelStageId)
+        .where('membershipId', membership.id)
+      if (staffing.length === 0) {
+        swimmingClass.$setRelated('lessons', [])
+      }
+      canManageLessons = staffing.some((row) => row.role === ClassInstructorRole.LEAD)
+    }
+
     const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(schoolId, [
       swimmingClass.levelId,
+    ])
+    const stageInstructors = await new StageInstructorService().mapForSchool(schoolId, [
+      swimmingClass.levelStageId,
     ])
     const bank = await activityBank.forSchool(
       schoolId,
@@ -208,10 +241,15 @@ export default class SwimmingClassesController {
     ])
 
     return inertia.render('classes/show', {
-      swimmingClass: SwimmingClassTransformer.transform(swimmingClass, levelLessonCounts),
+      swimmingClass: SwimmingClassTransformer.transform(
+        swimmingClass,
+        levelLessonCounts,
+        stageInstructors
+      ),
       activityBank: SchoolActivityCategoryTransformer.transform(bank),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInstructorInvitations),
+      canManageLessons,
     })
   }
 
@@ -233,11 +271,6 @@ export default class SwimmingClassesController {
       .preload('term', (termQuery) => termQuery.preload('swimYear'))
       .preload('levelStage')
       .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
-      .preload('classInstructors', (instructorsQuery) =>
-        instructorsQuery
-          .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-          .preload('invitation')
-      )
       .preload('classSkills', (skillsQuery) =>
         skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
       )
@@ -327,10 +360,7 @@ export default class SwimmingClassesController {
     const payload = await request.validateUsing(updateSwimmingClassValidator)
     await authoring.update(swimmingClass, school, payload)
 
-    session.flash(
-      'success',
-      payload.inviteTeacherEmail ? 'Class updated. Instructor invited.' : 'Class updated.'
-    )
+    session.flash('success', 'Class updated.')
     if (payload.redirectTo === 'back') {
       return response.redirect().back()
     }

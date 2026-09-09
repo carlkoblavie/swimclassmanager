@@ -77,14 +77,16 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
   [RoleName.TEACHER]: [
     permissions.getKey('class.view'),
     permissions.getKey('enrolment.view'),
+    permissions.getKey('lesson.generate'),
+    permissions.getKey('lesson.edit'),
     permissions.getKey('lesson.activities.manage'),
   ],
   [RoleName.ASSISTANT_COACH]: [
     permissions.getKey('class.view'),
     permissions.getKey('enrolment.view'),
+    permissions.getKey('lesson.generate'),
     permissions.getKey('lesson.edit'),
     permissions.getKey('lesson.activities.manage'),
-    permissions.getKey('lesson.instructors.manage'),
   ],
   [RoleName.DECK_SUPERVISOR]: [permissions.getKey('class.view')],
   [RoleName.PARENT]: [permissions.getKey('class.view')],

@@ -4,14 +4,10 @@ import hash from '@adonisjs/core/services/hash'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { InvitationFactory } from '#database/factories/invitation_factory'
-import { ProgramFactory } from '#database/factories/program_factory'
-import { LevelFactory } from '#database/factories/level_factory'
-import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import { seedRoles, joinSchool } from '#tests/helpers'
 import { RoleName } from '#values/role'
 import Role from '#models/role'
 import User from '#models/user'
-import ClassInstructor from '#models/class_instructor'
 import Membership from '#models/membership'
 
 test.group('Memberships store', (group) => {
@@ -164,10 +160,9 @@ test.group('Memberships store', (group) => {
     await db.assertCount('memberships', 0)
   })
 
-  test('accepting a pending instructor invitation makes the Teacher the active class instructor', async ({
+  test('accepting a pending Teacher invitation creates the membership with the Teacher role', async ({
     visit,
     route,
-    db,
     assert,
   }) => {
     const founder = await UserFactory.create()
@@ -183,15 +178,6 @@ test.group('Memberships store', (group) => {
       inviteeFirstName: 'Pending',
       inviteeLastName: 'Coach',
     }).create()
-    const program = await ProgramFactory.merge({ name: 'Learn to Swim' }).create()
-    const level = await LevelFactory.merge({ programId: program.id, name: 'Beginners' }).create()
-    const swimmingClass = await SwimmingClassFactory.merge({
-      schoolId: school.id,
-      levelId: level.id,
-      code: 'PENDING-INSTRUCTOR',
-      name: 'Pending Instructor Class',
-    }).create()
-    await ClassInstructor.create({ swimmingClassId: swimmingClass.id, invitationId: invitation.id })
 
     const page = await visit(route('memberships.store', { token: invitation.token }))
 
@@ -205,10 +191,5 @@ test.group('Memberships store', (group) => {
     assert.isTrue(membership.roles.some((role) => role.name === RoleName.TEACHER))
     await invitation.refresh()
     assert.isNotNull(invitation.acceptedAt)
-    await db.assertHas('class_instructors', {
-      swimming_class_id: swimmingClass.id,
-      membership_id: membership.id,
-      invitation_id: null,
-    })
   })
 })

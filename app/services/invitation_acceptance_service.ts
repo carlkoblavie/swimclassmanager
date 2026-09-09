@@ -60,21 +60,22 @@ export default class InvitationAcceptanceService {
         await membership.save()
       }
 
-      // Convert this invitation's class-instructor rows to the membership;
-      // drop rows where the member already instructs the class.
+      // Convert this invitation's stage-instructor rows to the membership;
+      // drop rows where the member already staffs the stage for this school.
       await trx
-        .from('class_instructors')
+        .from('stage_instructors')
         .where('invitation_id', invitation.id)
         .whereIn(
-          'swimming_class_id',
+          'level_stage_id',
           trx
-            .from('class_instructors')
+            .from('stage_instructors')
             .where('membership_id', membership.id)
-            .select('swimming_class_id')
+            .where('school_id', invitation.schoolId)
+            .select('level_stage_id')
         )
         .delete()
       await trx
-        .from('class_instructors')
+        .from('stage_instructors')
         .where('invitation_id', invitation.id)
         .update({ membership_id: membership.id, invitation_id: null })
 

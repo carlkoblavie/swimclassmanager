@@ -1,35 +1,22 @@
-import string from '@adonisjs/core/helpers/string'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import mail from '@adonisjs/mail/services/main'
 import { DateTime } from 'luxon'
 import ClassAuthoringException from '#exceptions/class_authoring_exception'
-import InvitationMail from '#mails/invitation'
-import Invitation from '#models/invitation'
 import Level from '#models/level'
 import type LevelStage from '#models/level_stage'
 import LevelStageActivity from '#models/level_stage_activity'
 import LevelStageSkill from '#models/level_stage_skill'
-import Membership from '#models/membership'
-import Role from '#models/role'
 import SchoolActivity from '#models/school_activity'
 import SchoolActivityCategory from '#models/school_activity_category'
 import SkillBankSkill from '#models/skill_bank_skill'
 import type School from '#models/school'
 import SwimmingClass from '#models/swimming_class'
-import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
-import LessonInstructor from '#models/lesson_instructor'
 import Term from '#models/term'
 import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
-import {
-  ClassInstructorRole,
-  type ClassInstructorRole as ClassInstructorRoleValue,
-} from '#values/class_instructor_role'
 import { LessonActivityLeader } from '#values/lesson_activity_leader'
-import { RoleName } from '#values/role'
 import { classCode, codeSegment, nextTierNumber } from '#values/account_code'
 import {
   type StoreClassLessonInput,
@@ -38,16 +25,6 @@ import {
   type UpdateSwimmingClassInput,
   type UpdateLessonActivitiesInput,
 } from '#validators/swimming_class'
-
-const INSTRUCTOR_ROLE_NAMES = [
-  RoleName.TEACHER,
-  RoleName.ASSISTANT_COACH,
-  RoleName.HEAD_COACH,
-] as string[]
-
-function hasInstructorRole(membership: Membership): boolean {
-  return membership.roles.some((role) => INSTRUCTOR_ROLE_NAMES.includes(role.name))
-}
 
 function uniqueNumbers(values: number[]): number[] {
   return [...new Set(values)]
@@ -66,36 +43,11 @@ function serializeAssessmentGoals(values: string[]): string {
   return JSON.stringify(goals)
 }
 
-type InstructorSelection = Pick<
-  UpdateSwimmingClassInput,
-  | 'leadInstructorMembershipId'
-  | 'leadInstructorInvitationId'
-  | 'supportingInstructorMembershipIds'
-  | 'supportingInstructorInvitationIds'
-  | 'instructorMembershipIds'
-  | 'instructorInvitationIds'
-  | 'inviteTeacherEmail'
-  | 'inviteTeacherFirstName'
-  | 'inviteTeacherLastName'
-  | 'inviteTeacherPhone'
-  | 'inviteTeacherCertifications'
-> & {
+type LessonPlanSelection = {
   date?: DateTime
-  durationMinutes?: number
+  startTime?: string
   objectives?: string[]
   skillIds?: number[]
-  startTime?: string
-}
-
-type InstructorAssignment = {
-  role: ClassInstructorRoleValue
-  membershipId: number | null
-  invitationId: number | null
-}
-
-type ResolvedInstructors = {
-  assignments: InstructorAssignment[]
-  newInvitation?: Invitation
 }
 
 type CurriculumSelection = {
@@ -131,7 +83,6 @@ export default class ClassSeriesAuthoringService {
     return db.transaction(async (trx) => {
       const level = await this.loadAvailableLevel(school, data.levelId, trx)
       const term = await this.loadTerm(school, data.termId, trx)
-      const instructors = await this.resolveInstructors(school, data, trx)
 
       const selection = await this.resolveClassCurriculum(school, level, data, trx)
       const prerequisiteStageId = this.resolvePrerequisiteStageId(
@@ -163,18 +114,15 @@ export default class ClassSeriesAuthoringService {
         maxLessons: data.maxLessons,
       })
       await swimmingClass.save()
-      await this.syncInstructors(swimmingClass, instructors, trx)
       await swimmingClass.related('classSkills').createMany(selection.skills)
-
-      this.queueInvitationMail(instructors, school, trx)
 
       return swimmingClass
     })
   }
 
   /**
-   * Duplicate a class into the same stage, copying its skills and instructors.
-   * The copy gets its own code and a distinct name.
+   * Duplicate a class into the same stage, copying its skills. The copy gets
+   * its own code and a distinct name; instructors follow the stage.
    */
   async duplicate(swimmingClass: SwimmingClass, school: School): Promise<SwimmingClass> {
     return db.transaction(async (trx) => {
@@ -185,10 +133,6 @@ export default class ClassSeriesAuthoringService {
       }
 
       const sourceSkills = await ClassSkill.query({ client: trx }).where(
-        'swimmingClassId',
-        swimmingClass.id
-      )
-      const sourceInstructors = await ClassInstructor.query({ client: trx }).where(
         'swimmingClassId',
         swimmingClass.id
       )
@@ -225,15 +169,6 @@ export default class ClassSeriesAuthoringService {
           sourceSkills.map((skill) => ({
             skillBankSkillId: skill.skillBankSkillId,
             levelStageSkillId: skill.levelStageSkillId,
-          }))
-        )
-      }
-      if (sourceInstructors.length > 0) {
-        await copy.related('classInstructors').createMany(
-          sourceInstructors.map((instructor) => ({
-            role: instructor.role,
-            membershipId: instructor.membershipId,
-            invitationId: instructor.invitationId,
           }))
         )
       }
@@ -287,7 +222,6 @@ export default class ClassSeriesAuthoringService {
       )
       const name = data.name?.trim() || this.generatedClassName(level, selection.stage)
       await this.assertNameAvailable(school, name, selection.stage.id, trx, swimmingClass.id)
-      const instructors = await this.resolveInstructors(school, data, trx)
 
       let termId = swimmingClass.termId
       if (data.termId !== undefined && data.termId !== termId) {
@@ -321,12 +255,8 @@ export default class ClassSeriesAuthoringService {
       })
       await swimmingClass.save()
 
-      await this.syncInstructors(swimmingClass, instructors, trx)
-
       await ClassSkill.query({ client: trx }).where('swimmingClassId', swimmingClass.id).delete()
       await swimmingClass.related('classSkills').createMany(selection.skills)
-
-      this.queueInvitationMail(instructors, school, trx)
 
       return swimmingClass
     })
@@ -418,7 +348,6 @@ export default class ClassSeriesAuthoringService {
         concludedAt: data.intent === 'conclude' ? DateTime.now() : null,
       })
       await this.syncLessonActivities(lesson, legacyActivityIds, schoolActivities)
-      await this.inheritClassInstructors(lesson, swimmingClass, trx)
       return lesson
     })
   }
@@ -487,7 +416,6 @@ export default class ClassSeriesAuthoringService {
           observation: null,
           concludedAt: null,
         })
-        await this.inheritClassInstructors(lesson, swimmingClass, trx)
         lessons.push(lesson)
       }
 
@@ -608,14 +536,10 @@ export default class ClassSeriesAuthoringService {
     })
   }
 
-  async assignLessonInstructors(
-    lesson: ClassLesson,
-    school: School,
-    data: InstructorSelection
-  ): Promise<void> {
+  /** Update one lesson's plan: date/time, objectives, and skills. */
+  async updateLessonPlan(lesson: ClassLesson, data: LessonPlanSelection): Promise<void> {
     await db.transaction(async (trx) => {
       const swimmingClass = await SwimmingClass.findOrFail(lesson.swimmingClassId, { client: trx })
-      const instructors = await this.resolveInstructors(school, data, trx)
 
       if (data.date) {
         if (swimmingClass.termId) {
@@ -633,7 +557,6 @@ export default class ClassSeriesAuthoringService {
         }
       }
 
-      await LessonInstructor.query({ client: trx }).where('classLessonId', lesson.id).delete()
       lesson.useTransaction(trx)
       if (data.date) {
         lesson.date = data.date
@@ -648,44 +571,7 @@ export default class ClassSeriesAuthoringService {
         lesson.startTime = data.startTime
       }
       await lesson.save()
-      await lesson.related('lessonInstructors').createMany(instructors.assignments)
     })
-  }
-
-  async bulkAssignLessonInstructors(
-    lessons: ClassLesson[],
-    school: School,
-    data: InstructorSelection
-  ): Promise<void> {
-    await db.transaction(async (trx) => {
-      const instructors = await this.resolveInstructors(school, data, trx)
-
-      for (const lesson of lessons) {
-        await LessonInstructor.query({ client: trx }).where('classLessonId', lesson.id).delete()
-        lesson.useTransaction(trx)
-        await lesson.related('lessonInstructors').createMany(instructors.assignments)
-      }
-    })
-  }
-
-  protected async inheritClassInstructors(
-    lesson: ClassLesson,
-    swimmingClass: SwimmingClass,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const instructors = await ClassInstructor.query({ client: trx }).where(
-      'swimmingClassId',
-      swimmingClass.id
-    )
-    if (instructors.length > 0) {
-      await lesson.related('lessonInstructors').createMany(
-        instructors.map((instructor) => ({
-          membershipId: instructor.membershipId,
-          invitationId: instructor.invitationId,
-          role: instructor.role,
-        }))
-      )
-    }
   }
 
   /** Copy a lesson's activity snapshots into empty lessons in the same stage. */
@@ -983,7 +869,6 @@ export default class ClassSeriesAuthoringService {
 
       if (lessonIds.length > 0) {
         await LessonActivity.query({ client: trx }).whereIn('classLessonId', lessonIds).delete()
-        await LessonInstructor.query({ client: trx }).whereIn('classLessonId', lessonIds).delete()
         await trx.from('enrollment_lessons').whereIn('class_lesson_id', lessonIds).delete()
         await ClassLesson.query({ client: trx }).whereIn('id', lessonIds).delete()
       }
@@ -1166,184 +1051,5 @@ export default class ClassSeriesAuthoringService {
     if (await nameQuery.first()) {
       throw new ClassAuthoringException('A class with this name already exists.')
     }
-  }
-
-  /**
-   * Validate the selected instructor set: memberships must be Teachers or
-   * Head Coaches of the school, invitations must be this school's pending
-   * Teacher invitations, and the optional invite-new fields create (or
-   * refresh) an invitation that joins the set.
-   */
-  protected async resolveInstructors(
-    school: School,
-    data: InstructorSelection,
-    trx: TransactionClientContract
-  ): Promise<ResolvedInstructors> {
-    if (data.leadInstructorMembershipId && data.leadInstructorInvitationId) {
-      throw new ClassAuthoringException('Choose only one lead instructor.')
-    }
-
-    const hasNewRoleFields =
-      data.leadInstructorMembershipId ||
-      data.leadInstructorInvitationId ||
-      (data.supportingInstructorMembershipIds?.length ?? 0) > 0 ||
-      (data.supportingInstructorInvitationIds?.length ?? 0) > 0
-
-    const legacyMembershipIds = uniqueNumbers(data.instructorMembershipIds ?? [])
-    const legacyInvitationIds = uniqueNumbers(data.instructorInvitationIds ?? [])
-    const leadMembershipId =
-      data.leadInstructorMembershipId ?? (!hasNewRoleFields ? legacyMembershipIds[0] : undefined)
-    const leadInvitationId =
-      data.leadInstructorInvitationId ??
-      (!hasNewRoleFields && !leadMembershipId ? legacyInvitationIds[0] : undefined)
-
-    const supportingMembershipIds = uniqueNumbers([
-      ...(data.supportingInstructorMembershipIds ?? []),
-      ...(!hasNewRoleFields ? legacyMembershipIds.slice(leadMembershipId ? 1 : 0) : []),
-    ]).filter((id) => id !== leadMembershipId)
-    const supportingInvitationIds = uniqueNumbers([
-      ...(data.supportingInstructorInvitationIds ?? []),
-      ...(!hasNewRoleFields ? legacyInvitationIds.slice(leadInvitationId ? 1 : 0) : []),
-    ]).filter((id) => id !== leadInvitationId)
-
-    const membershipIds = uniqueNumbers(
-      [leadMembershipId, ...supportingMembershipIds].filter((id): id is number => id !== undefined)
-    )
-    if (membershipIds.length > 0) {
-      const memberships = await Membership.query({ client: trx })
-        .whereIn('id', membershipIds)
-        .where('schoolId', school.id)
-        .preload('roles')
-
-      if (
-        memberships.length !== membershipIds.length ||
-        !memberships.every((membership) => hasInstructorRole(membership))
-      ) {
-        throw new ClassAuthoringException('Choose Teachers or Head Coaches from this school.')
-      }
-    }
-
-    const invitationIds = uniqueNumbers(
-      [leadInvitationId, ...supportingInvitationIds].filter((id): id is number => id !== undefined)
-    )
-    if (invitationIds.length > 0) {
-      const invitations = await Invitation.query({ client: trx })
-        .whereIn('id', invitationIds)
-        .where('schoolId', school.id)
-        .whereHas('role', (roleQuery) =>
-          roleQuery.whereIn('name', [RoleName.TEACHER, RoleName.ASSISTANT_COACH])
-        )
-        .whereNull('acceptedAt')
-
-      if (invitations.length !== invitationIds.length) {
-        throw new ClassAuthoringException(
-          'Choose pending Teacher or Assistant Coach invitations from this school.'
-        )
-      }
-    }
-
-    const assignments: InstructorAssignment[] = [
-      ...(leadMembershipId
-        ? [
-            {
-              role: ClassInstructorRole.LEAD,
-              membershipId: leadMembershipId,
-              invitationId: null,
-            },
-          ]
-        : []),
-      ...(leadInvitationId
-        ? [
-            {
-              role: ClassInstructorRole.LEAD,
-              membershipId: null,
-              invitationId: leadInvitationId,
-            },
-          ]
-        : []),
-      ...supportingMembershipIds.map((membershipId) => ({
-        role: ClassInstructorRole.SUPPORTING,
-        membershipId,
-        invitationId: null,
-      })),
-      ...supportingInvitationIds.map((invitationId) => ({
-        role: ClassInstructorRole.SUPPORTING,
-        membershipId: null,
-        invitationId,
-      })),
-    ]
-
-    const hasInviteInput =
-      data.inviteTeacherEmail ||
-      data.inviteTeacherFirstName ||
-      data.inviteTeacherLastName ||
-      data.inviteTeacherPhone ||
-      (data.inviteTeacherCertifications?.length ?? 0) > 0
-    if (!hasInviteInput) {
-      return { assignments }
-    }
-
-    if (
-      !data.inviteTeacherEmail ||
-      !data.inviteTeacherFirstName ||
-      !data.inviteTeacherLastName ||
-      !data.inviteTeacherPhone
-    ) {
-      throw new ClassAuthoringException(
-        'Teacher first name, last name, phone, and email are required.'
-      )
-    }
-
-    const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER, { client: trx })
-    const invitation = await Invitation.updateOrCreate(
-      { schoolId: school.id, email: data.inviteTeacherEmail },
-      {
-        roleId: teacherRole.id,
-        inviteeFirstName: data.inviteTeacherFirstName,
-        inviteeLastName: data.inviteTeacherLastName,
-        inviteePhone: data.inviteTeacherPhone,
-        certifications: data.inviteTeacherCertifications ?? null,
-        token: string.random(48),
-        expiresAt: DateTime.now().plus({ days: 7 }),
-        acceptedAt: null,
-      },
-      { client: trx }
-    )
-
-    if (!assignments.some((assignment) => assignment.invitationId === invitation.id)) {
-      assignments.push({
-        role: ClassInstructorRole.SUPPORTING,
-        membershipId: null,
-        invitationId: invitation.id,
-      })
-    }
-    return { assignments, newInvitation: invitation }
-  }
-
-  /** Replace the class's instructor rows with the resolved set. */
-  protected async syncInstructors(
-    swimmingClass: SwimmingClass,
-    instructors: ResolvedInstructors,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    await ClassInstructor.query({ client: trx }).where('swimmingClassId', swimmingClass.id).delete()
-    await swimmingClass.related('classInstructors').createMany(instructors.assignments)
-  }
-
-  /** Send the newly created teacher invitation once the transaction commits. */
-  protected queueInvitationMail(
-    instructors: ResolvedInstructors,
-    school: School,
-    trx: TransactionClientContract
-  ): void {
-    const invitation = instructors.newInvitation
-    if (!invitation) {
-      return
-    }
-    trx.after('commit', async () => {
-      await mail.sendLater(
-        new InvitationMail(invitation.email, invitation.token, school.name, RoleName.TEACHER)
-      )
-    })
   }
 }

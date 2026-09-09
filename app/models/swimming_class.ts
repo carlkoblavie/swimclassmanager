@@ -5,7 +5,6 @@ import { SwimmingClassSchema } from '#database/schema'
 import School from '#models/school'
 import Level from '#models/level'
 import LevelStage from '#models/level_stage'
-import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import Enrollment from '#models/enrollment'
@@ -26,9 +25,6 @@ export default class SwimmingClass extends SwimmingClassSchema {
 
   @belongsTo(() => LevelStage, { foreignKey: 'prerequisiteStageId' })
   declare prerequisiteStage: BelongsTo<typeof LevelStage>
-
-  @hasMany(() => ClassInstructor)
-  declare classInstructors: HasMany<typeof ClassInstructor>
 
   @hasMany(() => ClassSkill)
   declare classSkills: HasMany<typeof ClassSkill>

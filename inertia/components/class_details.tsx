@@ -111,7 +111,7 @@ export default function ClassDetails({
   rightAction?: ReactNode
   displayName?: string
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const prerequisite = swimmingClass.prerequisiteStage
   const prerequisiteLabel = prerequisite
     ? `${prerequisite.level?.name ? `${prerequisite.level.name} - ` : ''}${prerequisite.name}`

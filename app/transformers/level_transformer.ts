@@ -3,6 +3,7 @@ import type Level from '#models/level'
 import type LevelStage from '#models/level_stage'
 import type Program from '#models/program'
 import type SchoolLevelSetting from '#models/school_level_setting'
+import type { TransformedInstructor } from '#transformers/swimming_class_transformer'
 
 function formatCedis(minorUnits: number): string {
   return `GHS ${(minorUnits / 100).toLocaleString('en-US', {
@@ -14,7 +15,9 @@ function formatCedis(minorUnits: number): string {
 export default class LevelTransformer extends BaseTransformer<Level> {
   constructor(
     resource: Level,
-    protected schoolId: number
+    protected schoolId: number,
+    // Instructors staffed at each stage (per school), keyed by levelStageId.
+    protected stageInstructors: Map<number, TransformedInstructor[]> = new Map()
   ) {
     super(resource)
   }
@@ -56,6 +59,7 @@ export default class LevelTransformer extends BaseTransformer<Level> {
         position: stage.position,
         classesCount: stage.classesCount,
         description: stage.description,
+        instructors: this.stageInstructors.get(stage.id) ?? [],
         skills: (stage.skills ?? []).map((skill) => ({
           id: skill.id,
           name: skill.name,

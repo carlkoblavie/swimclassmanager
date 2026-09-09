@@ -23,6 +23,8 @@ import { Guard } from '~/utils/permissions'
 
 type PageProps = InertiaProps<{
   classes: Data.SwimmingClass[]
+  // Stages the current instructor leads; null for managers (no lead/assist split).
+  leadStageIds: number[] | null
 }>
 
 type StatusFilter = 'all' | 'active' | 'cancelled'
@@ -38,7 +40,7 @@ function optionsFromClasses(
   ].sort((a, b) => a.localeCompare(b))
 }
 
-export default function ClassesIndex({ classes }: PageProps) {
+export default function ClassesIndex({ classes, leadStageIds }: PageProps) {
   const [programFilter, setProgramFilter] = useState(ALL)
   const [levelFilter, setLevelFilter] = useState(ALL)
   const [stageFilter, setStageFilter] = useState(ALL)
@@ -191,12 +193,57 @@ export default function ClassesIndex({ classes }: PageProps) {
                   Try widening the program, level, stage, or status filters.
                 </Text>
               </Card>
-            ) : (
+            ) : leadStageIds === null ? (
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                 {visibleClasses.map((swimmingClass) => (
                   <ClassCard key={swimmingClass.id} swimmingClass={swimmingClass} />
                 ))}
               </SimpleGrid>
+            ) : (
+              (() => {
+                const leadClasses = visibleClasses.filter((item) =>
+                  leadStageIds.includes(item.levelStageId)
+                )
+                const supportingClasses = visibleClasses.filter(
+                  (item) => !leadStageIds.includes(item.levelStageId)
+                )
+                return (
+                  <Stack gap="xl">
+                    <Box>
+                      <Text size="xs" tt="uppercase" c="blue.7" fw={800} lts="0.12em" mb="sm">
+                        Classes you lead ({leadClasses.length})
+                      </Text>
+                      {leadClasses.length === 0 ? (
+                        <Text c="dimmed" size="sm">
+                          You’re not the lead instructor for any classes here.
+                        </Text>
+                      ) : (
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                          {leadClasses.map((swimmingClass) => (
+                            <ClassCard key={swimmingClass.id} swimmingClass={swimmingClass} />
+                          ))}
+                        </SimpleGrid>
+                      )}
+                    </Box>
+                    <Box>
+                      <Text size="xs" tt="uppercase" c="gray.6" fw={800} lts="0.12em" mb="sm">
+                        Classes you assist ({supportingClasses.length})
+                      </Text>
+                      {supportingClasses.length === 0 ? (
+                        <Text c="dimmed" size="sm">
+                          You’re not assisting any classes here.
+                        </Text>
+                      ) : (
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                          {supportingClasses.map((swimmingClass) => (
+                            <ClassCard key={swimmingClass.id} swimmingClass={swimmingClass} />
+                          ))}
+                        </SimpleGrid>
+                      )}
+                    </Box>
+                  </Stack>
+                )
+              })()
             )}
           </>
         )}

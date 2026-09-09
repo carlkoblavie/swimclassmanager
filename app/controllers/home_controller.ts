@@ -8,9 +8,13 @@ import Signup from '#models/signup'
 import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
 import TermPayment from '#models/term_payment'
+import StageInstructorService from '#services/stage_instructor_service'
+import type { TransformedInstructor } from '#transformers/swimming_class_transformer'
 import { ClassInstructorRole } from '#values/class_instructor_role'
 import { EnrollmentStatus } from '#values/enrollment_status'
 import { RoleName } from '#values/role'
+
+type StageInstructorMap = Map<number, TransformedInstructor[]>
 
 function formatTime(value: string | null): string {
   if (!value) {
@@ -34,16 +38,14 @@ function lessonLabel(lesson: ClassLesson): string {
   return [swimmingClass.name, level, stage].filter(Boolean).join(' · ')
 }
 
-function instructorName(lesson: ClassLesson): string | null {
-  const lead = lesson.lessonInstructors.find(
-    (instructor) => instructor.role === ClassInstructorRole.LEAD
-  )
-  const membershipName = lead?.membership?.user?.fullName
-  const inviteeName = lead?.invitation?.inviteeFullName
-  return membershipName ?? inviteeName ?? null
+// A lesson's staffing follows its class's stage.
+function instructorName(lesson: ClassLesson, stageInstructors: StageInstructorMap): string | null {
+  const instructors = stageInstructors.get(lesson.swimmingClass.levelStageId) ?? []
+  const lead = instructors.find((instructor) => instructor.role === ClassInstructorRole.LEAD)
+  return lead?.label ?? null
 }
 
-function serializeLesson(lesson: ClassLesson) {
+function serializeLesson(lesson: ClassLesson, stageInstructors: StageInstructorMap) {
   const swimmingClass = lesson.swimmingClass
   const date = lesson.date.toISODate() ?? ''
   return {
@@ -54,7 +56,7 @@ function serializeLesson(lesson: ClassLesson) {
     dateLabel: lesson.date.toFormat('ccc d LLL'),
     time: formatTime(swimmingClass.startTime),
     durationMinutes: lesson.durationMinutes ?? swimmingClass.durationMinutes,
-    instructor: instructorName(lesson),
+    instructor: instructorName(lesson, stageInstructors),
     hasActivities: lesson.lessonActivities.length > 0,
     href: `/classes/${swimmingClass.id}?lessonId=${lesson.id}`,
   }
@@ -137,18 +139,19 @@ export default class HomeController {
           classQuery.where('schoolId', schoolId).where('termId', term.id).whereNull('cancelledAt')
         )
         .if(isInstructor, (query) =>
-          query.whereHas('lessonInstructors', (instructorsQuery) =>
-            instructorsQuery.where('membershipId', membership!.id)
+          query.whereHas('swimmingClass', (classQuery) =>
+            classQuery.whereExists((existsQuery) => {
+              existsQuery
+                .from('stage_instructors')
+                .whereColumn('stage_instructors.level_stage_id', 'swimming_classes.level_stage_id')
+                .where('stage_instructors.school_id', schoolId)
+                .where('stage_instructors.membership_id', membership!.id)
+            })
           )
         )
         .where('date', '>=', today.toISODate()!)
         .preload('swimmingClass', (classQuery) => classQuery.preload('level').preload('levelStage'))
         .preload('lessonActivities')
-        .preload('lessonInstructors', (instructorsQuery) =>
-          instructorsQuery
-            .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-            .preload('invitation')
-        )
         .orderBy('date'),
       Enrollment.query()
         .where('schoolId', schoolId)
@@ -162,7 +165,11 @@ export default class HomeController {
     const visibleEnrollments = isInstructor
       ? enrollments.filter((enrollment) => visibleClassIds.has(enrollment.swimmingClassId ?? 0))
       : enrollments
-    const serializedLessons = lessons.map(serializeLesson)
+    const stageInstructors = await new StageInstructorService().mapForSchool(
+      schoolId,
+      lessons.map((lesson) => lesson.swimmingClass.levelStageId)
+    )
+    const serializedLessons = lessons.map((lesson) => serializeLesson(lesson, stageInstructors))
     const todayLessons = serializedLessons.filter((lesson) => lesson.date === today.toISODate())
     const upcomingLessons = serializedLessons.filter((lesson) => lesson.date !== today.toISODate())
 
@@ -255,8 +262,9 @@ export default class HomeController {
         learner.enrollments.some((enrollment) => enrollment.swimmingClassId === null)
       )
     ).length
+    // A lesson is unstaffed when its class's stage has no instructors.
     const unstaffedLessons = lessons.filter(
-      (lesson) => lesson.lessonInstructors.length === 0
+      (lesson) => (stageInstructors.get(lesson.swimmingClass.levelStageId) ?? []).length === 0
     ).length
     const collected = payments.reduce((total, payment) => total + Number(payment.amountPaid), 0)
     const invoiced = payments.reduce((total, payment) => total + Number(payment.amount), 0)

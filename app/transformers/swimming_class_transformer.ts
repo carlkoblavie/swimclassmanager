@@ -1,11 +1,9 @@
 import { BaseTransformer } from '@adonisjs/core/transformers'
 import { DateTime } from 'luxon'
-import type ClassInstructor from '#models/class_instructor'
 import type ClassLesson from '#models/class_lesson'
 import type ClassSkill from '#models/class_skill'
 import type Invitation from '#models/invitation'
 import type LessonActivity from '#models/lesson_activity'
-import type LessonInstructor from '#models/lesson_instructor'
 import type Level from '#models/level'
 import type LevelStage from '#models/level_stage'
 import type LevelStageActivity from '#models/level_stage_activity'
@@ -13,6 +11,7 @@ import type Membership from '#models/membership'
 import type Program from '#models/program'
 import type SchoolActivity from '#models/school_activity'
 import type SchoolActivityCategory from '#models/school_activity_category'
+import type StageInstructor from '#models/stage_instructor'
 import type SwimYear from '#models/swim_year'
 import type SwimmingClass from '#models/swimming_class'
 import type Term from '#models/term'
@@ -113,9 +112,7 @@ function parseAssessmentGoals(value: string | null): string[] {
   return [value]
 }
 
-function transformInstructor(
-  instructor: ClassInstructor | LessonInstructor
-): TransformedInstructor {
+function transformInstructor(instructor: StageInstructor): TransformedInstructor {
   const instructorPreloaded = instructor.$preloaded as {
     membership?: Membership
     invitation?: Invitation
@@ -144,10 +141,29 @@ function transformInstructor(
   }
 }
 
+/**
+ * Build a levelStageId → instructors map from a school's stage-instructor rows
+ * (each preloaded with membership.user and invitation). Pass the result to the
+ * transformer so classes and lessons show their stage's staffing.
+ */
+export function buildStageInstructorMap(
+  stageInstructors: StageInstructor[]
+): Map<number, TransformedInstructor[]> {
+  const map = new Map<number, TransformedInstructor[]>()
+  for (const stageInstructor of stageInstructors) {
+    const list = map.get(stageInstructor.levelStageId) ?? []
+    list.push(transformInstructor(stageInstructor))
+    map.set(stageInstructor.levelStageId, list)
+  }
+  return map
+}
+
 export default class SwimmingClassTransformer extends BaseTransformer<SwimmingClass> {
   constructor(
     resource: SwimmingClass,
-    protected levelLessonCounts: Map<number, number> = new Map()
+    protected levelLessonCounts: Map<number, number> = new Map(),
+    // Instructors now live on the stage (per school); keyed by levelStageId.
+    protected stageInstructors: Map<number, TransformedInstructor[]> = new Map()
   ) {
     super(resource)
   }
@@ -157,7 +173,6 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       level?: Level
       levelStage?: LevelStage
       prerequisiteStage?: LevelStage & { $preloaded: { level?: Level } }
-      classInstructors?: ClassInstructor[]
       classSkills?: ClassSkill[]
       lessons?: ClassLesson[]
       term?: Term
@@ -168,13 +183,13 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
     const stage = preloaded.levelStage
     const prerequisiteStage = preloaded.prerequisiteStage
     const prerequisiteLevel = prerequisiteStage?.$preloaded?.level
-    const classInstructors = preloaded.classInstructors ?? []
     const classSkills = preloaded.classSkills ?? []
     const lessons = (preloaded.lessons ?? []).toSorted(
       (a, b) => a.date.toMillis() - b.date.toMillis()
     )
 
-    const instructors = classInstructors.map(transformInstructor)
+    // Classes and lessons inherit their stage's instructors.
+    const instructors = this.stageInstructors.get(this.resource.levelStageId) ?? []
     const leadInstructor =
       instructors.find((instructor) => instructor.role === ClassInstructorRole.LEAD) ?? null
     const supportingInstructors = instructors.filter(
@@ -297,16 +312,12 @@ export default class SwimmingClassTransformer extends BaseTransformer<SwimmingCl
       lessons: lessons.map((lesson) => {
         const lessonPreloaded = lesson.$preloaded as {
           lessonActivities?: LessonActivity[]
-          lessonInstructors?: LessonInstructor[]
         }
         const lessonActivities = lessonPreloaded.lessonActivities ?? []
-        const lessonInstructors = (lessonPreloaded.lessonInstructors ?? []).map(transformInstructor)
-        const lessonLeadInstructor =
-          lessonInstructors.find((instructor) => instructor.role === ClassInstructorRole.LEAD) ??
-          null
-        const lessonSupportingInstructors = lessonInstructors.filter(
-          (instructor) => instructor.role === ClassInstructorRole.SUPPORTING
-        )
+        // Lessons inherit the class's stage instructors.
+        const lessonInstructors = instructors
+        const lessonLeadInstructor = leadInstructor
+        const lessonSupportingInstructors = supportingInstructors
 
         return {
           id: lesson.id,

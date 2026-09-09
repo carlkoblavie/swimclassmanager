@@ -3,7 +3,6 @@ import { Form } from '@adonisjs/inertia/react'
 import { Button, Card, Divider, Group, NativeSelect, Stack, Text, TextInput } from '@mantine/core'
 import type { Data } from '@generated/data'
 import ClassSkillPicker, { type ClassSkillOption } from '~/components/class_skill_picker'
-import InstructorPicker, { invitationKey, membershipKey } from '~/components/instructor_picker'
 
 type DuplicateLevel = {
   id: number
@@ -16,9 +15,6 @@ type DuplicateLevel = {
   }>
 }
 
-const CLASS_INSTRUCTOR_ROLE_LEAD = 1
-const CLASS_INSTRUCTOR_ROLE_SUPPORTING = 2
-
 function duplicateName(sourceName: string) {
   return sourceName.endsWith(' (copy)') ? sourceName : `${sourceName} (copy)`
 }
@@ -27,8 +23,6 @@ export default function ClassDuplicateForm({
   sourceClass,
   levels,
   termOptions,
-  instructorOptions,
-  pendingInstructorOptions,
   skillOptions,
   redirectBack = false,
   onCancel,
@@ -37,8 +31,6 @@ export default function ClassDuplicateForm({
   sourceClass: Data.SwimmingClass
   levels: DuplicateLevel[]
   termOptions: Data.SwimYear[]
-  instructorOptions: Data.Membership[]
-  pendingInstructorOptions: Data.Invitation[]
   skillOptions: ClassSkillOption[]
   redirectBack?: boolean
   onCancel: () => void
@@ -78,19 +70,6 @@ export default function ClassDuplicateForm({
     const skill = skillOptions.find((candidate) => String(candidate.id) === id)
     return skill ? [skill] : []
   })
-  const instructorKey = (instructor: Data.SwimmingClass['instructors'][number]) =>
-    instructor.type === 'membership' ? membershipKey(instructor.id) : invitationKey(instructor.id)
-  const leadInstructor =
-    sourceClass.leadInstructor ??
-    sourceClass.instructors.find((instructor) => instructor.role === CLASS_INSTRUCTOR_ROLE_LEAD)
-  const savedSupportingInstructors = sourceClass.supportingInstructors ?? []
-  const supportingInstructors =
-    savedSupportingInstructors.length > 0
-      ? savedSupportingInstructors
-      : sourceClass.instructors.filter(
-          (instructor) => instructor.role === CLASS_INSTRUCTOR_ROLE_SUPPORTING
-        )
-
   const changeLevel = (value: string) => {
     setLevelId(value)
     const nextLevel = targetLevels.find((candidate) => String(candidate.id) === value)
@@ -205,14 +184,6 @@ export default function ClassDuplicateForm({
                 onChange={setSkillIds}
               />
             </div>
-
-            <InstructorPicker
-              instructorOptions={instructorOptions}
-              pendingInstructorOptions={pendingInstructorOptions}
-              initialLead={leadInstructor ? instructorKey(leadInstructor) : null}
-              initialSupporting={supportingInstructors.map(instructorKey)}
-              errors={errors}
-            />
 
             <Divider />
             <Group justify="space-between" align="center">

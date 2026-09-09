@@ -5,12 +5,8 @@ import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
 import { ProgramFactory } from '#database/factories/program_factory'
 import { LevelFactory } from '#database/factories/level_factory'
-import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
-import LessonInstructor from '#models/lesson_instructor'
 import LessonActivity from '#models/lesson_activity'
-import Invitation from '#models/invitation'
-import Role from '#models/role'
 import SchoolLevelSetting from '#models/school_level_setting'
 import SwimYear from '#models/swim_year'
 import SwimmingClass from '#models/swimming_class'
@@ -23,7 +19,6 @@ import ClassSeriesAuthoringService from '#services/class_series_authoring_servic
 import SchoolActivityBankService from '#services/school_activity_bank_service'
 import type { StoreSwimmingClassesInput } from '#validators/swimming_class'
 import { seedRoles, joinSchool, seedCurriculum } from '#tests/helpers'
-import { ClassInstructorRole } from '#values/class_instructor_role'
 import { LessonActivityLeader } from '#values/lesson_activity_leader'
 import { RoleName } from '#values/role'
 import { SkillBankFamilyKey } from '#values/skill_bank_family'
@@ -304,93 +299,12 @@ test.group('Class series authoring service', (group) => {
     )
   })
 
-  test('multiple instructors, including a pending invitee, can be assigned at creation', async ({
-    assert,
-  }) => {
-    const { school, level, term, classInput } = await setupContext()
-    const teacher = await UserFactory.apply('completed').create()
-    const membership = await joinSchool(teacher, school, RoleName.TEACHER)
-    const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER)
-    const invitation = await Invitation.create({
-      schoolId: school.id,
-      roleId: teacherRole.id,
-      email: 'pending@example.com',
-      inviteeFirstName: 'Pending',
-      inviteeLastName: 'Coach',
-      token: 'token-pending-coach',
-      expiresAt: DateTime.now().plus({ days: 7 }),
-    })
-
-    const created = await new ClassSeriesAuthoringService().createOne(school, {
-      levelId: level.id,
-      termId: term.id,
-      leadInstructorMembershipId: membership.id,
-      supportingInstructorInvitationIds: [invitation.id],
-      ...classInput(),
-    })
-
-    const rows = await ClassInstructor.query().where('swimmingClassId', created.id)
-    assert.deepEqual(
-      rows.map((row) => [row.membershipId, row.invitationId, row.role]).toSorted(),
-      [
-        [membership.id, null, ClassInstructorRole.LEAD],
-        [null, invitation.id, ClassInstructorRole.SUPPORTING],
-      ].toSorted()
-    )
-  })
-
-  test('a non-instructor membership is rejected at creation', async ({ assert }) => {
-    const { school, level, term, classInput } = await setupContext()
-    const parent = await UserFactory.apply('completed').create()
-    const membership = await joinSchool(parent, school, RoleName.PARENT)
-
-    await expectAuthoringError(
-      assert,
-      () =>
-        new ClassSeriesAuthoringService().createOne(school, {
-          levelId: level.id,
-          termId: term.id,
-          instructorMembershipIds: [membership.id],
-          ...classInput(),
-        }),
-      'Choose Teachers or Head Coaches from this school.'
-    )
-  })
-
-  test('an accepted invitation cannot be assigned as pending', async ({ assert }) => {
-    const { school, level, term, classInput } = await setupContext()
-    const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER)
-    const invitation = await Invitation.create({
-      schoolId: school.id,
-      roleId: teacherRole.id,
-      email: 'accepted@example.com',
-      token: 'token-accepted',
-      expiresAt: DateTime.now().plus({ days: 7 }),
-      acceptedAt: DateTime.now(),
-    })
-
-    await expectAuthoringError(
-      assert,
-      () =>
-        new ClassSeriesAuthoringService().createOne(school, {
-          levelId: level.id,
-          termId: term.id,
-          instructorInvitationIds: [invitation.id],
-          ...classInput(),
-        }),
-      'Choose pending Teacher invitations from this school.'
-    )
-  })
-
-  test('duplicating a class copies its stage, skills, and instructors', async ({ assert }) => {
+  test('duplicating a class copies its stage and skills', async ({ assert }) => {
     const { school, level, term, skill, bankSkill, classInput } = await setupContext()
-    const teacher = await UserFactory.apply('completed').create()
-    const membership = await joinSchool(teacher, school, RoleName.TEACHER)
 
     const created = await new ClassSeriesAuthoringService().createOne(school, {
       levelId: level.id,
       termId: term.id,
-      leadInstructorMembershipId: membership.id,
       ...classInput({ name: 'Squad Prep' }),
     })
 
@@ -403,10 +317,6 @@ test.group('Class series authoring service', (group) => {
     await copy.load('classSkills')
     assert.equal(copy.classSkills[0].skillBankSkillId, bankSkill.id)
     assert.equal(copy.classSkills[0].levelStageSkillId, skill.id)
-    const rows = await ClassInstructor.query().where('swimmingClassId', copy.id)
-    assert.equal(rows.length, 1)
-    assert.equal(rows[0].membershipId, membership.id)
-    assert.equal(rows[0].role, ClassInstructorRole.LEAD)
   })
 
   test('lessons cannot be planned until a class is scheduled', async ({ assert }) => {
@@ -461,100 +371,6 @@ test.group('Class series authoring service', (group) => {
       await ClassLesson.query().where('swimmingClassId', created.id).orderBy('date')
     ).map((lesson) => lesson.date.toISODate())
     assert.deepEqual(dates, ['2026-09-14', '2026-09-15', '2026-09-21'])
-  })
-
-  test('generated lessons inherit class instructors and support per-lesson overrides', async ({
-    assert,
-  }) => {
-    const { school, level, term, classInput } = await setupContext()
-    const leadUser = await UserFactory.apply('completed').create()
-    const supportingUser = await UserFactory.apply('completed').create()
-    const replacementUser = await UserFactory.apply('completed').create()
-    const lead = await joinSchool(leadUser, school, RoleName.TEACHER)
-    const supporting = await joinSchool(supportingUser, school, RoleName.TEACHER)
-    const replacement = await joinSchool(replacementUser, school, RoleName.HEAD_COACH)
-
-    const swimmingClass = await new ClassSeriesAuthoringService().createOne(school, {
-      levelId: level.id,
-      termId: term.id,
-      leadInstructorMembershipId: lead.id,
-      supportingInstructorMembershipIds: [supporting.id],
-      ...classInput({ name: 'Staffed squad' }),
-    })
-
-    const [lesson] = await new ClassSeriesAuthoringService().generateLessons(swimmingClass, {
-      classId: swimmingClass.id,
-      startDate: DateTime.fromISO('2026-09-14'),
-      endDate: DateTime.fromISO('2026-09-14'),
-      startTime: '17:00',
-      weekdays: [1],
-    })
-
-    let assignments = await LessonInstructor.query()
-      .where('classLessonId', lesson.id)
-      .orderBy('role')
-    assert.deepEqual(
-      assignments.map((assignment) => [assignment.membershipId, assignment.role]),
-      [
-        [lead.id, ClassInstructorRole.LEAD],
-        [supporting.id, ClassInstructorRole.SUPPORTING],
-      ]
-    )
-
-    await new ClassSeriesAuthoringService().assignLessonInstructors(lesson, school, {
-      date: DateTime.fromISO('2026-09-21'),
-      durationMinutes: 30,
-      leadInstructorMembershipId: replacement.id,
-      supportingInstructorMembershipIds: [supporting.id],
-    })
-
-    await lesson.refresh()
-    assert.equal(lesson.date.toISODate(), '2026-09-21')
-    assert.equal(lesson.durationMinutes, 30)
-
-    assignments = await LessonInstructor.query().where('classLessonId', lesson.id).orderBy('role')
-    assert.deepEqual(
-      assignments.map((assignment) => [assignment.membershipId, assignment.role]),
-      [
-        [replacement.id, ClassInstructorRole.LEAD],
-        [supporting.id, ClassInstructorRole.SUPPORTING],
-      ]
-    )
-  })
-
-  test('bulk assignment applies a lead and supporting instructor team to lessons', async ({
-    assert,
-  }) => {
-    const { school, level, term, classInput } = await setupContext()
-    const leadUser = await UserFactory.apply('completed').create()
-    const supportingUser = await UserFactory.apply('completed').create()
-    const lead = await joinSchool(leadUser, school, RoleName.HEAD_COACH)
-    const supporting = await joinSchool(supportingUser, school, RoleName.ASSISTANT_COACH)
-    const swimmingClass = await new ClassSeriesAuthoringService().createOne(school, {
-      levelId: level.id,
-      termId: term.id,
-      ...classInput({ name: 'Bulk assignment squad' }),
-    })
-    const lessons = await ClassLesson.createMany([
-      { swimmingClassId: swimmingClass.id, date: DateTime.fromISO('2026-09-14') },
-      { swimmingClassId: swimmingClass.id, date: DateTime.fromISO('2026-09-21') },
-    ])
-
-    await new ClassSeriesAuthoringService().bulkAssignLessonInstructors(lessons, school, {
-      leadInstructorMembershipId: lead.id,
-      supportingInstructorMembershipIds: [supporting.id],
-    })
-
-    const assignments = await LessonInstructor.query().whereIn(
-      'classLessonId',
-      lessons.map((lesson) => lesson.id)
-    )
-    assert.equal(assignments.length, 4)
-    assert.equal(assignments.filter((assignment) => assignment.membershipId === lead.id).length, 2)
-    assert.equal(
-      assignments.filter((assignment) => assignment.membershipId === supporting.id).length,
-      2
-    )
   })
 
   test('copying activities rejects lessons that are not empty', async ({ assert }) => {

@@ -32,8 +32,8 @@ import MetaStrip from '~/components/meta_strip'
 type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
   activityBank: Data.SchoolActivityCategory[]
-  instructorOptions: Data.Membership[]
-  pendingInstructorOptions: Data.Invitation[]
+  // Whether the current user may generate/plan/edit this class's lessons.
+  canManageLessons: boolean
 }>
 
 type Lesson = Data.SwimmingClass['lessons'][number]
@@ -152,17 +152,15 @@ function lessonTimeRange(
   return `${formatClock(start)} – ${formatClock(end)}`
 }
 
-export default function ClassShow({
-  swimmingClass,
-  activityBank,
-  instructorOptions,
-  pendingInstructorOptions,
-}: PageProps) {
+export default function ClassShow({ swimmingClass, activityBank, canManageLessons }: PageProps) {
   const { url, props } = usePage()
   const [drawerLessonId, setDrawerLessonId] = useState<number | null>(null)
-  const canEditLesson = ((props.userPermissions as string[] | undefined) ?? []).includes(
-    'lesson.edit'
-  )
+  // Managing lessons requires the edit permission AND being able to manage this
+  // class's stage (lead instructor or a manager). Supporting instructors are
+  // read-only.
+  const canEditLesson =
+    ((props.userPermissions as string[] | undefined) ?? []).includes('lesson.edit') &&
+    canManageLessons
   const searchParams = new URL(url, 'http://localhost').searchParams
   const focusedLessonId = Number(
     searchParams.get('editLessonId') ?? searchParams.get('lessonId') ?? 0
@@ -173,12 +171,14 @@ export default function ClassShow({
     canEditLesson && editLessonExists ? editLessonId : null
   )
   const [editingActivitiesLessonId, setEditingActivitiesLessonId] = useState<number | null>(() =>
-    !canEditLesson && editLessonExists ? editLessonId : null
+    canManageLessons && !canEditLesson && editLessonExists ? editLessonId : null
   )
   useEffect(() => {
     setEditingLessonId(canEditLesson && editLessonExists ? editLessonId : null)
-    setEditingActivitiesLessonId(!canEditLesson && editLessonExists ? editLessonId : null)
-  }, [canEditLesson, editLessonExists, editLessonId, url])
+    setEditingActivitiesLessonId(
+      canManageLessons && !canEditLesson && editLessonExists ? editLessonId : null
+    )
+  }, [canEditLesson, canManageLessons, editLessonExists, editLessonId, url])
   const skillsForLessons = lessonSkills(swimmingClass)
   const displayedLessons = focusedLessonId
     ? swimmingClass.lessons.filter((lesson) => lesson.id === focusedLessonId)
@@ -402,7 +402,7 @@ export default function ClassShow({
                 {swimmingClass.lessons.length}{' '}
                 {swimmingClass.lessons.length === 1 ? 'lesson' : 'lessons'} · {plannedCount} planned
               </Text>
-              <Guard for="class.manage">
+              {canManageLessons && (
                 <Button
                   component={Link}
                   href={urlFor('lessons.index', [], {
@@ -413,7 +413,7 @@ export default function ClassShow({
                 >
                   Generate lessons
                 </Button>
-              </Guard>
+              )}
             </Group>
           </Group>
         )}
@@ -487,23 +487,25 @@ export default function ClassShow({
                   >
                     Print
                   </Button>
-                  <Guard for="lesson.edit">
-                    <Tooltip label="Edit lesson">
-                      <ActionIcon
-                        variant="subtle"
-                        size="sm"
-                        aria-label={`Edit lesson ${lesson.date.formatted}`}
-                        onClick={() =>
-                          setEditingLessonId((current) =>
-                            current === lesson.id ? null : lesson.id
-                          )
-                        }
-                      >
-                        <IconPencil size={14} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Guard>
-                  <Guard for="class.manage">
+                  {canManageLessons && (
+                    <Guard for="lesson.edit">
+                      <Tooltip label="Edit lesson">
+                        <ActionIcon
+                          variant="subtle"
+                          size="sm"
+                          aria-label={`Edit lesson ${lesson.date.formatted}`}
+                          onClick={() =>
+                            setEditingLessonId((current) =>
+                              current === lesson.id ? null : lesson.id
+                            )
+                          }
+                        >
+                          <IconPencil size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Guard>
+                  )}
+                  {canManageLessons && (
                     <Tooltip label="Remove lesson">
                       <ActionIcon
                         variant="subtle"
@@ -517,8 +519,8 @@ export default function ClassShow({
                         <IconTrash size={14} />
                       </ActionIcon>
                     </Tooltip>
-                  </Guard>
-                  {!canEditLesson && (
+                  )}
+                  {canManageLessons && !canEditLesson && (
                     <Guard for="lesson.activities.manage">
                       <Tooltip label="Edit activities">
                         <ActionIcon
@@ -928,7 +930,7 @@ export default function ClassShow({
                       <Text c={status.color} size="sm" style={{ flexShrink: 0 }}>
                         {status.label}
                       </Text>
-                      <Guard for="lesson.instructors.manage">
+                      {canManageLessons && (
                         <Tooltip label="Edit lesson">
                           <ActionIcon
                             variant="subtle"
@@ -940,7 +942,7 @@ export default function ClassShow({
                             <IconPencil size={16} />
                           </ActionIcon>
                         </Tooltip>
-                      </Guard>
+                      )}
                     </Group>
                   )
                 })}
@@ -966,8 +968,6 @@ export default function ClassShow({
         classSkills={swimmingClass.skills}
         classStartTimeFormatted={swimmingClass.startTime?.formatted ?? null}
         opened={Boolean(drawerLessonId)}
-        instructorOptions={instructorOptions}
-        pendingInstructorOptions={pendingInstructorOptions}
         onClose={() => setDrawerLessonId(null)}
         onSaved={(lessonId) => {
           setDrawerLessonId(null)

@@ -17,7 +17,14 @@ import {
   Tooltip,
   UnstyledButton,
 } from '@mantine/core'
-import { IconChevronDown, IconCopy, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
+import {
+  IconChevronDown,
+  IconCopy,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+  IconUsersGroup,
+} from '@tabler/icons-react'
 import type { Data } from '@generated/data'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
@@ -27,6 +34,7 @@ import ClassForm, { type ClassSkillOption } from '~/components/class_form'
 import ClassDetails from '~/components/class_details'
 import ProgramLevelAddForm from '~/components/program_level_add_form'
 import ProgramStageAddForm from '~/components/program_stage_add_form'
+import StageInstructorsModal from '~/components/stage_instructors_modal'
 
 // Mockup's catalog columns: Program | Levels | Status | actions.
 const ROW_GRID = {
@@ -42,6 +50,23 @@ type SwimmingClass = Data.SwimmingClass
 function stripStageSuffix(name: string, stageName: string): string {
   const suffix = ` · ${stageName}`
   return name.endsWith(suffix) ? name.slice(0, -suffix.length) : name
+}
+
+const LEAD_ROLE = 1
+
+function stageInstructorSummary(instructors: Stage['instructors']): string {
+  if (!instructors || instructors.length === 0) {
+    return 'No instructors assigned'
+  }
+  const lead = instructors.find((instructor) => instructor.role === LEAD_ROLE)
+  const assistants = instructors.filter((instructor) => instructor.role !== LEAD_ROLE)
+  const parts = [
+    lead ? `Lead: ${lead.label}` : 'No lead',
+    assistants.length > 0
+      ? `Assistants: ${assistants.map((assistant) => assistant.label).join(', ')}`
+      : null,
+  ].filter(Boolean)
+  return parts.join(' · ')
 }
 
 function StageAccordion({
@@ -72,6 +97,7 @@ function StageAccordion({
   const [addingClass, setAddingClass] = useState(false)
   const [editingClassId, setEditingClassId] = useState<number | null>(null)
   const [duplicatingClassId, setDuplicatingClassId] = useState<number | null>(null)
+  const [instructorsOpen, setInstructorsOpen] = useState(false)
   const addFormRef = useRef<HTMLDivElement>(null)
   const editFormRef = useRef<HTMLDivElement>(null)
   const duplicateFormRef = useRef<HTMLDivElement>(null)
@@ -137,14 +163,37 @@ function StageAccordion({
       {open && (
         <Box bg="gray.0" p="sm" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
           <Stack gap="sm">
+            <Guard for="class.manage">
+              <Card withBorder shadow="none" padding="sm" radius="md">
+                <Group justify="space-between" wrap="nowrap" align="center">
+                  <Box style={{ minWidth: 0 }}>
+                    <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.1em">
+                      Instructors
+                    </Text>
+                    <Text size="sm" mt={2} truncate>
+                      {stageInstructorSummary(stage.instructors)}
+                    </Text>
+                  </Box>
+                  <Button
+                    type="button"
+                    variant="light"
+                    size="xs"
+                    leftSection={<IconUsersGroup size={15} />}
+                    onClick={() => setInstructorsOpen(true)}
+                    style={{ flexShrink: 0 }}
+                  >
+                    Manage
+                  </Button>
+                </Group>
+              </Card>
+            </Guard>
+
             {addingClass && (
               <Box ref={addFormRef} style={{ scrollMarginTop: 84 }}>
                 <ClassForm
                   level={level}
                   initialStageId={stage.id}
                   termOptions={termOptions}
-                  instructorOptions={instructorOptions}
-                  pendingInstructorOptions={pendingInstructorOptions}
                   skillOptions={skillOptions}
                   redirectBack
                   lockStage
@@ -251,8 +300,6 @@ function StageAccordion({
                       swimmingClass={swimmingClass}
                       level={level}
                       termOptions={termOptions}
-                      instructorOptions={instructorOptions}
-                      pendingInstructorOptions={pendingInstructorOptions}
                       skillOptions={skillOptions}
                       redirectBack
                       lockStage
@@ -268,8 +315,6 @@ function StageAccordion({
                       sourceClass={swimmingClass}
                       levels={duplicateLevels}
                       termOptions={termOptions}
-                      instructorOptions={instructorOptions}
-                      pendingInstructorOptions={pendingInstructorOptions}
                       skillOptions={skillOptions}
                       redirectBack
                       onCancel={() => setDuplicatingClassId(null)}
@@ -301,6 +346,16 @@ function StageAccordion({
           </Stack>
         </Box>
       )}
+
+      <StageInstructorsModal
+        opened={instructorsOpen}
+        stageId={stage.id}
+        stageName={stage.name}
+        current={stage.instructors}
+        instructorOptions={instructorOptions}
+        pendingInstructorOptions={pendingInstructorOptions}
+        onClose={() => setInstructorsOpen(false)}
+      />
     </Card>
   )
 }

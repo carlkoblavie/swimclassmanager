@@ -14,7 +14,8 @@ export default class MembersController {
         .where('schoolId', schoolId)
         .preload('user')
         .preload('roles')
-        .withCount('lessonInstructors', (query) => query.as('lessonsCount'))
+        // Instructors are now staffed per stage; count stages staffed.
+        .withCount('stageInstructors', (query) => query.as('lessonsCount'))
         .orderBy('id'),
       Invitation.query()
         .where('schoolId', schoolId)

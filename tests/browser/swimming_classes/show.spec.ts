@@ -2,16 +2,12 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import { UserFactory } from '#database/factories/user_factory'
 import { SchoolFactory } from '#database/factories/school_factory'
-import { InvitationFactory } from '#database/factories/invitation_factory'
 import { SwimmingClassFactory } from '#database/factories/swimming_class_factory'
 import { DateTime } from 'luxon'
-import ClassInstructor from '#models/class_instructor'
 import ClassLesson from '#models/class_lesson'
 import ClassSkill from '#models/class_skill'
 import LessonActivity from '#models/lesson_activity'
-import Role from '#models/role'
 import { seedRoles, joinSchool, seedCurriculum, seedBankSkill } from '#tests/helpers'
-import { ClassInstructorRole } from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
 
 test.group('Swimming classes show', (group) => {
@@ -80,31 +76,6 @@ test.group('Swimming classes show', (group) => {
     const page = await visit(route('swimming_classes.show', { id: other.id }))
 
     await page.assertNotExists('text=Hidden Class')
-  })
-
-  test('pending instructors are shown as pending', async ({ visit, route, browserContext }) => {
-    const user = await UserFactory.apply('completed').create()
-    const school = await SchoolFactory.merge({ createdByUserId: user.id }).create()
-    await joinSchool(user, school, RoleName.PARENT)
-    const teacherRole = await Role.findByOrFail('name', RoleName.TEACHER)
-    const invitation = await InvitationFactory.merge({
-      schoolId: school.id,
-      roleId: teacherRole.id,
-      inviteeFirstName: 'Pending',
-      inviteeLastName: 'Coach',
-    }).create()
-    const swimmingClass = await SwimmingClassFactory.merge({ schoolId: school.id }).create()
-    await ClassInstructor.create({
-      swimmingClassId: swimmingClass.id,
-      invitationId: invitation.id,
-      role: ClassInstructorRole.LEAD,
-    })
-    await browserContext.loginAs(user)
-
-    const page = await visit(route('swimming_classes.show', { id: swimmingClass.id }))
-
-    await page.assertVisible('text=Pending Coach')
-    await page.assertVisible(page.getByText('Pending', { exact: true }))
   })
 
   test('managers see edit and cancel controls', async ({ visit, route, browserContext }) => {

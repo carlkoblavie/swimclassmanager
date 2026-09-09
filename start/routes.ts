@@ -181,16 +181,19 @@ router
   .use(middleware.activeSchool())
   .use(middleware.authorize('enrolment.view'))
 
-// Swim programs — shared catalog (all members view; Admin/Head Coach manage)
-// plus each school's per-level fee/availability settings.
+// Swim programs — curriculum management plus stage staffing (Admin/Head Coach
+// only; instructors work from Classes/Lessons). Also per-level fee/availability.
 router
   .group(() => {
     router
       .resource('programs', controllers.Programs)
       .where('id', router.matchers.number())
-      .use(['create', 'store', 'edit', 'update', 'destroy'], middleware.authorize('program.manage'))
+      .use('*', middleware.authorize('program.manage'))
 
-    router.get('levels/:id', [controllers.Levels, 'show']).where('id', router.matchers.number())
+    router
+      .get('levels/:id', [controllers.Levels, 'show'])
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('program.manage'))
 
     router
       .patch('levels/:id/settings', [controllers.LevelSettings, 'update'])
@@ -313,18 +316,17 @@ router
       .use(middleware.authorize('lesson.activities.manage'))
 
     router
-      .patch('class-lessons/:id/instructors', [controllers.ClassLessons, 'assignInstructors'])
-      .as('class_lessons.assign_instructors')
+      .patch('class-lessons/:id/plan', [controllers.ClassLessons, 'updatePlan'])
+      .as('class_lessons.update_plan')
       .where('id', router.matchers.number())
-      .use(middleware.authorize('lesson.instructors.manage'))
+      .use(middleware.authorize('lesson.edit'))
 
+    // Instructors are staffed per curriculum stage (per school) — a management
+    // action, done from the Programs page by Admin/Head Coach.
     router
-      .post('class-lessons/bulk-assign-instructors', [
-        controllers.ClassLessons,
-        'bulkAssignInstructors',
-      ])
-      .as('class_lessons.bulk_assign_instructors')
-      .use(middleware.authorize('lesson.instructors.bulk_manage'))
+      .patch('stages/instructors', [controllers.StageInstructors, 'update'])
+      .as('stages.assign_instructors')
+      .use(middleware.authorize('program.manage'))
 
     router
       .delete('class-lessons/:id', [controllers.ClassLessons, 'destroy'])

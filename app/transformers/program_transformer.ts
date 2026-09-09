@@ -2,11 +2,13 @@ import { BaseTransformer } from '@adonisjs/core/transformers'
 import LevelTransformer from '#transformers/level_transformer'
 import type Program from '#models/program'
 import type Level from '#models/level'
+import type { TransformedInstructor } from '#transformers/swimming_class_transformer'
 
 export default class ProgramTransformer extends BaseTransformer<Program> {
   constructor(
     resource: Program,
-    protected schoolId: number
+    protected schoolId: number,
+    protected stageInstructors: Map<number, TransformedInstructor[]> = new Map()
   ) {
     super(resource)
   }
@@ -18,7 +20,7 @@ export default class ProgramTransformer extends BaseTransformer<Program> {
     return {
       ...this.pick(this.resource, ['id', 'code', 'name', 'description']),
       isActive: this.resource.isActive,
-      levels: LevelTransformer.transform(levels, this.schoolId),
+      levels: LevelTransformer.transform(levels, this.schoolId, this.stageInstructors),
     }
   }
 

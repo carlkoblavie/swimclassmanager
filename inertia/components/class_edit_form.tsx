@@ -17,8 +17,6 @@ export default function ClassEditForm({
 }: {
   swimmingClass: Data.SwimmingClass
   level: Data.Level
-  instructorOptions: Data.Membership[]
-  pendingInstructorOptions: Data.Invitation[]
   skillOptions: ClassSkillOption[]
   termOptions: Data.SwimYear[]
   redirectBack?: boolean

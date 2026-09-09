@@ -480,17 +480,17 @@ const routes = {
     tokens: [{"old":"/class-lessons/:id/copy-activities","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/copy-activities","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/copy-activities","type":0,"val":"copy-activities","end":""}],
     types: placeholder as Registry['class_lessons.copy_activities']['types'],
   },
-  'class_lessons.assign_instructors': {
+  'class_lessons.update_plan': {
     methods: ["PATCH"],
-    pattern: '/class-lessons/:id/instructors',
-    tokens: [{"old":"/class-lessons/:id/instructors","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/instructors","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/instructors","type":0,"val":"instructors","end":""}],
-    types: placeholder as Registry['class_lessons.assign_instructors']['types'],
+    pattern: '/class-lessons/:id/plan',
+    tokens: [{"old":"/class-lessons/:id/plan","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/plan","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/plan","type":0,"val":"plan","end":""}],
+    types: placeholder as Registry['class_lessons.update_plan']['types'],
   },
-  'class_lessons.bulk_assign_instructors': {
-    methods: ["POST"],
-    pattern: '/class-lessons/bulk-assign-instructors',
-    tokens: [{"old":"/class-lessons/bulk-assign-instructors","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/bulk-assign-instructors","type":0,"val":"bulk-assign-instructors","end":""}],
-    types: placeholder as Registry['class_lessons.bulk_assign_instructors']['types'],
+  'stages.assign_instructors': {
+    methods: ["PATCH"],
+    pattern: '/stages/instructors',
+    tokens: [{"old":"/stages/instructors","type":0,"val":"stages","end":""},{"old":"/stages/instructors","type":0,"val":"instructors","end":""}],
+    types: placeholder as Registry['stages.assign_instructors']['types'],
   },
   'class_lessons.destroy': {
     methods: ["DELETE"],

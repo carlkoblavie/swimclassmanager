@@ -9,8 +9,6 @@ import type { ClassSkillOption } from '~/components/class_form'
 type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
   level: Data.Level
-  instructorOptions: Data.Membership[]
-  pendingInstructorOptions: Data.Invitation[]
   termOptions: Data.SwimYear[]
   skillBankSkills: ClassSkillOption[]
 }>
@@ -18,8 +16,6 @@ type PageProps = InertiaProps<{
 export default function ClassEdit({
   swimmingClass,
   level,
-  instructorOptions,
-  pendingInstructorOptions,
   termOptions,
   skillBankSkills,
 }: PageProps) {
@@ -46,8 +42,6 @@ export default function ClassEdit({
         <ClassEditForm
           swimmingClass={swimmingClass}
           level={level}
-          instructorOptions={instructorOptions}
-          pendingInstructorOptions={pendingInstructorOptions}
           skillOptions={skillBankSkills}
           termOptions={termOptions}
         />

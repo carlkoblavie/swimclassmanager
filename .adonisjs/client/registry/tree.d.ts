@@ -144,12 +144,14 @@ export interface ApiDefinition {
     update: typeof routes['class_lessons.update']
     activitiesUpdate: typeof routes['class_lessons.activities_update']
     copyActivities: typeof routes['class_lessons.copy_activities']
-    assignInstructors: typeof routes['class_lessons.assign_instructors']
-    bulkAssignInstructors: typeof routes['class_lessons.bulk_assign_instructors']
+    updatePlan: typeof routes['class_lessons.update_plan']
     destroy: typeof routes['class_lessons.destroy']
   }
   lessons: {
     index: typeof routes['lessons.index']
     store: typeof routes['lessons.store']
+  }
+  stages: {
+    assignInstructors: typeof routes['stages.assign_instructors']
   }
 }

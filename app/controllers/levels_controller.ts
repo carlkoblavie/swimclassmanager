@@ -9,6 +9,7 @@ import SwimmingClass from '#models/swimming_class'
 import { permissions } from '#start/permissions'
 import BankPackService from '#services/bank_pack_service'
 import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
+import StageInstructorService from '#services/stage_instructor_service'
 import SkillBankFamilyService from '#services/skill_bank_family_service'
 import SkillBankService from '#services/skill_bank_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
@@ -88,11 +89,6 @@ export default class LevelsController {
           .preload('term', (termQuery) => termQuery.preload('swimYear'))
           .preload('levelStage')
           .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
-          .preload('classInstructors', (instructorsQuery) =>
-            instructorsQuery
-              .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-              .preload('invitation')
-          )
           .preload('classSkills', (skillsQuery) =>
             skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
           )
@@ -103,6 +99,12 @@ export default class LevelsController {
     const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(schoolId, [
       level.id,
     ])
+    // Cover every stage in the level (not just staffed ones) so the stage
+    // instructor panel can render current assignments for all of them.
+    const stageInstructors = await new StageInstructorService().mapForSchool(
+      schoolId,
+      level.stages.map((stage) => stage.id)
+    )
 
     // Options for the "New class" form (only needed by class managers).
     const instructorMemberships = canManageClasses
@@ -139,8 +141,10 @@ export default class LevelsController {
       : []
 
     return inertia.render('levels/show', {
-      level: LevelTransformer.transform(level, schoolId).useVariant('forClassOption'),
-      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
+      level: LevelTransformer.transform(level, schoolId, stageInstructors).useVariant(
+        'forClassOption'
+      ),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts, stageInstructors),
       canManageClasses,
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),

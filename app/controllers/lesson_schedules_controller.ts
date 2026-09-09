@@ -2,14 +2,17 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import ClassAuthoringException from '#exceptions/class_authoring_exception'
 import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
+import StageInstructorService from '#services/stage_instructor_service'
 import Invitation from '#models/invitation'
 import Membership from '#models/membership'
+import StageInstructor from '#models/stage_instructor'
 import SwimmingClass from '#models/swimming_class'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
 import MembershipTransformer from '#transformers/membership_transformer'
 import SwimmingClassTransformer from '#transformers/swimming_class_transformer'
 import { generateClassLessonsValidator } from '#validators/swimming_class'
+import { ClassInstructorRole } from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
 
 export default class LessonSchedulesController {
@@ -32,12 +35,15 @@ export default class LessonSchedulesController {
     const instructorMembershipId = isInstructor ? membership?.id : null
 
     const classesQuery = SwimmingClass.query().where('schoolId', schoolId).whereNull('cancelledAt')
+    // Instructors only see classes in stages they staff.
     if (instructorMembershipId) {
-      classesQuery.whereHas('lessons', (lessonsQuery) =>
-        lessonsQuery.whereHas('lessonInstructors', (instructorsQuery) =>
-          instructorsQuery.where('membershipId', instructorMembershipId)
-        )
-      )
+      classesQuery.whereExists((existsQuery) => {
+        existsQuery
+          .from('stage_instructors')
+          .whereColumn('stage_instructors.level_stage_id', 'swimming_classes.level_stage_id')
+          .where('stage_instructors.school_id', schoolId)
+          .where('stage_instructors.membership_id', instructorMembershipId)
+      })
     }
 
     const classes = await classesQuery
@@ -49,22 +55,12 @@ export default class LessonSchedulesController {
         skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
       )
       .preload('lessons', (lessonsQuery) =>
-        (instructorMembershipId
-          ? lessonsQuery.whereHas('lessonInstructors', (instructorsQuery) =>
-              instructorsQuery.where('membershipId', instructorMembershipId)
-            )
-          : lessonsQuery
-        )
+        lessonsQuery
           .preload('lessonActivities', (activitiesQuery) =>
             activitiesQuery
               .preload('levelStageActivity')
               .preload('schoolActivity', (activityQuery) => activityQuery.preload('category'))
               .orderBy('position')
-          )
-          .preload('lessonInstructors', (instructorsQuery) =>
-            instructorsQuery
-              .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-              .preload('invitation')
           )
           .orderBy('date')
       )
@@ -73,6 +69,10 @@ export default class LessonSchedulesController {
     const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(
       schoolId,
       classes.map((swimmingClass) => swimmingClass.levelId)
+    )
+    const stageInstructors = await new StageInstructorService().mapForSchool(
+      schoolId,
+      classes.map((swimmingClass) => swimmingClass.levelStageId)
     )
 
     const [instructorMemberships, pendingInstructorInvitations] = await Promise.all([
@@ -96,12 +96,25 @@ export default class LessonSchedulesController {
         .orderBy('id'),
     ])
 
+    // Which stages this user may generate for: instructors only their LEAD
+    // stages; managers (non-instructors) get null = no per-stage restriction.
+    let leadStageIds: number[] | null = null
+    if (instructorMembershipId) {
+      const leadRows = await StageInstructor.query()
+        .where('schoolId', schoolId)
+        .where('membershipId', instructorMembershipId)
+        .where('role', ClassInstructorRole.LEAD)
+        .select('levelStageId')
+      leadStageIds = leadRows.map((row) => row.levelStageId)
+    }
+
     return inertia.render('lessons/index', {
-      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts, stageInstructors),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInstructorInvitations),
       selectedClassId,
       showGenerator,
+      leadStageIds,
     })
   }
 
@@ -113,13 +126,41 @@ export default class LessonSchedulesController {
     { auth, request, response, session }: HttpContext,
     authoring: ClassSeriesAuthoringService
   ) {
-    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const user = auth.getUserOrFail()
+    const schoolId = user.activeSchoolId!
     const payload = await request.validateUsing(generateClassLessonsValidator)
+
+    const membership = await Membership.query()
+      .where('schoolId', schoolId)
+      .where('userId', user.id)
+      .preload('roles')
+      .first()
+    const isInstructor = membership?.roles.some(
+      (role) => role.name === RoleName.TEACHER || role.name === RoleName.ASSISTANT_COACH
+    )
+
     const swimmingClass = await SwimmingClass.query()
       .where('id', payload.classId)
       .where('schoolId', schoolId)
       .whereNull('cancelledAt')
       .firstOrFail()
+
+    // Only the LEAD instructor of a stage may generate its lessons.
+    if (isInstructor && membership) {
+      const isLead = await StageInstructor.query()
+        .where('schoolId', schoolId)
+        .where('levelStageId', swimmingClass.levelStageId)
+        .where('membershipId', membership.id)
+        .where('role', ClassInstructorRole.LEAD)
+        .first()
+      if (!isLead) {
+        session.flash(
+          'error',
+          'Only the lead instructor for this stage can generate its lessons.'
+        )
+        return response.redirect().back()
+      }
+    }
 
     try {
       const lessons = await authoring.generateLessons(swimmingClass, payload)

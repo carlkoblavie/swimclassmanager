@@ -40,8 +40,6 @@ export default function ClassForm({
 }: {
   level: FormLevel
   termOptions: Data.SwimYear[]
-  instructorOptions: Data.Membership[]
-  pendingInstructorOptions: Data.Invitation[]
   skillOptions: ClassSkillOption[]
   initialStageId?: number
   redirectBack?: boolean

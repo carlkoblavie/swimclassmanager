@@ -83,8 +83,8 @@ export type ScannedRoutes = {
     'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.activities_update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.copy_activities': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'class_lessons.assign_instructors': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'class_lessons.bulk_assign_instructors': { paramsTuple?: []; params?: {} }
+    'class_lessons.update_plan': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'stages.assign_instructors': { paramsTuple?: []; params?: {} }
     'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
@@ -181,7 +181,6 @@ export type ScannedRoutes = {
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'lessons.store': { paramsTuple?: []; params?: {} }
     'class_lessons.copy_activities': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'class_lessons.bulk_assign_instructors': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }
@@ -200,7 +199,8 @@ export type ScannedRoutes = {
     'swimming_classes.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'class_lessons.activities_update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'class_lessons.assign_instructors': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'class_lessons.update_plan': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'stages.assign_instructors': { paramsTuple?: []; params?: {} }
   }
   PUT: {
     'programs.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

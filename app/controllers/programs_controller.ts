@@ -11,6 +11,7 @@ import { permissions } from '#start/permissions'
 import BankPackService from '#services/bank_pack_service'
 import ProgramAuthoringService from '#services/program_authoring_service'
 import ClassLessonCapacityService from '#services/class_lesson_capacity_service'
+import StageInstructorService from '#services/stage_instructor_service'
 import SkillBankFamilyService from '#services/skill_bank_family_service'
 import SkillBankService from '#services/skill_bank_service'
 import InvitationTransformer from '#transformers/invitation_transformer'
@@ -122,11 +123,6 @@ export default class ProgramsController {
             .preload('term', (termQuery) => termQuery.preload('swimYear'))
             .preload('levelStage')
             .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
-            .preload('classInstructors', (instructorsQuery) =>
-              instructorsQuery
-                .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-                .preload('invitation')
-            )
             .preload('classSkills', (skillsQuery) =>
               skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
             )
@@ -137,6 +133,12 @@ export default class ProgramsController {
     const levelLessonCounts = await new ClassLessonCapacityService().countByLevel(
       schoolId,
       classes.map((swimmingClass) => swimmingClass.levelId)
+    )
+    // Every stage across the shown programs, so the stage instructor panel can
+    // render current assignments even for stages with no classes yet.
+    const stageInstructors = await new StageInstructorService().mapForSchool(
+      schoolId,
+      programs.flatMap((program) => program.levels.flatMap((level) => level.stages.map((s) => s.id)))
     )
 
     // Ongoing and upcoming swim years feed the class builder's term picker.
@@ -170,8 +172,8 @@ export default class ProgramsController {
       .orderBy('id')
 
     return inertia.render('programs/index', {
-      programs: ProgramTransformer.transform(programs, schoolId),
-      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
+      programs: ProgramTransformer.transform(programs, schoolId, stageInstructors),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts, stageInstructors),
       termOptions: SwimYearTransformer.transform(termYears),
       instructorOptions: MembershipTransformer.transform(instructorMemberships),
       pendingInstructorOptions: InvitationTransformer.transform(pendingInvitations),
@@ -231,11 +233,6 @@ export default class ProgramsController {
           .preload('term', (termQuery) => termQuery.preload('swimYear'))
           .preload('levelStage')
           .preload('prerequisiteStage', (stageQuery) => stageQuery.preload('level'))
-          .preload('classInstructors', (instructorsQuery) =>
-            instructorsQuery
-              .preload('membership', (membershipQuery) => membershipQuery.preload('user'))
-              .preload('invitation')
-          )
           .preload('classSkills', (skillsQuery) =>
             skillsQuery.preload('skillBankSkill').preload('levelStageSkill')
           )
@@ -247,6 +244,10 @@ export default class ProgramsController {
       schoolId,
       classes.map((swimmingClass) => swimmingClass.levelId)
     )
+    const stageInstructors = await new StageInstructorService().mapForSchool(
+      schoolId,
+      program.levels.flatMap((level) => level.stages.map((stage) => stage.id))
+    )
 
     const termYears = await SwimYear.query()
       .where('schoolId', schoolId)
@@ -255,8 +256,8 @@ export default class ProgramsController {
       .orderBy('startsOn')
 
     return inertia.render('programs/show', {
-      program: ProgramTransformer.transform(program, schoolId),
-      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts),
+      program: ProgramTransformer.transform(program, schoolId, stageInstructors),
+      classes: SwimmingClassTransformer.transform(classes, levelLessonCounts, stageInstructors),
       termOptions: SwimYearTransformer.transform(termYears),
     })
   }

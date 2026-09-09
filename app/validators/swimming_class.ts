@@ -13,7 +13,7 @@ const redirectFields = {
 }
 
 const instructorFields = {
-  // One lead instructor, plus optional supporting instructors.
+  // One lead instructor, plus optional assistant instructors.
   leadInstructorMembershipId: vine.number().withoutDecimals().positive().optional(),
   leadInstructorInvitationId: vine.number().withoutDecimals().positive().optional(),
   supportingInstructorMembershipIds: vine
@@ -21,16 +21,6 @@ const instructorFields = {
     .distinct()
     .optional(),
   supportingInstructorInvitationIds: vine
-    .array(vine.number().withoutDecimals().positive())
-    .distinct()
-    .optional(),
-  // Legacy accepted members and still-pending teacher invitations, kept so old
-  // callers continue to save while the UI moves to lead/supporting fields.
-  instructorMembershipIds: vine
-    .array(vine.number().withoutDecimals().positive())
-    .distinct()
-    .optional(),
-  instructorInvitationIds: vine
     .array(vine.number().withoutDecimals().positive())
     .distinct()
     .optional(),
@@ -43,6 +33,17 @@ const instructorFields = {
     .array(vine.string().trim().minLength(1).maxLength(120))
     .optional(),
 }
+
+// Assign a school's instructors (one lead, many assistants) to a curriculum
+// stage. Classes and lessons in that stage follow this staffing.
+export const assignStageInstructorsValidator = vine.create({
+  levelStageId: vine
+    .number()
+    .withoutDecimals()
+    .positive()
+    .exists({ table: 'level_stages', column: 'id' }),
+  ...instructorFields,
+})
 
 // Create a single class. Name is optional — a name is generated from the level
 // and stage when left blank.
@@ -59,7 +60,6 @@ export const storeSwimmingClassesValidator = vine.create({
   durationMinutes: vine.number().withoutDecimals().positive(),
   maxLessons: vine.number().withoutDecimals().positive(),
   ...classCurriculumFields,
-  ...instructorFields,
   ...redirectFields,
 })
 
@@ -82,7 +82,6 @@ export const updateSwimmingClassValidator = vine.create({
   location: vine.string().trim().maxLength(255).nullable().optional(),
   maxLessons: vine.number().withoutDecimals().positive(),
   ...classCurriculumFields,
-  ...instructorFields,
   ...redirectFields,
 })
 
@@ -155,7 +154,9 @@ export const copyLessonActivitiesValidator = vine.create({
     .distinct(),
 })
 
-export const assignLessonInstructorsValidator = vine.create({
+// Update a single lesson's plan: date/time, objectives, and skills. Instructors
+// are set at the stage, not per lesson.
+export const updateLessonPlanValidator = vine.create({
   date: vine.date({ formats: ['YYYY-MM-DD'] }).optional(),
   startTime: vine
     .string()
@@ -164,34 +165,6 @@ export const assignLessonInstructorsValidator = vine.create({
     .optional(),
   objectives: vine.array(vine.string().trim().minLength(1).maxLength(500)).minLength(1),
   skillIds: vine.array(vine.number().withoutDecimals().positive()).distinct().minLength(1),
-  leadInstructorMembershipId: vine.number().withoutDecimals().positive().optional(),
-  leadInstructorInvitationId: vine.number().withoutDecimals().positive().optional(),
-  supportingInstructorMembershipIds: vine
-    .array(vine.number().withoutDecimals().positive())
-    .distinct()
-    .optional(),
-  supportingInstructorInvitationIds: vine
-    .array(vine.number().withoutDecimals().positive())
-    .distinct()
-    .optional(),
-})
-
-export const bulkAssignLessonInstructorsValidator = vine.create({
-  lessonIds: vine
-    .array(vine.number().withoutDecimals().positive())
-    .minLength(1)
-    .maxLength(100)
-    .distinct(),
-  leadInstructorMembershipId: vine.number().withoutDecimals().positive().optional(),
-  leadInstructorInvitationId: vine.number().withoutDecimals().positive().optional(),
-  supportingInstructorMembershipIds: vine
-    .array(vine.number().withoutDecimals().positive())
-    .distinct()
-    .optional(),
-  supportingInstructorInvitationIds: vine
-    .array(vine.number().withoutDecimals().positive())
-    .distinct()
-    .optional(),
 })
 
 export type StoreSwimmingClassesInput = Awaited<
@@ -207,6 +180,7 @@ export type UpdateLessonActivitiesInput = Awaited<
 export type GenerateClassLessonsInput = Awaited<
   ReturnType<typeof generateClassLessonsValidator.validate>
 >
-export type BulkAssignLessonInstructorsInput = Awaited<
-  ReturnType<typeof bulkAssignLessonInstructorsValidator.validate>
+export type UpdateLessonPlanInput = Awaited<ReturnType<typeof updateLessonPlanValidator.validate>>
+export type AssignStageInstructorsInput = Awaited<
+  ReturnType<typeof assignStageInstructorsValidator.validate>
 >

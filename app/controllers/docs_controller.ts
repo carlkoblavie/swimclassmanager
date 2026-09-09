@@ -16,31 +16,29 @@ type Guide = {
 const guides: Guide[] = [
   {
     slug: 'create-lessons',
-    title: 'How to create lessons',
-    intro: 'Generate a class’s lessons, then plan each one from goals to activities.',
+    title: 'Creating lessons for your class',
+    intro:
+      'As the lead instructor of a stage, you generate and plan the lessons for its classes. Assistant instructors can view everything but not change it.',
     steps: [
       {
-        title: 'Open the class',
-        description: 'Go to Programs and browse to the class you want.',
-      },
-      {
-        title: 'Set the lesson limit',
+        title: 'Find a class you lead',
         description:
-          'Click the pencil icon to edit the class. Max Lessons defaults to 5 — change it to the number of lessons you want for that class, then Save changes.',
+          'Open Classes. Your classes are split into “Classes you lead” and “Classes you assist”. You can only create and plan lessons for classes you lead — the ones you assist are read-only.',
       },
       {
-        title: 'Start generating',
-        description: 'Click Generate Lessons.',
+        title: 'Open the class and generate lessons',
+        description:
+          'Open a class you lead and click Generate lessons.',
       },
       {
         title: 'Set the schedule',
         description:
-          'Select the start date the lessons should begin, choose a lesson day and a start time, then click Generate Lessons. The specified number of lessons is created automatically.',
+          'Pick the start date, the weekday the lessons repeat on, and the start time. The end date fills in automatically so exactly the class’s remaining lessons are created. Click Generate lessons.',
       },
       {
         title: 'Plan each lesson',
         description:
-          'Click the pencil icon on a lesson to open the editor. Select at least one objective (from the class goals), at least one skill, and assign the instructor(s), then save.',
+          'Click the pencil on a lesson to open the editor. Choose at least one objective (from the class goals) and at least one skill the lesson covers, then save. Date, time, and duration come from the class.',
       },
       {
         title: 'Add activities',
@@ -53,9 +51,31 @@ const guides: Guide[] = [
         ],
       },
       {
-        title: 'Move to the next class',
+        title: 'Repeat for every lesson',
         description:
-          'Repeat steps 5–6 until every lesson is planned, then go back to step 1 and pick another class.',
+          'Work through each lesson until it’s Planned, then move on to your next class.',
+      },
+    ],
+  },
+  {
+    slug: 'stage-instructors',
+    title: 'Assigning instructors to a stage (admins)',
+    intro:
+      'Instructors are staffed per stage, not per lesson. A stage has one lead and any number of assistants; every class and lesson in the stage follows that staffing.',
+    steps: [
+      {
+        title: 'Open the stage',
+        description: 'Go to Programs, open a level, and expand the stage you want to staff.',
+      },
+      {
+        title: 'Manage instructors',
+        description:
+          'In the stage’s Instructors panel, click Manage.',
+      },
+      {
+        title: 'Choose the lead and assistants',
+        description:
+          'Pick one lead instructor and any assistant instructors, then Save. The lead can generate and plan lessons for the stage’s classes; assistants get read-only access.',
       },
     ],
   },

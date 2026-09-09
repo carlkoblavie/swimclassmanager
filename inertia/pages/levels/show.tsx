@@ -318,8 +318,6 @@ export default function LevelsShow({
                                 sourceClass={swimmingClass}
                                 levels={[level]}
                                 termOptions={termOptions}
-                                instructorOptions={instructorOptions}
-                                pendingInstructorOptions={pendingInstructorOptions}
                                 skillOptions={skillBankSkills}
                                 redirectBack
                                 onCancel={() => setDuplicateClassId(null)}
@@ -338,8 +336,6 @@ export default function LevelsShow({
                               level={level}
                               initialStageId={stage.id}
                               termOptions={termOptions}
-                              instructorOptions={instructorOptions}
-                              pendingInstructorOptions={pendingInstructorOptions}
                               skillOptions={skillBankSkills}
                               onClose={() => setAddStageId(null)}
                             />

@@ -17,13 +17,7 @@ export default class LearnersController {
           .preload('termPayments', (paymentQuery) => paymentQuery.preload('term'))
           .preload('lessons', (lessonQuery) => lessonQuery.orderBy('date'))
           .preload('swimmingClass', (classQuery) =>
-            classQuery
-              .preload('levelStage', (stageQuery) => stageQuery.preload('skills'))
-              .preload('classInstructors', (instructorQuery) =>
-                instructorQuery.preload('membership', (membershipQuery) =>
-                  membershipQuery.preload('user')
-                )
-              )
+            classQuery.preload('levelStage', (stageQuery) => stageQuery.preload('skills'))
           )
           .orderBy('createdAt', 'desc')
       )

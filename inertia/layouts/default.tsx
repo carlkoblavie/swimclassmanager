@@ -198,12 +198,14 @@ export default function Layout({ children }: { children: ReactElement<Data.Share
                 icon={<IconLayoutDashboard size={18} stroke={1.6} />}
                 active={url === '/dashboard'}
               />
-              <SidebarLink
-                route="programs.index"
-                label="Programs"
-                icon={<IconStack2 size={18} stroke={1.6} />}
-                active={url.startsWith('/programs')}
-              />
+              <Guard for="program.manage">
+                <SidebarLink
+                  route="programs.index"
+                  label="Programs"
+                  icon={<IconStack2 size={18} stroke={1.6} />}
+                  active={url.startsWith('/programs')}
+                />
+              </Guard>
               <Guard for="class.view">
                 <SidebarLink
                   route="swimming_classes.index"

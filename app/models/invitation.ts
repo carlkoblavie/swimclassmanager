@@ -4,7 +4,7 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { InvitationSchema } from '#database/schema'
 import School from '#models/school'
 import Role from '#models/role'
-import ClassInstructor from '#models/class_instructor'
+import StageInstructor from '#models/stage_instructor'
 
 export default class Invitation extends InvitationSchema {
   @column({
@@ -19,8 +19,8 @@ export default class Invitation extends InvitationSchema {
   @belongsTo(() => Role)
   declare role: BelongsTo<typeof Role>
 
-  @hasMany(() => ClassInstructor)
-  declare classInstructors: HasMany<typeof ClassInstructor>
+  @hasMany(() => StageInstructor)
+  declare stageInstructors: HasMany<typeof StageInstructor>
 
   get inviteeFullName(): string | null {
     const name = [this.inviteeFirstName, this.inviteeLastName]

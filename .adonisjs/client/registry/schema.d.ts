@@ -955,28 +955,28 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['copyActivities']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
-  'class_lessons.assign_instructors': {
+  'class_lessons.update_plan': {
     methods: ["PATCH"]
-    pattern: '/class-lessons/:id/instructors'
+    pattern: '/class-lessons/:id/plan'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').assignLessonInstructorsValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').updateLessonPlanValidator)>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').assignLessonInstructorsValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['assignInstructors']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['assignInstructors']>>> | { status: 422; response: { errors: SimpleError[] } }
+      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').updateLessonPlanValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['updatePlan']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['updatePlan']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
-  'class_lessons.bulk_assign_instructors': {
-    methods: ["POST"]
-    pattern: '/class-lessons/bulk-assign-instructors'
+  'stages.assign_instructors': {
+    methods: ["PATCH"]
+    pattern: '/stages/instructors'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').bulkAssignLessonInstructorsValidator)>>
+      body: ExtractBody<InferInput<(typeof import('#validators/swimming_class').assignStageInstructorsValidator)>>
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').bulkAssignLessonInstructorsValidator)>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['bulkAssignInstructors']>>>
-      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['bulkAssignInstructors']>>> | { status: 422; response: { errors: SimpleError[] } }
+      query: ExtractQuery<InferInput<(typeof import('#validators/swimming_class').assignStageInstructorsValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/stage_instructors_controller').default['update']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/stage_instructors_controller').default['update']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
   'class_lessons.destroy': {

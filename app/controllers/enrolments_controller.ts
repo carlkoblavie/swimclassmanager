@@ -91,18 +91,15 @@ export default class EnrolmentsController {
       )
       .orderBy('id')
 
+    // Instructors only see enrollments in classes whose stage they staff.
     if (isInstructor && membership) {
       enrollmentsQuery.whereHas('swimmingClass', (classQuery) => {
-        classQuery.where((assignedClassQuery) => {
-          assignedClassQuery
-            .whereHas('classInstructors', (instructorsQuery) =>
-              instructorsQuery.where('membershipId', membership.id)
-            )
-            .orWhereHas('lessons', (lessonsQuery) =>
-              lessonsQuery.whereHas('lessonInstructors', (instructorsQuery) =>
-                instructorsQuery.where('membershipId', membership.id)
-              )
-            )
+        classQuery.whereExists((existsQuery) => {
+          existsQuery
+            .from('stage_instructors')
+            .whereColumn('stage_instructors.level_stage_id', 'swimming_classes.level_stage_id')
+            .where('stage_instructors.school_id', school.id)
+            .where('stage_instructors.membership_id', membership.id)
         })
       })
     }

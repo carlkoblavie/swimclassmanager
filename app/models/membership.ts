@@ -6,8 +6,7 @@ import { MembershipSchema } from '#database/schema'
 import School from '#models/school'
 import User from '#models/user'
 import Role from '#models/role'
-import ClassInstructor from '#models/class_instructor'
-import LessonInstructor from '#models/lesson_instructor'
+import StageInstructor from '#models/stage_instructor'
 
 export default class Membership extends compose(
   MembershipSchema,
@@ -29,9 +28,6 @@ export default class Membership extends compose(
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 
-  @hasMany(() => ClassInstructor)
-  declare classInstructors: HasMany<typeof ClassInstructor>
-
-  @hasMany(() => LessonInstructor)
-  declare lessonInstructors: HasMany<typeof LessonInstructor>
+  @hasMany(() => StageInstructor)
+  declare stageInstructors: HasMany<typeof StageInstructor>
 }

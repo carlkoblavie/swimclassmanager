@@ -1,17 +1,46 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import ClassLesson from '#models/class_lesson'
-import School from '#models/school'
 import SwimmingClass from '#models/swimming_class'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
 import Membership from '#models/membership'
+import StageInstructor from '#models/stage_instructor'
+import { ClassInstructorRole } from '#values/class_instructor_role'
 import { RoleName } from '#values/role'
+
+/**
+ * True when the user may manage (generate/plan/remove) lessons for a class:
+ * managers always, instructors only when they lead the class's stage.
+ */
+async function canManageStageLessons(
+  schoolId: number,
+  userId: number,
+  levelStageId: number
+): Promise<boolean> {
+  const membership = await Membership.query()
+    .where('schoolId', schoolId)
+    .where('userId', userId)
+    .preload('roles')
+    .first()
+  const isInstructor = membership?.roles.some(
+    (role) => role.name === RoleName.TEACHER || role.name === RoleName.ASSISTANT_COACH
+  )
+  if (!isInstructor || !membership) {
+    return true
+  }
+  const lead = await StageInstructor.query()
+    .where('schoolId', schoolId)
+    .where('levelStageId', levelStageId)
+    .where('membershipId', membership.id)
+    .where('role', ClassInstructorRole.LEAD)
+    .first()
+  return Boolean(lead)
+}
 import {
-  assignLessonInstructorsValidator,
-  bulkAssignLessonInstructorsValidator,
   copyLessonActivitiesValidator,
   storeClassLessonValidator,
   updateLessonActivitiesValidator,
+  updateLessonPlanValidator,
 } from '#validators/swimming_class'
 
 async function lessonForUser(lessonId: number, schoolId: number, userId: number) {
@@ -27,9 +56,18 @@ async function lessonForUser(lessonId: number, schoolId: number, userId: number)
   const query = ClassLesson.query()
     .where('id', lessonId)
     .whereHas('swimmingClass', (classQuery) => classQuery.where('schoolId', schoolId))
+  // Only the LEAD instructor of a stage may edit its lessons; supporting
+  // instructors are read-only. Managers (non-instructors) bypass this.
   if (isInstructor && membership) {
-    query.whereHas('lessonInstructors', (instructorsQuery) =>
-      instructorsQuery.where('membershipId', membership.id)
+    query.whereHas('swimmingClass', (classQuery) =>
+      classQuery.whereExists((existsQuery) => {
+        existsQuery
+          .from('stage_instructors')
+          .whereColumn('stage_instructors.level_stage_id', 'swimming_classes.level_stage_id')
+          .where('stage_instructors.school_id', schoolId)
+          .where('stage_instructors.membership_id', membership.id)
+          .where('stage_instructors.role', ClassInstructorRole.LEAD)
+      })
     )
   }
 
@@ -45,11 +83,17 @@ export default class ClassLessonsController {
     { auth, request, response, params, session }: HttpContext,
     authoring: ClassSeriesAuthoringService
   ) {
-    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const user = auth.getUserOrFail()
+    const schoolId = user.activeSchoolId!
     const swimmingClass = await SwimmingClass.query()
       .where('id', params.id)
       .where('schoolId', schoolId)
       .firstOrFail()
+
+    if (!(await canManageStageLessons(schoolId, user.id, swimmingClass.levelStageId))) {
+      session.flash('error', 'Only the lead instructor for this stage can plan its lessons.')
+      return response.redirect().back()
+    }
 
     const payload = await request.validateUsing(storeClassLessonValidator)
     const lesson = await authoring.planLesson(swimmingClass, payload)
@@ -125,45 +169,20 @@ export default class ClassLessonsController {
     return response.redirect().back()
   }
 
-  /** Assign a lead instructor and optional supporting instructors to one lesson. */
+  /** Update one lesson's plan: date/time, objectives, and skills. */
   @inject()
-  async assignInstructors(
+  async updatePlan(
     { auth, request, response, params, session }: HttpContext,
     authoring: ClassSeriesAuthoringService
   ) {
-    const school = await School.findOrFail(auth.getUserOrFail().activeSchoolId!)
-    const lesson = await lessonForUser(params.id, school.id, auth.getUserOrFail().id)
+    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const lesson = await lessonForUser(params.id, schoolId, auth.getUserOrFail().id)
 
-    const payload = await request.validateUsing(assignLessonInstructorsValidator)
-    await authoring.assignLessonInstructors(lesson, school, payload)
+    const payload = await request.validateUsing(updateLessonPlanValidator)
+    await authoring.updateLessonPlan(lesson, payload)
 
-    session.flash('success', 'Lesson instructors updated.')
+    session.flash('success', 'Lesson updated.')
     return response.redirect().toPath(`/classes/${lesson.swimmingClassId}?lessonId=${lesson.id}`)
-  }
-
-  /** Assign the same lead and supporting instructors to multiple lessons. */
-  @inject()
-  async bulkAssignInstructors(
-    { auth, request, response, session }: HttpContext,
-    authoring: ClassSeriesAuthoringService
-  ) {
-    const school = await School.findOrFail(auth.getUserOrFail().activeSchoolId!)
-    const payload = await request.validateUsing(bulkAssignLessonInstructorsValidator)
-    const lessons = await ClassLesson.query()
-      .whereIn('id', payload.lessonIds)
-      .whereHas('swimmingClass', (classQuery) => classQuery.where('schoolId', school.id))
-
-    if (lessons.length !== payload.lessonIds.length) {
-      return response.redirect().back()
-    }
-
-    await authoring.bulkAssignLessonInstructors(lessons, school, payload)
-
-    session.flash(
-      'success',
-      `Instructors assigned to ${lessons.length} ${lessons.length === 1 ? 'lesson' : 'lessons'}.`
-    )
-    return response.redirect().back()
   }
 
   /**
@@ -174,11 +193,18 @@ export default class ClassLessonsController {
     { auth, response, params, session }: HttpContext,
     authoring: ClassSeriesAuthoringService
   ) {
-    const schoolId = auth.getUserOrFail().activeSchoolId!
+    const user = auth.getUserOrFail()
+    const schoolId = user.activeSchoolId!
     const lesson = await ClassLesson.query()
       .where('id', params.id)
       .whereHas('swimmingClass', (classQuery) => classQuery.where('schoolId', schoolId))
+      .preload('swimmingClass')
       .firstOrFail()
+
+    if (!(await canManageStageLessons(schoolId, user.id, lesson.swimmingClass.levelStageId))) {
+      session.flash('error', 'Only the lead instructor for this stage can remove its lessons.')
+      return response.redirect().back()
+    }
 
     const classId = lesson.swimmingClassId
     await authoring.removeLesson(lesson)
