@@ -114,6 +114,29 @@ export class EnrollmentLessonSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
+export class EnrollmentStageSchema extends BaseModel {
+  static $columns = ['completedAt', 'createdAt', 'enrollmentId', 'id', 'levelStageId', 'position', 'startedAt', 'status', 'updatedAt'] as const
+  $columns = EnrollmentStageSchema.$columns
+  @column.date()
+  declare completedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare enrollmentId: number
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare levelStageId: number
+  @column()
+  declare position: number
+  @column.date()
+  declare startedAt: DateTime | null
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
 export class EnrollmentSchema extends BaseModel {
   static $columns = ['createdAt', 'currency', 'id', 'learnerId', 'levelId', 'price', 'publicId', 'reservedUntil', 'schoolId', 'startDate', 'status', 'swimYearId', 'swimmingClassId', 'termId', 'updatedAt'] as const
   $columns = EnrollmentSchema.$columns
@@ -207,6 +230,23 @@ export class LearnerSchema extends BaseModel {
   declare signupId: number
   @column()
   declare swimmingExperience: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
+}
+
+export class LessonAttendanceSchema extends BaseModel {
+  static $columns = ['classLessonId', 'createdAt', 'id', 'learnerId', 'status', 'updatedAt'] as const
+  $columns = LessonAttendanceSchema.$columns
+  @column()
+  declare classLessonId: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare learnerId: number
+  @column()
+  declare status: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }

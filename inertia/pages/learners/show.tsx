@@ -165,38 +165,62 @@ export default function LearnerShow({ profile }: PageProps) {
                   {currentEnrollment ? (
                     <>
                       <div>
-                        <Title order={3}>{classInfo?.name ?? 'Not placed in a class'}</Title>
-                        <Text c="dimmed" mt={2}>
-                          {currentEnrollment.levelName} · {currentEnrollment.stageName}
+                        <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.1em">
+                          Signed up for
                         </Text>
+                        <Title order={3} mt={2}>
+                          {currentEnrollment.levelName}
+                        </Title>
                       </div>
-                      <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                      <div>
+                        <Text size="sm" fw={700} mb="xs">
+                          Assigned stages
+                          {currentEnrollment.stageLevelName
+                            ? ` · ${currentEnrollment.stageLevelName}`
+                            : ''}
+                        </Text>
+                        {currentEnrollment.stages.length > 0 ? (
+                          <Group gap={6} wrap="wrap">
+                            {currentEnrollment.stages.map((stage, index) => (
+                              <Badge
+                                key={`${stage.name}-${index}`}
+                                color={
+                                  stage.status === 'completed'
+                                    ? 'teal'
+                                    : stage.status === 'current'
+                                      ? 'blue'
+                                      : 'gray'
+                                }
+                                variant={stage.status === 'current' ? 'filled' : 'light'}
+                                radius="sm"
+                              >
+                                {stage.name}
+                              </Badge>
+                            ))}
+                          </Group>
+                        ) : (
+                          <Text c="dimmed" size="sm">
+                            Not assigned to any stages yet.
+                          </Text>
+                        )}
+                      </div>
+                      <SimpleGrid cols={{ base: 1, sm: 2 }}>
                         <InfoItem
-                          label="Schedule"
+                          label="Lead instructor"
+                          value={currentEnrollment.leadInstructor ?? 'Not assigned'}
+                        />
+                        <InfoItem
+                          label="Assistants"
                           value={
-                            classInfo
-                              ? [classInfo.weekday, classInfo.startTime]
-                                  .filter(Boolean)
-                                  .join(' · ') || 'Not set'
-                              : 'Not set'
+                            currentEnrollment.assistantInstructors.length > 0
+                              ? currentEnrollment.assistantInstructors.join(', ')
+                              : 'None'
                           }
                         />
-                        <InfoItem
-                          label="Duration"
-                          value={classInfo ? `${classInfo.durationMinutes} min` : '—'}
-                        />
-                        <InfoItem
-                          label="Instructor"
-                          value={classInfo?.instructor ?? 'Not assigned'}
-                        />
                       </SimpleGrid>
-                      <Text size="sm" c="dimmed">
-                        Enrolled {currentEnrollment.startDate ?? 'date not recorded'}
-                        {currentEnrollment.termName ? ` · ${currentEnrollment.termName}` : ''}
-                      </Text>
                     </>
                   ) : (
-                    <Text c="dimmed">This learner has not been placed in a class yet.</Text>
+                    <Text c="dimmed">This learner has no enrollment yet.</Text>
                   )}
                 </Stack>
               </Card>

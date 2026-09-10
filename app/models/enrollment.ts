@@ -10,6 +10,7 @@ import TermPayment from '#models/term_payment'
 import SwimmingClass from '#models/swimming_class'
 import Term from '#models/term'
 import ClassLesson from '#models/class_lesson'
+import EnrollmentStage from '#models/enrollment_stage'
 
 export default class Enrollment extends EnrollmentSchema {
   @beforeCreate()
@@ -39,6 +40,9 @@ export default class Enrollment extends EnrollmentSchema {
 
   @hasMany(() => TermPayment)
   declare termPayments: HasMany<typeof TermPayment>
+
+  @hasMany(() => EnrollmentStage)
+  declare enrollmentStages: HasMany<typeof EnrollmentStage>
 
   @manyToMany(() => ClassLesson, {
     pivotTable: 'enrollment_lessons',

@@ -3,33 +3,20 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import Enrollment from '#models/enrollment'
 import Membership from '#models/membership'
+import Program from '#models/program'
 import School from '#models/school'
 import SwimYear from '#models/swim_year'
-import SwimmingClass from '#models/swimming_class'
 import LearnerEnrolmentService from '#services/learner_enrolment_service'
-import { placeLearnersValidator, withdrawLearnerValidator } from '#validators/enrolment'
-import { EnrollmentStatus } from '#values/enrollment_status'
-import { PaymentStatus } from '#values/payment_status'
+import EnrollmentStageService from '#services/enrollment_stage_service'
+import EnrollmentException from '#exceptions/enrollment_exception'
+import {
+  advanceStageValidator,
+  assignStagesValidator,
+  clearStagesValidator,
+  placeLearnersValidator,
+  withdrawLearnerValidator,
+} from '#validators/enrolment'
 import { RoleName } from '#values/role'
-
-const WEEKDAY_NAMES: Record<number, string> = {
-  1: 'Mon',
-  2: 'Tue',
-  3: 'Wed',
-  4: 'Thu',
-  5: 'Fri',
-  6: 'Sat',
-  7: 'Sun',
-}
-
-function formatTime(value: string | null): string | null {
-  if (!value) {
-    return null
-  }
-
-  const parsed = DateTime.fromFormat(value, 'HH:mm')
-  return parsed.isValid ? parsed.toFormat('h:mm a') : value
-}
 
 function ageFromDateOfBirth(dateOfBirth: DateTime): number {
   const today = DateTime.now()
@@ -50,7 +37,6 @@ export default class EnrolmentsController {
       .preload('terms', (termsQuery) => termsQuery.orderBy('position'))
       .orderBy('startsOn')
     const swimYear = swimYears.find((year) => year.status === 'current') ?? swimYears[0] ?? null
-    const term = swimYear?.terms[0] ?? null
     const membership = await Membership.query()
       .where('schoolId', school.id)
       .where('userId', user.id)
@@ -60,86 +46,73 @@ export default class EnrolmentsController {
       (role) => role.name === RoleName.TEACHER || role.name === RoleName.ASSISTANT_COACH
     )
 
-    if (!swimYear || !term) {
+    if (!swimYear) {
       return inertia.render('enrolment/index', {
         schoolName: school.name,
         swimYear: null,
         learners: [],
-        classes: [],
       })
     }
 
+    // Every signup for this swim year, regardless of payment. Instructors see
+    // only learners whose current/assigned stages they staff.
     const enrollmentsQuery = Enrollment.query()
       .where('schoolId', school.id)
       .where('swimYearId', swimYear.id)
-      .where('termId', term.id)
-      .where((enrollmentQuery) =>
-        enrollmentQuery
-          .where('status', EnrollmentStatus.ACTIVE)
-          .orWhereHas('termPayments', (paymentQuery) =>
-            paymentQuery.where('termId', term.id).where('status', PaymentStatus.PARTIAL)
-          )
-      )
       .preload('learner', (learnerQuery) => learnerQuery.preload('signup'))
-      .preload('level')
-      .preload('termPayments', (paymentQuery) => paymentQuery.where('termId', term.id))
-      .preload('lessons', (lessonQuery) => lessonQuery.orderBy('date'))
-      .preload('swimmingClass', (classQuery) =>
-        classQuery
-          .preload('level', (levelQuery) => levelQuery.preload('program'))
-          .preload('levelStage')
+      .preload('level', (levelQuery) =>
+        levelQuery.preload('stages', (stagesQuery) => stagesQuery.orderBy('position'))
+      )
+      .preload('enrollmentStages', (stageQuery) =>
+        stageQuery.preload('levelStage', (ls) => ls.preload('level')).orderBy('position')
       )
       .orderBy('id')
 
-    // Instructors only see enrollments in classes whose stage they staff.
     if (isInstructor && membership) {
-      enrollmentsQuery.whereHas('swimmingClass', (classQuery) => {
-        classQuery.whereExists((existsQuery) => {
+      enrollmentsQuery.whereHas('enrollmentStages', (stageQuery) => {
+        stageQuery.whereExists((existsQuery) => {
           existsQuery
             .from('stage_instructors')
-            .whereColumn('stage_instructors.level_stage_id', 'swimming_classes.level_stage_id')
+            .whereColumn('stage_instructors.level_stage_id', 'enrollment_stages.level_stage_id')
             .where('stage_instructors.school_id', school.id)
             .where('stage_instructors.membership_id', membership.id)
         })
       })
     }
 
-    const [enrollments, classes] = await Promise.all([
-      enrollmentsQuery,
-      SwimmingClass.query()
-        .where('schoolId', school.id)
-        .whereNull('cancelledAt')
-        .where('termId', term.id)
-        .preload('level', (levelQuery) => levelQuery.preload('program'))
-        .preload('levelStage')
-        .preload('term')
-        .preload('lessons', (lessonQuery) =>
-          lessonQuery
-            .where('date', '>=', term.startsOn.toISODate()!)
-            .where('date', '<=', term.endsOn.toISODate()!)
-            .orderBy('date')
-        )
-        .orderBy('name'),
-    ])
+    // The school's curriculum catalog for the Program → Level → Stage picker.
+    const programs = await Program.query()
+      .withScopes((scopes) => scopes.active())
+      .preload('levels', (levelQuery) =>
+        levelQuery
+          .preload('schoolLevelSettings', (settingsQuery) =>
+            settingsQuery.where('schoolId', school.id)
+          )
+          .preload('stages', (stagesQuery) => stagesQuery.orderBy('position'))
+          .orderBy('id')
+      )
+      .orderBy('name')
 
-    const placementsByClass = new Map<number, number>()
-    for (const enrollment of enrollments) {
-      if (enrollment.swimmingClassId) {
-        placementsByClass.set(
-          enrollment.swimmingClassId,
-          (placementsByClass.get(enrollment.swimmingClassId) ?? 0) + 1
-        )
-      }
-    }
+    const enrollments = await enrollmentsQuery
 
     return inertia.render('enrolment/index', {
       schoolName: school.name,
-      swimYear: {
-        id: swimYear.id,
-        name: swimYear.name,
-        termName: term.name,
-        termStartDate: term.startsOn.toISODate() ?? '',
-      },
+      swimYear: { id: swimYear.id, name: swimYear.name },
+      catalog: programs.map((program) => ({
+        id: program.id,
+        name: program.name,
+        levels: program.levels
+          .filter((level) => (level.schoolLevelSettings?.[0]?.available ?? true) !== false)
+          .map((level) => ({
+            id: level.id,
+            name: level.name,
+            stages: (level.stages ?? []).map((stage) => ({
+              id: stage.id,
+              name: stage.name,
+              position: stage.position,
+            })),
+          })),
+      })),
       learners: enrollments.map((enrollment) => ({
         id: enrollment.learnerId,
         enrollmentId: enrollment.id,
@@ -148,49 +121,17 @@ export default class EnrolmentsController {
           `${enrollment.learner.firstName[0] ?? ''}${enrollment.learner.lastName[0] ?? ''}`.toUpperCase(),
         age: ageFromDateOfBirth(enrollment.learner.dateOfBirth),
         guardianName: enrollment.learner.signup?.contactName ?? 'Adult learner',
-        paymentStatus: enrollment.termPayments.some(
-          (payment) =>
-            payment.status === PaymentStatus.PARTIAL ||
-            (payment.amountPaid > 0 && payment.amountPaid < payment.amount)
-        )
-          ? 'part_paid'
-          : 'paid',
-        level: { id: enrollment.levelId, name: enrollment.level.name },
-        startDate: enrollment.startDate?.toISODate() ?? null,
-        startDateLabel: enrollment.startDate?.toFormat('ccc d LLL') ?? null,
-        lessonIds: enrollment.lessons.map((lesson) => lesson.id),
-        class: enrollment.swimmingClass
-          ? {
-              id: enrollment.swimmingClass.id,
-              name: enrollment.swimmingClass.name,
-              levelName: enrollment.swimmingClass.level?.name ?? 'Class',
-              stageName: enrollment.swimmingClass.levelStage?.name ?? 'Stage not set',
-            }
-          : null,
+        // The level the learner signed up for.
+        signupLevel: { id: enrollment.levelId, name: enrollment.level.name },
+        stages: enrollment.enrollmentStages.map((stage) => ({
+          levelStageId: stage.levelStageId,
+          name: stage.levelStage?.name ?? 'Stage',
+          levelId: stage.levelStage?.levelId ?? null,
+          levelName: stage.levelStage?.level?.name ?? null,
+          position: stage.position,
+          status: stage.status,
+        })),
       })),
-      classes: classes.map((swimmingClass) => {
-        const enrolledCount = placementsByClass.get(swimmingClass.id) ?? 0
-        const capacity = swimmingClass.level?.capacity ?? null
-        return {
-          id: swimmingClass.id,
-          name: swimmingClass.name,
-          levelId: swimmingClass.levelId,
-          levelName: swimmingClass.level?.name ?? 'Level not set',
-          stageName: swimmingClass.levelStage?.name ?? 'Stage not set',
-          programName: swimmingClass.level?.program?.name ?? '',
-          weekday: swimmingClass.weekday ? WEEKDAY_NAMES[swimmingClass.weekday] : null,
-          startTime: formatTime(swimmingClass.startTime),
-          durationMinutes: swimmingClass.durationMinutes,
-          capacity,
-          enrolledCount,
-          placesLeft: capacity === null ? null : Math.max(capacity - enrolledCount, 0),
-          lessons: swimmingClass.lessons.map((lesson) => ({
-            id: lesson.id,
-            date: lesson.date.toISODate() ?? '',
-            label: lesson.date.toFormat('ccc d LLL'),
-          })),
-        }
-      }),
     })
   }
 
@@ -220,5 +161,74 @@ export default class EnrolmentsController {
 
     session.flash('success', 'Learner withdrawn from class.')
     return response.redirect().toRoute('enrolment.index')
+  }
+
+  /** Assign a learner's enrollment to one or more stages of their level. */
+  @inject()
+  async assignStages(
+    { auth, request, response, session }: HttpContext,
+    stages: EnrollmentStageService
+  ) {
+    const user = auth.getUserOrFail()
+    const school = await School.findOrFail(user.activeSchoolId!)
+    const payload = await request.validateUsing(assignStagesValidator)
+
+    try {
+      await stages.assignStages(school, payload)
+      session.flash('success', 'Stages assigned.')
+    } catch (error) {
+      if (error instanceof EnrollmentException) {
+        session.flash('error', error.message)
+        return response.redirect().back()
+      }
+      throw error
+    }
+    return response.redirect().toRoute('enrolment.index')
+  }
+
+  /** Remove all of a learner's stage assignments (undo). */
+  @inject()
+  async removeStages(
+    { auth, request, response, session }: HttpContext,
+    stages: EnrollmentStageService
+  ) {
+    const user = auth.getUserOrFail()
+    const school = await School.findOrFail(user.activeSchoolId!)
+    const payload = await request.validateUsing(clearStagesValidator)
+
+    try {
+      await stages.clearStages(school, payload.enrollmentId)
+      session.flash('success', 'Stage assignment removed.')
+    } catch (error) {
+      if (error instanceof EnrollmentException) {
+        session.flash('error', error.message)
+        return response.redirect().back()
+      }
+      throw error
+    }
+    return response.redirect().toRoute('enrolment.index')
+  }
+
+  /** Mark the learner's current stage complete and advance to the next. */
+  @inject()
+  async advanceStage(
+    { auth, request, response, session }: HttpContext,
+    stages: EnrollmentStageService
+  ) {
+    const user = auth.getUserOrFail()
+    const school = await School.findOrFail(user.activeSchoolId!)
+    const payload = await request.validateUsing(advanceStageValidator)
+
+    try {
+      await stages.advanceStage(school, payload)
+      session.flash('success', 'Stage completed.')
+    } catch (error) {
+      if (error instanceof EnrollmentException) {
+        session.flash('error', error.message)
+        return response.redirect().back()
+      }
+      throw error
+    }
+    return response.redirect().back()
   }
 }

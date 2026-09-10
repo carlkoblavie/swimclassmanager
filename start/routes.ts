@@ -174,6 +174,18 @@ router
       .post('enrolment/withdraw', [controllers.Enrolments, 'withdraw'])
       .as('enrolment.withdraw')
       .use(middleware.authorize('enrolment.withdraw'))
+    router
+      .post('enrolment/stages', [controllers.Enrolments, 'assignStages'])
+      .as('enrolment.assign_stages')
+      .use(middleware.authorize('enrolment.place'))
+    router
+      .post('enrolment/stages/remove', [controllers.Enrolments, 'removeStages'])
+      .as('enrolment.remove_stages')
+      .use(middleware.authorize('enrolment.place'))
+    router
+      .post('enrolment/advance', [controllers.Enrolments, 'advanceStage'])
+      .as('enrolment.advance_stage')
+      .use(middleware.authorize('enrolment.place'))
   })
   .use(middleware.auth())
   .use(middleware.forcePasswordChange())
@@ -333,6 +345,17 @@ router
       .as('class_lessons.destroy')
       .where('id', router.matchers.number())
       .use(middleware.authorize('class.manage'))
+
+    router
+      .get('class-lessons/:id/attendance', [controllers.Attendance, 'show'])
+      .as('attendance.show')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('lesson.activities.manage'))
+    router
+      .post('class-lessons/:id/attendance', [controllers.Attendance, 'save'])
+      .as('attendance.save')
+      .where('id', router.matchers.number())
+      .use(middleware.authorize('lesson.activities.manage'))
   })
   .use(middleware.auth())
   .use(middleware.forcePasswordChange())

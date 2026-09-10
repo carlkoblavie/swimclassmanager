@@ -439,6 +439,42 @@ export interface Registry {
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/enrolments_controller').default['withdraw']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
+  'enrolment.assign_stages': {
+    methods: ["POST"]
+    pattern: '/enrolment/stages'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/enrolment').assignStagesValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/enrolment').assignStagesValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/enrolments_controller').default['assignStages']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/enrolments_controller').default['assignStages']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'enrolment.remove_stages': {
+    methods: ["POST"]
+    pattern: '/enrolment/stages/remove'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/enrolment').clearStagesValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/enrolment').clearStagesValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/enrolments_controller').default['removeStages']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/enrolments_controller').default['removeStages']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
+  'enrolment.advance_stage': {
+    methods: ["POST"]
+    pattern: '/enrolment/advance'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/enrolment').advanceStageValidator)>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#validators/enrolment').advanceStageValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/enrolments_controller').default['advanceStage']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/enrolments_controller').default['advanceStage']>>> | { status: 422; response: { errors: SimpleError[] } }
+    }
+  }
   'programs.index': {
     methods: ["GET","HEAD"]
     pattern: '/programs'
@@ -989,6 +1025,30 @@ export interface Registry {
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['destroy']>>>
       errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/class_lessons_controller').default['destroy']>>>
+    }
+  }
+  'attendance.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/class-lessons/:id/attendance'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/attendance_controller').default['show']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/attendance_controller').default['show']>>>
+    }
+  }
+  'attendance.save': {
+    methods: ["POST"]
+    pattern: '/class-lessons/:id/attendance'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#validators/attendance').saveAttendanceValidator)>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#validators/attendance').saveAttendanceValidator)>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/attendance_controller').default['save']>>>
+      errorResponse: ExtractErrorResponse<Awaited<ReturnType<import('#controllers/attendance_controller').default['save']>>> | { status: 422; response: { errors: SimpleError[] } }
     }
   }
 }

@@ -14,3 +14,21 @@ export const placeLearnersValidator = vine.create({
 export const withdrawLearnerValidator = vine.create({
   enrollmentId: vine.number().withoutDecimals().positive(),
 })
+
+// Assign a learner's enrollment to one or more stages of their level.
+export const assignStagesValidator = vine.create({
+  enrollmentId: vine.number().withoutDecimals().positive(),
+  levelStageIds: vine
+    .array(vine.number().withoutDecimals().positive())
+    .minLength(1)
+    .maxLength(50)
+    .distinct(),
+})
+
+export const advanceStageValidator = vine.create({
+  enrollmentId: vine.number().withoutDecimals().positive(),
+})
+
+export const clearStagesValidator = vine.create({
+  enrollmentId: vine.number().withoutDecimals().positive(),
+})

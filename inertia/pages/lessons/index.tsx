@@ -36,6 +36,7 @@ import {
 import { urlFor } from '~/client'
 import type { InertiaProps } from '~/types'
 import EditLessonInstructorsDrawer from '~/components/edit_lesson_instructors_drawer'
+import AttendanceDrawer from '~/components/attendance_drawer'
 import { Guard } from '~/utils/permissions'
 
 type PageProps = InertiaProps<{
@@ -292,6 +293,7 @@ export default function LessonsIndex({
   const [copySourceLessonId, setCopySourceLessonId] = useState<number | null>(null)
   const [copyTargetLessonIds, setCopyTargetLessonIds] = useState<number[]>([])
   const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
+  const [attendanceLessonId, setAttendanceLessonId] = useState<number | null>(null)
   const levelOptions = useMemo(() => levelOptionsFor(classes), [classes])
   const stageOptions = useMemo(() => stageOptionsFor(classes, levelFilter), [classes, levelFilter])
   const visibleClasses = useMemo(
@@ -848,6 +850,9 @@ export default function LessonsIndex({
                       selectedClass.lessons.findIndex((item) => item.id === lesson.id) + 1
                     const lessonDuration = lesson.durationMinutes ?? selectedClass.durationMinutes
                     const lessonEnd = endTime(scheduledStart, lessonDuration)
+                    // A lesson today or in the past is taught: take attendance,
+                    // and its plan can no longer be edited.
+                    const isPastOrToday = lesson.date.raw <= todayIso()
 
                     return (
                       <Box key={lesson.id}>
@@ -901,8 +906,15 @@ export default function LessonsIndex({
                           >
                             View lesson
                           </Button>
+                          {isPastOrToday && (
+                            <Guard for="lesson.activities.manage">
+                              <Button variant="light" onClick={() => setAttendanceLessonId(lesson.id)}>
+                                Take attendance
+                              </Button>
+                            </Guard>
+                          )}
                           <Group gap={2} wrap="nowrap">
-                            {canManageSelectedClass && (
+                            {!isPastOrToday && canManageSelectedClass && (
                               <Guard for="lesson.edit">
                                 <Tooltip label="Edit lesson">
                                   <ActionIcon
@@ -916,7 +928,7 @@ export default function LessonsIndex({
                                 </Tooltip>
                               </Guard>
                             )}
-                            {canManageSelectedClass && (
+                            {!isPastOrToday && canManageSelectedClass && (
                               <Guard for="lesson.activities.manage">
                                 {lesson.activities.length > 0 && (
                                   <Tooltip label="Copy activities">
@@ -932,7 +944,7 @@ export default function LessonsIndex({
                                 )}
                               </Guard>
                             )}
-                            {canManageSelectedClass && (
+                            {!isPastOrToday && canManageSelectedClass && (
                               <Guard for="class.manage">
                               <Form route="class_lessons.destroy" routeParams={{ id: lesson.id }}>
                                 {({ processing }) => (
@@ -1125,6 +1137,11 @@ export default function LessonsIndex({
             )
           }
         }}
+      />
+      <AttendanceDrawer
+        lessonId={attendanceLessonId}
+        opened={Boolean(attendanceLessonId)}
+        onClose={() => setAttendanceLessonId(null)}
       />
     </Container>
   )

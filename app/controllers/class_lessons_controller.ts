@@ -1,5 +1,6 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
 import ClassLesson from '#models/class_lesson'
 import SwimmingClass from '#models/swimming_class'
 import ClassSeriesAuthoringService from '#services/class_series_authoring_service'
@@ -203,6 +204,13 @@ export default class ClassLessonsController {
 
     if (!(await canManageStageLessons(schoolId, user.id, lesson.swimmingClass.levelStageId))) {
       session.flash('error', 'Only the lead instructor for this stage can remove its lessons.')
+      return response.redirect().back()
+    }
+
+    // A lesson that has already been taught (today or in the past) can't be
+    // removed — take attendance instead.
+    if (lesson.date.toISODate()! <= DateTime.now().toISODate()!) {
+      session.flash('error', 'Past lessons can’t be removed.')
       return response.redirect().back()
     }
 

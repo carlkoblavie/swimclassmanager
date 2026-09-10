@@ -37,4 +37,5 @@ export const controllers = {
   Release: () => import('#controllers/release_controller'),
   Docs: () => import('#controllers/docs_controller'),
   StageInstructors: () => import('#controllers/stage_instructors_controller'),
+  Attendance: () => import('#controllers/attendance_controller'),
 }

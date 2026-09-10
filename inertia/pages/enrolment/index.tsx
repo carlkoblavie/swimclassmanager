@@ -1,47 +1,40 @@
-import { Form, Link } from '@adonisjs/inertia/react'
+import { Link } from '@adonisjs/inertia/react'
 import { router } from '@inertiajs/react'
 import {
-  Avatar,
   Anchor,
+  Avatar,
+  Badge,
   Box,
   Button,
-  Card,
   Checkbox,
   Container,
   Divider,
   Drawer,
   Group,
-  Radio,
-  ScrollArea,
-  SegmentedControl,
-  Select,
+  NativeSelect,
   Stack,
-  Table,
+  Tabs,
   Text,
   TextInput,
   Title,
-  UnstyledButton,
 } from '@mantine/core'
-import { IconCalendar, IconSearch, IconX } from '@tabler/icons-react'
-import { useMemo, useState } from 'react'
+import { IconSearch } from '@tabler/icons-react'
+import { useEffect, useMemo, useState } from 'react'
 import type { InertiaProps } from '~/types'
 import { urlFor } from '~/client'
 import { Guard } from '~/utils/permissions'
 
-type EnrolmentClass = {
-  id: number
+type CatalogStage = { id: number; name: string; position: number }
+type CatalogLevel = { id: number; name: string; stages: CatalogStage[] }
+type CatalogProgram = { id: number; name: string; levels: CatalogLevel[] }
+
+type AssignedStage = {
+  levelStageId: number
   name: string
-  levelId: number
-  levelName: string
-  stageName: string
-  programName: string
-  weekday: string | null
-  startTime: string | null
-  durationMinutes: number
-  capacity: number | null
-  enrolledCount: number
-  placesLeft: number | null
-  lessons: { id: number; date: string; label: string }[]
+  levelId: number | null
+  levelName: string | null
+  position: number
+  status: 'upcoming' | 'current' | 'completed'
 }
 
 type Learner = {
@@ -51,611 +44,449 @@ type Learner = {
   initials: string
   age: number
   guardianName: string
-  paymentStatus: 'paid' | 'part_paid'
-  level: { id: number; name: string }
-  startDate: string | null
-  startDateLabel: string | null
-  lessonIds: number[]
-  class: { id: number; name: string; levelName: string; stageName: string } | null
+  signupLevel: { id: number; name: string }
+  stages: AssignedStage[]
 }
 
 type PageProps = InertiaProps<{
   schoolName: string
-  swimYear: { id: number; name: string; termName: string; termStartDate: string } | null
+  swimYear: { id: number; name: string } | null
+  catalog: CatalogProgram[]
   learners: Learner[]
-  classes: EnrolmentClass[]
 }>
 
-type LearnerFilter = 'unplaced' | 'enrolled' | 'all'
+type Progress = 'unassigned' | 'assigned'
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+function learnerProgress(learner: Learner): Progress {
+  return learner.stages.length === 0 ? 'unassigned' : 'assigned'
 }
 
-function classSchedule(swimmingClass: EnrolmentClass) {
-  return [swimmingClass.weekday, swimmingClass.startTime].filter(Boolean).join(' · ')
-}
-
-function lessonsFromDate(swimmingClass: EnrolmentClass, startDate: string) {
-  return swimmingClass.lessons.filter((lesson) => lesson.date >= startDate)
-}
-
-function ClassOption({
-  swimmingClass,
-  learner,
-  checked,
-  onClick,
-}: {
-  swimmingClass: EnrolmentClass
-  learner: Learner
-  checked: boolean
-  onClick: () => void
-}) {
-  const differentLevel = swimmingClass.levelId !== learner.level.id
-  const full = swimmingClass.placesLeft !== null && swimmingClass.placesLeft === 0 && !checked
-
+function StageBadges({ stages }: { stages: AssignedStage[] }) {
+  if (stages.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No stages assigned
+      </Text>
+    )
+  }
+  const levelName = stages[0].levelName
   return (
-    <UnstyledButton type="button" onClick={onClick} disabled={full} w="100%">
-      <Card
-        withBorder
-        padding="md"
-        radius="md"
-        style={{
-          borderColor: checked ? 'var(--mantine-color-blue-6)' : undefined,
-          opacity: full ? 0.55 : 1,
-        }}
-      >
-        <Group gap="sm" wrap="nowrap" align="flex-start">
-          <Radio checked={checked} readOnly aria-label={swimmingClass.name} mt={2} />
-          <Box style={{ minWidth: 0, flex: 1 }}>
-            <Group justify="space-between" wrap="nowrap" gap="xs">
-              <Text fw={800} truncate>
-                {swimmingClass.name}
-              </Text>
-              <Text size="sm" c="dimmed" style={{ flexShrink: 0 }}>
-                {full
-                  ? 'Full'
-                  : swimmingClass.placesLeft === null
-                    ? 'Open'
-                    : `${swimmingClass.placesLeft} left`}
-              </Text>
-            </Group>
-            <Text size="sm" c="blue.7" mt={3}>
-              {swimmingClass.levelName} {'>'} {swimmingClass.stageName}
-            </Text>
-            <Text size="sm" c="dimmed" mt={2}>
-              {classSchedule(swimmingClass) || 'Schedule not set'} · {swimmingClass.durationMinutes}{' '}
-              min
-              {differentLevel ? ` · different level to ${learner.name}` : ''}
-            </Text>
-          </Box>
-        </Group>
-      </Card>
-    </UnstyledButton>
+    <Group gap={6} wrap="wrap" align="center">
+      {levelName && (
+        <Text size="sm" fw={600} c="gray.7">
+          {levelName}:
+        </Text>
+      )}
+      {stages.map((stage) => (
+        <Badge key={stage.levelStageId} color="aqua" variant="light" radius="sm">
+          {stage.name}
+        </Badge>
+      ))}
+    </Group>
   )
 }
 
-function PlacementDrawer({
+function AssignStagesDrawer({
   learner,
-  classes,
-  startDate,
+  catalog,
   opened,
   onClose,
 }: {
   learner: Learner | null
-  classes: EnrolmentClass[]
-  startDate: string
+  catalog: CatalogProgram[]
   opened: boolean
   onClose: () => void
 }) {
-  const currentClass = learner?.class
-    ? (classes.find((swimmingClass) => swimmingClass.id === learner.class?.id) ?? null)
-    : null
-  const initialDate = learner?.startDate ?? startDate
-  const initialLessonIds =
-    learner?.lessonIds && learner.lessonIds.length > 0
-      ? learner.lessonIds
-      : currentClass
-        ? lessonsFromDate(currentClass, initialDate).map((lesson) => lesson.id)
-        : []
-  const [classId, setClassId] = useState<string | null>(() =>
-    learner?.class ? String(learner.class.id) : null
-  )
-  const [placementDate, setPlacementDate] = useState(initialDate)
-  const [selectedLessonIds, setSelectedLessonIds] = useState<number[]>(initialLessonIds)
-  const [lessonsOpen, setLessonsOpen] = useState(false)
-  const [withdrawing, setWithdrawing] = useState(false)
+  const [programId, setProgramId] = useState('')
+  const [levelId, setLevelId] = useState('')
+  const [selected, setSelected] = useState<number[]>([])
+  const [step, setStep] = useState<'select' | 'confirm'>('select')
+  const [saving, setSaving] = useState(false)
 
-  const selectedClass =
-    classes.find((swimmingClass) => String(swimmingClass.id) === classId) ?? null
-  const selectableLessons = selectedClass ? lessonsFromDate(selectedClass, placementDate) : []
-
-  function chooseClass(nextClassId: string) {
-    const nextClass = classes.find((swimmingClass) => String(swimmingClass.id) === nextClassId)
-    setClassId(nextClassId)
-    setSelectedLessonIds(
-      nextClass ? lessonsFromDate(nextClass, placementDate).map((lesson) => lesson.id) : []
-    )
-    setLessonsOpen(false)
-  }
-
-  function changePlacementDate(nextDate: string) {
-    setPlacementDate(nextDate)
-    if (selectedClass) {
-      const availableIds = new Set(
-        lessonsFromDate(selectedClass, nextDate).map((lesson) => lesson.id)
-      )
-      setSelectedLessonIds((current) => current.filter((lessonId) => availableIds.has(lessonId)))
+  // When a learner opens, default the drill-down to the level they're currently
+  // in (from their assigned stages) or their signup level, and reset the step.
+  useEffect(() => {
+    if (!learner || !opened) {
+      return
     }
+    const targetLevelId = learner.stages[0]?.levelId ?? learner.signupLevel.id
+    const program = catalog.find((p) => p.levels.some((l) => l.id === targetLevelId))
+    setProgramId(program ? String(program.id) : String(catalog[0]?.id ?? ''))
+    setLevelId(String(targetLevelId))
+    setSelected(learner.stages.map((stage) => stage.levelStageId))
+    setStep('select')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [learner?.enrollmentId, opened])
+
+  const program = catalog.find((p) => String(p.id) === programId)
+  const level = program?.levels.find((l) => String(l.id) === levelId)
+
+  const changeProgram = (value: string) => {
+    setProgramId(value)
+    const nextProgram = catalog.find((p) => String(p.id) === value)
+    const nextLevel = nextProgram?.levels[0]
+    setLevelId(nextLevel ? String(nextLevel.id) : '')
+    setSelected([])
   }
 
-  function withdrawFromClass() {
+  const changeLevel = (value: string) => {
+    setLevelId(value)
+    setSelected([])
+  }
+
+  const toggleAll = () => {
+    const ids = (level?.stages ?? []).map((stage) => stage.id)
+    setSelected((current) => (current.length === ids.length ? [] : ids))
+  }
+
+  const submit = () => {
     if (!learner) {
       return
     }
-
-    setWithdrawing(true)
+    setSaving(true)
     router.post(
-      urlFor('enrolment.withdraw'),
-      { enrollmentId: learner.enrollmentId },
-      { onFinish: () => setWithdrawing(false), onSuccess: onClose }
+      urlFor('enrolment.assign_stages'),
+      { enrollmentId: learner.enrollmentId, levelStageIds: selected },
+      { onSuccess: onClose, onFinish: () => setSaving(false) }
     )
   }
 
-  if (!learner) {
-    return null
+  const unassign = () => {
+    if (!learner) {
+      return
+    }
+    router.post(
+      urlFor('enrolment.remove_stages'),
+      { enrollmentId: learner.enrollmentId },
+      { onSuccess: onClose }
+    )
   }
 
   return (
-    <Drawer
-      opened={opened}
-      onClose={onClose}
-      position="right"
-      size={520}
-      padding={0}
-      withCloseButton={false}
-      title={null}
-    >
-      <Form route="enrolment.place" onSuccess={onClose}>
-        {({ processing }) => (
-          <Stack gap={0} mih="100%">
-            <Group justify="space-between" align="flex-start" p="lg">
-              <Group gap="sm" wrap="nowrap">
-                <Avatar color="blue" radius="xl" size="lg">
-                  {learner.initials}
-                </Avatar>
-                <Box>
-                  <Title order={2} fz="h3">
-                    {learner.name}
-                  </Title>
-                  <Text c="dimmed">
-                    {learner.level.name} · age {learner.age} · {learner.guardianName}
+    <Drawer opened={opened} onClose={onClose} position="right" size={480} title={null} padding={0}>
+      {learner && (
+        <Stack gap={0} mih="100%">
+          <Box p="lg">
+            <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
+              Assign stages
+            </Text>
+            <Title order={2} mt={4}>
+              {learner.name}
+            </Title>
+            <Text c="dimmed" mt={2}>
+              Signed up for {learner.signupLevel.name} · age {learner.age}
+            </Text>
+          </Box>
+          <Divider />
+
+          {step === 'select' ? (
+                <Stack gap="md" p="lg" style={{ flex: 1 }}>
+                  <Text size="sm" c="dimmed">
+                    Drill down to the level, then pick the stages to assign this learner to.
                   </Text>
-                </Box>
-              </Group>
-              <Button variant="subtle" color="gray" p={4} onClick={onClose} aria-label="Close">
-                <IconX size={20} />
-              </Button>
-            </Group>
-            <Divider />
 
-            <Stack gap="lg" p="lg" style={{ flex: 1 }}>
-              {learner.class && (
-                <Card withBorder radius="md" padding="md" bg="teal.0">
-                  <Group gap="sm" wrap="nowrap" align="flex-start">
-                    <Box
-                      w={8}
-                      h={8}
-                      mt={7}
-                      style={{
-                        flex: '0 0 auto',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--mantine-color-teal-6)',
-                      }}
-                    />
-                    <Text c="teal.8" size="sm">
-                      Currently in {learner.class.name} · {learner.class.levelName} ·{' '}
-                      {learner.class.stageName}
-                      {learner.startDateLabel ? `, since ${learner.startDateLabel}.` : '.'}
-                    </Text>
-                  </Group>
-                </Card>
-              )}
-              <Box>
-                <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
-                  {learner.class ? 'Move to' : 'Place in class'}
-                </Text>
-                <Radio.Group value={classId ?? ''} onChange={chooseClass} mt="sm">
-                  <Stack gap="sm">
-                    {classes.map((swimmingClass) => {
-                      const isSelected = String(swimmingClass.id) === classId
+                  <NativeSelect
+                    label="Program"
+                    value={programId}
+                    onChange={(event) => changeProgram(event.currentTarget.value)}
+                    data={catalog.map((p) => ({ value: String(p.id), label: p.name }))}
+                  />
+                  <NativeSelect
+                    label="Level"
+                    value={levelId}
+                    onChange={(event) => changeLevel(event.currentTarget.value)}
+                    data={(program?.levels ?? []).map((l) => ({
+                      value: String(l.id),
+                      label: l.name,
+                    }))}
+                  />
 
-                      return (
-                        <Box key={swimmingClass.id}>
-                          <ClassOption
-                            swimmingClass={swimmingClass}
-                            learner={learner}
-                            checked={isSelected}
-                            onClick={() => chooseClass(String(swimmingClass.id))}
-                          />
-                          {isSelected && (
-                            <Stack
-                              gap="sm"
-                              mt="sm"
+                  <Box>
+                    <Group justify="space-between" align="baseline" mb="xs">
+                      <Text size="sm" fw={600}>
+                        Stages
+                      </Text>
+                      {(level?.stages.length ?? 0) > 0 && (
+                        <Button variant="subtle" size="compact-xs" onClick={toggleAll}>
+                          {selected.length === level?.stages.length ? 'Clear all' : 'Select all'}
+                        </Button>
+                      )}
+                    </Group>
+                    <Stack gap="xs">
+                      {!level || level.stages.length === 0 ? (
+                        <Text size="sm" c="dimmed">
+                          This level has no stages yet.
+                        </Text>
+                      ) : (
+                        level.stages.map((stage, index) => {
+                          const orderedIds = level.stages.map((s) => s.id)
+                          const checked = selected.includes(stage.id)
+                          return (
+                            <Box
+                              key={stage.id}
                               p="sm"
                               style={{
                                 border: '1px solid var(--mantine-color-gray-3)',
-                                borderRadius: 'var(--mantine-radius-md)',
+                                borderRadius: 10,
                               }}
                             >
-                              <TextInput
-                                type="date"
-                                label="Joins from"
-                                name="startDate"
-                                value={placementDate}
-                                onChange={(event) => changePlacementDate(event.currentTarget.value)}
-                                leftSection={<IconCalendar size={16} />}
-                                required
+                              <Checkbox
+                                checked={checked}
+                                onChange={() =>
+                                  // Stages are progressive: selecting one selects
+                                  // every stage up to it; clearing one clears it
+                                  // and everything after. No gaps.
+                                  setSelected(
+                                    checked
+                                      ? orderedIds.slice(0, index)
+                                      : orderedIds.slice(0, index + 1)
+                                  )
+                                }
+                                label={<Text>{stage.name}</Text>}
                               />
-                              <Text size="sm" c="dimmed">
-                                Attendance counts from here.
-                              </Text>
-                              <Card withBorder padding={0} radius="md">
-                                <Group justify="space-between" align="flex-start" p="md">
-                                  <Box>
-                                    <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.14em">
-                                      Lessons
-                                    </Text>
-                                    <Text size="sm" c="dimmed" mt={3}>
-                                      {selectableLessons.length > 0
-                                        ? `All ${selectableLessons.length} lessons from ${placementDate}`
-                                        : 'No lessons planned from this date'}
-                                    </Text>
-                                  </Box>
-                                  <Button
-                                    variant="subtle"
-                                    size="sm"
-                                    onClick={() => setLessonsOpen((current) => !current)}
-                                  >
-                                    {lessonsOpen ? 'Done' : 'Choose lessons'}
-                                  </Button>
-                                </Group>
-                                {lessonsOpen && selectableLessons.length > 0 && (
-                                  <Stack gap={0}>
-                                    {selectableLessons.map((lesson) => (
-                                      <Checkbox
-                                        key={lesson.id}
-                                        p="md"
-                                        checked={selectedLessonIds.includes(lesson.id)}
-                                        onChange={(event) => {
-                                          const checked = event.currentTarget.checked
-                                          setSelectedLessonIds((current) =>
-                                            checked
-                                              ? [...current, lesson.id]
-                                              : current.filter((id) => id !== lesson.id)
-                                          )
-                                        }}
-                                        label={`${lesson.label} · ${swimmingClass.startTime ?? 'Time not set'}`}
-                                        styles={{
-                                          root: {
-                                            borderTop: '1px solid var(--mantine-color-gray-2)',
-                                          },
-                                        }}
-                                      />
-                                    ))}
-                                  </Stack>
-                                )}
-                              </Card>
-                              <Group grow>
-                                <Button variant="default" onClick={onClose}>
-                                  Cancel
-                                </Button>
-                                <Button
-                                  type="submit"
-                                  disabled={
-                                    !classId || !placementDate || selectedLessonIds.length === 0
-                                  }
-                                  loading={processing}
-                                >
-                                  {learner.class
-                                    ? 'Save changes'
-                                    : `Enrol into ${selectedLessonIds.length || 0} lessons`}
-                                </Button>
-                              </Group>
-                              {learner.class && (
-                                <Guard for="enrolment.withdraw">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    color="red"
-                                    loading={withdrawing}
-                                    onClick={withdrawFromClass}
-                                  >
-                                    Withdraw from class
-                                  </Button>
-                                </Guard>
-                              )}
-                            </Stack>
-                          )}
-                        </Box>
-                      )
-                    })}
-                  </Stack>
-                </Radio.Group>
+                            </Box>
+                          )
+                        })
+                      )}
+                    </Stack>
+                  </Box>
+                </Stack>
+              ) : (
+                <Stack gap="sm" p="lg" style={{ flex: 1 }}>
+                  <Text size="sm" c="dimmed">
+                    Confirm this assignment for {learner.name}.
+                  </Text>
+                  <Box
+                    p="md"
+                    style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: 12 }}
+                  >
+                    <Text size="xs" tt="uppercase" c="dimmed" fw={800} lts="0.1em">
+                      {program?.name}
+                    </Text>
+                    <Text fw={700} mt={2}>
+                      {level?.name}
+                    </Text>
+                    <Group gap={6} mt="sm" wrap="wrap">
+                      {(level?.stages ?? [])
+                        .filter((stage) => selected.includes(stage.id))
+                        .map((stage) => (
+                          <Badge key={stage.id} color="aqua" variant="light" radius="sm">
+                            {stage.name}
+                          </Badge>
+                        ))}
+                    </Group>
+                  </Box>
+                  <Text size="xs" c="dimmed">
+                    This replaces the learner’s current stage assignment.
+                  </Text>
+                </Stack>
+              )}
+
+              <Box p="lg" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
+                {step === 'select' ? (
+                  <Group justify="space-between">
+                    {learner.stages.length > 0 ? (
+                      <Button type="button" variant="subtle" color="red" onClick={unassign}>
+                        Unassign
+                      </Button>
+                    ) : (
+                      <span />
+                    )}
+                    <Group gap="sm">
+                      <Button type="button" variant="default" onClick={onClose}>
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setStep('confirm')}
+                        disabled={selected.length === 0}
+                      >
+                        Review
+                      </Button>
+                    </Group>
+                  </Group>
+                ) : (
+                  <Group justify="space-between">
+                    <Button type="button" variant="default" onClick={() => setStep('select')}>
+                      Back
+                    </Button>
+                    <Button type="button" onClick={submit} loading={saving}>
+                      Confirm &amp; save
+                    </Button>
+                  </Group>
+                )}
               </Box>
-              <input type="hidden" name="learnerIds[]" value={learner.id} />
-              <input type="hidden" name="swimmingClassId" value={classId ?? ''} />
-              {selectedLessonIds.map((lessonId) => (
-                <input key={lessonId} type="hidden" name="lessonIds[]" value={lessonId} />
-              ))}
-            </Stack>
-          </Stack>
-        )}
-      </Form>
+        </Stack>
+      )}
     </Drawer>
   )
 }
 
-export default function EnrolmentIndex({ schoolName, swimYear, learners, classes }: PageProps) {
-  const defaultDate = swimYear?.termStartDate ?? todayIso()
-  const [filter, setFilter] = useState<LearnerFilter>('unplaced')
+export default function EnrolmentIndex({ swimYear, catalog, learners }: PageProps) {
   const [search, setSearch] = useState('')
-  const [levelId, setLevelId] = useState('all')
-  const [drawerLearnerId, setDrawerLearnerId] = useState<number | null>(null)
+  const [levelFilter, setLevelFilter] = useState('all')
+  const [tab, setTab] = useState<'all' | Progress>('all')
+  const [assignLearner, setAssignLearner] = useState<Learner | null>(null)
 
   const levelOptions = useMemo(
-    () => [
-      { value: 'all', label: 'All levels' },
-      ...[...new Map(learners.map((learner) => [learner.level.id, learner.level.name]))]
-        .sort(([, first], [, second]) => first.localeCompare(second))
-        .map(([value, label]) => ({ value: String(value), label })),
-    ],
+    () => [...new Set(learners.map((learner) => learner.signupLevel.name))].sort(),
     [learners]
   )
 
-  const filteredLearners = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    return learners.filter((learner) => {
-      const statusMatches =
-        filter === 'all' ||
-        (filter === 'enrolled' ? learner.class !== null : learner.class === null)
-      const levelMatches = levelId === 'all' || String(learner.level.id) === levelId
-      const searchMatches =
-        !query || `${learner.name} ${learner.guardianName}`.toLowerCase().includes(query)
-      return statusMatches && levelMatches && searchMatches
-    })
-  }, [filter, learners, levelId, search])
+  const counts = useMemo(() => {
+    const c = { all: learners.length, unassigned: 0, assigned: 0 }
+    for (const learner of learners) {
+      c[learnerProgress(learner)] += 1
+    }
+    return c
+  }, [learners])
 
-  const drawerLearner = learners.find((learner) => learner.id === drawerLearnerId) ?? null
+  const visible = useMemo(
+    () =>
+      learners.filter((learner) => {
+        if (levelFilter !== 'all' && learner.signupLevel.name !== levelFilter) {
+          return false
+        }
+        if (tab !== 'all' && learnerProgress(learner) !== tab) {
+          return false
+        }
+        const q = search.trim().toLowerCase()
+        if (q && !`${learner.name} ${learner.guardianName}`.toLowerCase().includes(q)) {
+          return false
+        }
+        return true
+      }),
+    [learners, levelFilter, tab, search]
+  )
 
   return (
-    <Container size="xl" py="xl">
+    <Container size="lg" py="xl">
       <Stack gap="lg">
-        <Group justify="space-between" align="flex-start">
-          <Box>
-            <Text size="xs" tt="uppercase" fw={800} c="dimmed" lts="0.14em">
-              {schoolName} ·{' '}
-              {swimYear ? `${swimYear.name} · ${swimYear.termName}` : 'No active term'}
-            </Text>
-            <Title order={1} mt={4}>
-              Enrolment
-            </Title>
-            <Text c="dimmed" maw={760} mt={4}>
-              Place paid or part-paid learners into a class and choose the lessons they will attend.
+        <Box>
+          <Text size="xs" tt="uppercase" c="dimmed" fw={700} lts="0.16em">
+            Enrolment
+          </Text>
+          <Title order={1}>Learners</Title>
+          <Text c="dimmed" size="lg">
+            Assign learners to stages and progress them through a level.
+            {swimYear ? ` · ${swimYear.name}` : ''}
+          </Text>
+        </Box>
+
+        {learners.length === 0 ? (
+          <Box
+            p="lg"
+            style={{ border: '1px solid var(--mantine-color-gray-2)', borderRadius: 12 }}
+          >
+            <Text fw={700}>No signups yet.</Text>
+            <Text c="dimmed" size="sm">
+              Learners appear here once they’ve registered.
             </Text>
           </Box>
-          <Group gap="lg" align="flex-start">
-            <Box ta="right">
-              <Text fw={800} fz="lg" lh={1}>
-                {learners.filter((learner) => learner.class !== null).length}
-              </Text>
-              <Text size="xs" c="dimmed" mt={4}>
-                enrolled
-              </Text>
-            </Box>
-            <Box ta="right">
-              <Text fw={800} fz="lg" lh={1}>
-                {learners.filter((learner) => learner.class === null).length}
-              </Text>
-              <Text size="xs" c="dimmed" mt={4}>
-                awaiting class
-              </Text>
-            </Box>
-          </Group>
-        </Group>
+        ) : (
+          <>
+            <Group justify="space-between" align="center" wrap="wrap" gap="md">
+              <Tabs value={tab} onChange={(value) => setTab((value as typeof tab) ?? 'all')} variant="pills">
+                <Tabs.List bg="gray.1" p={4} style={{ borderRadius: 14 }}>
+                  <Tabs.Tab value="all">All ({counts.all})</Tabs.Tab>
+                  <Tabs.Tab value="unassigned">Not assigned ({counts.unassigned})</Tabs.Tab>
+                  <Tabs.Tab value="assigned">Assigned ({counts.assigned})</Tabs.Tab>
+                </Tabs.List>
+              </Tabs>
+              <Group gap="sm" wrap="wrap">
+                <TextInput
+                  leftSection={<IconSearch size={16} />}
+                  placeholder="Search learner or guardian"
+                  value={search}
+                  onChange={(event) => setSearch(event.currentTarget.value)}
+                  w={260}
+                />
+                <NativeSelect
+                  aria-label="Filter by level"
+                  value={levelFilter}
+                  onChange={(event) => setLevelFilter(event.currentTarget.value)}
+                  data={[
+                    { value: 'all', label: 'All levels' },
+                    ...levelOptions.map((name) => ({ value: name, label: name })),
+                  ]}
+                />
+              </Group>
+            </Group>
 
-        <Group justify="space-between" align="center" gap="md">
-          <SegmentedControl
-            value={filter}
-            onChange={(value) => setFilter(value as LearnerFilter)}
-            data={[
-              {
-                value: 'unplaced',
-                label: `Unplaced (${learners.filter((learner) => !learner.class).length})`,
-              },
-              {
-                value: 'enrolled',
-                label: `Enrolled (${learners.filter((learner) => learner.class).length})`,
-              },
-              { value: 'all', label: `All (${learners.length})` },
-            ]}
-          />
-          <Group gap="sm" style={{ flex: 1, justifyContent: 'flex-end' }} wrap="nowrap">
-            <TextInput
-              maw={380}
-              radius="md"
-              leftSection={<IconSearch size={18} />}
-              placeholder="Search learners"
-              value={search}
-              onChange={(event) => setSearch(event.currentTarget.value)}
-            />
-            <Select
-              radius="md"
-              data={levelOptions}
-              value={levelId}
-              onChange={(value) => setLevelId(value ?? 'all')}
-            />
-          </Group>
-        </Group>
-
-        <Card withBorder shadow="sm" padding={0} radius="md" style={{ overflow: 'hidden' }}>
-          <ScrollArea type="auto">
-            <Table
-              horizontalSpacing="xl"
-              verticalSpacing="md"
-              miw={760}
-              styles={{
-                th: {
-                  backgroundColor: 'var(--mantine-color-gray-0)',
-                  color: 'var(--mantine-color-dimmed)',
-                  fontSize: 'var(--mantine-font-size-xs)',
-                  fontWeight: 800,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                },
-                td: {
-                  borderTop: '1px solid var(--mantine-color-gray-2)',
-                },
+            <Box
+              style={{
+                border: '1px solid var(--mantine-color-gray-2)',
+                borderRadius: 12,
+                overflow: 'hidden',
               }}
             >
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Learner</Table.Th>
-                  <Table.Th>Level</Table.Th>
-                  <Table.Th>Class</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th ta="right">Action</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {filteredLearners.map((learner) => {
-                  const unplaced = learner.class === null
-                  const canPlace =
-                    learner.paymentStatus === 'paid' || learner.paymentStatus === 'part_paid'
-                  return (
-                    <Table.Tr key={learner.id}>
-                      <Table.Td>
-                        <Group gap="sm" wrap="nowrap">
-                          <Avatar color="blue" variant="light" radius="xl">
-                            {learner.initials}
-                          </Avatar>
-                          <Box>
-                            <Anchor
-                              component={Link}
-                              href={urlFor('learners.show', { id: learner.id })}
-                              fw={800}
-                              lh={1.2}
-                            >
-                              {learner.name}
-                            </Anchor>
-                            <Text size="sm" c="dimmed" mt={3}>
-                              Age {learner.age} · {learner.guardianName}
-                            </Text>
-                          </Box>
-                        </Group>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text fw={600}>{learner.level.name}</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        {learner.class ? (
-                          <Stack gap={2}>
-                            <Text fw={700}>{learner.class.name}</Text>
-                            <Text size="xs" c="dimmed">
-                              {learner.class.levelName} {'>'} {learner.class.stageName}
-                            </Text>
-                          </Stack>
-                        ) : (
-                          <Text c="dimmed">Not placed</Text>
-                        )}
-                      </Table.Td>
-                      <Table.Td>
-                        <Group gap="xs" wrap="nowrap">
-                          <Box
-                            w={7}
-                            h={7}
-                            style={{
-                              flex: '0 0 auto',
-                              borderRadius: '50%',
-                              backgroundColor: learner.class
-                                ? 'var(--mantine-color-teal-6)'
-                                : learner.paymentStatus === 'part_paid'
-                                  ? 'var(--mantine-color-orange-6)'
-                                  : 'var(--mantine-color-yellow-6)',
-                            }}
-                          />
-                          <Text
-                            c={
-                              learner.class
-                                ? 'teal.7'
-                                : learner.paymentStatus === 'part_paid'
-                                  ? 'orange.7'
-                                  : 'yellow.8'
-                            }
+              <Stack gap={0}>
+                {visible.length === 0 ? (
+                  <Text c="dimmed" size="sm" p="lg">
+                    No learners match these filters.
+                  </Text>
+                ) : (
+                  visible.map((learner) => (
+                    <Group
+                      key={learner.enrollmentId}
+                      justify="space-between"
+                      wrap="nowrap"
+                      align="center"
+                      p="md"
+                      px="lg"
+                      gap="md"
+                      style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}
+                    >
+                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, flex: 1 }}>
+                        <Avatar radius="xl" color="aqua">
+                          {learner.initials}
+                        </Avatar>
+                        <Box style={{ minWidth: 0 }}>
+                          <Anchor
+                            component={Link}
+                            route="learners.show"
+                            routeParams={{ id: learner.id }}
                             fw={700}
-                            size="sm"
+                            c="dark"
+                            underline="hover"
+                            truncate
+                            style={{ display: 'block' }}
                           >
-                            {learner.class
-                              ? 'Enrolled'
-                              : learner.paymentStatus === 'part_paid'
-                                ? 'Part paid'
-                                : 'Awaiting class'}
+                            {learner.name}
+                          </Anchor>
+                          <Text size="sm" c="dimmed" truncate>
+                            {learner.signupLevel.name} · age {learner.age} · {learner.guardianName}
                           </Text>
-                        </Group>
-                      </Table.Td>
-                      <Table.Td ta="right">
-                        <Guard for="enrolment.place">
-                          {learner.class && (
-                            <Button
-                              variant="subtle"
-                              color="blue"
-                              size="sm"
-                              onClick={() => setDrawerLearnerId(learner.id)}
-                            >
-                              Edit
-                            </Button>
-                          )}
-                          {unplaced && canPlace && (
-                            <Button
-                              variant="light"
-                              color="blue"
-                              radius="md"
-                              size="sm"
-                              onClick={() => {
-                                setDrawerLearnerId(learner.id)
-                              }}
-                            >
-                              Enrol
-                            </Button>
-                          )}
-                        </Guard>
-                        {unplaced && !canPlace && (
-                          <Text size="sm" c="dimmed">
-                            Payment due
-                          </Text>
-                        )}
-                      </Table.Td>
-                    </Table.Tr>
-                  )
-                })}
-              </Table.Tbody>
-            </Table>
-          </ScrollArea>
-          {filteredLearners.length === 0 && (
-            <Text c="dimmed" ta="center" py="xl">
-              No learners match these filters.
-            </Text>
-          )}
-        </Card>
+                        </Box>
+                      </Group>
+
+                      <Box style={{ flex: 1, minWidth: 0 }}>
+                        <StageBadges stages={learner.stages} />
+                      </Box>
+
+                      <Guard for="enrolment.place">
+                        <Button
+                          variant="default"
+                          onClick={() => setAssignLearner(learner)}
+                          style={{ flexShrink: 0 }}
+                        >
+                          {learner.stages.length > 0 ? 'Edit stages' : 'Assign stages'}
+                        </Button>
+                      </Guard>
+                    </Group>
+                  ))
+                )}
+              </Stack>
+            </Box>
+          </>
+        )}
       </Stack>
 
-      <PlacementDrawer
-        key={drawerLearnerId ?? 'closed'}
-        learner={drawerLearner}
-        classes={classes}
-        startDate={defaultDate}
-        opened={drawerLearner !== null}
-        onClose={() => setDrawerLearnerId(null)}
+      <AssignStagesDrawer
+        learner={assignLearner}
+        catalog={catalog}
+        opened={Boolean(assignLearner)}
+        onClose={() => setAssignLearner(null)}
       />
     </Container>
   )

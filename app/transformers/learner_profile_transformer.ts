@@ -28,6 +28,10 @@ export type LearnerProfile = {
     id: number
     levelName: string
     stageName: string
+    stageLevelName: string | null
+    stages: Array<{ name: string; status: string }>
+    leadInstructor: string | null
+    assistantInstructors: string[]
     class: {
       id: number
       name: string
@@ -93,6 +97,17 @@ function paymentStatus(enrollment: Enrollment): 'paid' | 'part_paid' | 'pending'
 }
 
 export default class LearnerProfileTransformer extends BaseTransformer<Learner> {
+  constructor(
+    resource: Learner,
+    // Lead + assistant instructors of the learner's current stage (per school).
+    protected currentStageInstructors: { lead: string | null; assistants: string[] } = {
+      lead: null,
+      assistants: [],
+    }
+  ) {
+    super(resource)
+  }
+
   toObject(): LearnerProfile {
     const preloaded = this.resource.$preloaded as {
       signup?: {
@@ -129,6 +144,11 @@ export default class LearnerProfileTransformer extends BaseTransformer<Learner> 
             date: DateTime
             durationMinutes: number | null
             concludedAt: DateTime | null
+          }>
+          enrollmentStages?: Array<{
+            status: string
+            position: number
+            levelStage?: { name: string; level?: { name: string } }
           }>
         }
       | undefined
@@ -167,6 +187,15 @@ export default class LearnerProfileTransformer extends BaseTransformer<Learner> 
             id: currentEnrollment.id,
             levelName: currentPreloaded?.level?.name ?? 'Level not set',
             stageName: swimmingClass?.levelStage?.name ?? 'Stage not set',
+            // Stages the learner is assigned to (new stage-based enrollment).
+            stageLevelName:
+              (currentPreloaded?.enrollmentStages ?? [])[0]?.levelStage?.level?.name ?? null,
+            stages: (currentPreloaded?.enrollmentStages ?? []).map((stage) => ({
+              name: stage.levelStage?.name ?? 'Stage',
+              status: stage.status,
+            })),
+            leadInstructor: this.currentStageInstructors.lead,
+            assistantInstructors: this.currentStageInstructors.assistants,
             class: swimmingClass
               ? {
                   id: swimmingClass.id,

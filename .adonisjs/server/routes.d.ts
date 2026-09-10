@@ -40,6 +40,9 @@ export type ScannedRoutes = {
     'learners.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'enrolment.place': { paramsTuple?: []; params?: {} }
     'enrolment.withdraw': { paramsTuple?: []; params?: {} }
+    'enrolment.assign_stages': { paramsTuple?: []; params?: {} }
+    'enrolment.remove_stages': { paramsTuple?: []; params?: {} }
+    'enrolment.advance_stage': { paramsTuple?: []; params?: {} }
     'programs.index': { paramsTuple?: []; params?: {} }
     'programs.create': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
@@ -86,6 +89,8 @@ export type ScannedRoutes = {
     'class_lessons.update_plan': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'stages.assign_instructors': { paramsTuple?: []; params?: {} }
     'class_lessons.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'attendance.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'attendance.save': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   GET: {
     'landing': { paramsTuple?: []; params?: {} }
@@ -121,6 +126,7 @@ export type ScannedRoutes = {
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'lessons.index': { paramsTuple?: []; params?: {} }
+    'attendance.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   HEAD: {
     'landing': { paramsTuple?: []; params?: {} }
@@ -156,6 +162,7 @@ export type ScannedRoutes = {
     'swimming_classes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'swimming_classes.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'lessons.index': { paramsTuple?: []; params?: {} }
+    'attendance.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   POST: {
     'sessions.store': { paramsTuple?: []; params?: {} }
@@ -170,6 +177,9 @@ export type ScannedRoutes = {
     'paystack_webhooks.store': { paramsTuple?: []; params?: {} }
     'enrolment.place': { paramsTuple?: []; params?: {} }
     'enrolment.withdraw': { paramsTuple?: []; params?: {} }
+    'enrolment.assign_stages': { paramsTuple?: []; params?: {} }
+    'enrolment.remove_stages': { paramsTuple?: []; params?: {} }
+    'enrolment.advance_stage': { paramsTuple?: []; params?: {} }
     'programs.store': { paramsTuple?: []; params?: {} }
     'swim_years.store': { paramsTuple?: []; params?: {} }
     'school_age_groups.store': { paramsTuple?: []; params?: {} }
@@ -181,6 +191,7 @@ export type ScannedRoutes = {
     'class_lessons.store': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'lessons.store': { paramsTuple?: []; params?: {} }
     'class_lessons.copy_activities': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'attendance.save': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   PATCH: {
     'accounts.update': { paramsTuple?: []; params?: {} }

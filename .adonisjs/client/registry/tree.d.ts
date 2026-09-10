@@ -76,6 +76,9 @@ export interface ApiDefinition {
     index: typeof routes['enrolment.index']
     place: typeof routes['enrolment.place']
     withdraw: typeof routes['enrolment.withdraw']
+    assignStages: typeof routes['enrolment.assign_stages']
+    removeStages: typeof routes['enrolment.remove_stages']
+    advanceStage: typeof routes['enrolment.advance_stage']
   }
   learners: {
     show: typeof routes['learners.show']
@@ -153,5 +156,9 @@ export interface ApiDefinition {
   }
   stages: {
     assignInstructors: typeof routes['stages.assign_instructors']
+  }
+  attendance: {
+    show: typeof routes['attendance.show']
+    save: typeof routes['attendance.save']
   }
 }

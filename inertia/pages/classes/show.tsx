@@ -26,8 +26,13 @@ import { Guard } from '~/utils/permissions'
 import EditLessonForm from '~/components/edit_lesson_form'
 import EditLessonActivitiesForm from '~/components/edit_lesson_activities_form'
 import EditLessonInstructorsDrawer from '~/components/edit_lesson_instructors_drawer'
+import AttendanceDrawer from '~/components/attendance_drawer'
 import LessonSkillTiles from '~/components/lesson_skill_tiles'
 import MetaStrip from '~/components/meta_strip'
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10)
+}
 
 type PageProps = InertiaProps<{
   swimmingClass: Data.SwimmingClass
@@ -155,6 +160,7 @@ function lessonTimeRange(
 export default function ClassShow({ swimmingClass, activityBank, canManageLessons }: PageProps) {
   const { url, props } = usePage()
   const [drawerLessonId, setDrawerLessonId] = useState<number | null>(null)
+  const [attendanceLessonId, setAttendanceLessonId] = useState<number | null>(null)
   // Managing lessons requires the edit permission AND being able to manage this
   // class's stage (lead instructor or a manager). Supporting instructors are
   // read-only.
@@ -437,6 +443,8 @@ export default function ClassShow({ swimmingClass, activityBank, canManageLesson
             lesson.startTime?.raw
           )
           const lessonStartFormatted = lesson.startTime?.formatted ?? swimmingClass.startTime?.formatted
+          // Taught lessons (today or past) can't be edited/removed — take attendance.
+          const isPastOrToday = lesson.date.raw <= todayIso()
 
           return (
             <Card className="lesson-print-card" key={lesson.id} padding={0}>
@@ -487,7 +495,14 @@ export default function ClassShow({ swimmingClass, activityBank, canManageLesson
                   >
                     Print
                   </Button>
-                  {canManageLessons && (
+                  {isPastOrToday && (
+                    <Guard for="lesson.activities.manage">
+                      <Button variant="light" onClick={() => setAttendanceLessonId(lesson.id)}>
+                        Take attendance
+                      </Button>
+                    </Guard>
+                  )}
+                  {!isPastOrToday && canManageLessons && (
                     <Guard for="lesson.edit">
                       <Tooltip label="Edit lesson">
                         <ActionIcon
@@ -505,7 +520,7 @@ export default function ClassShow({ swimmingClass, activityBank, canManageLesson
                       </Tooltip>
                     </Guard>
                   )}
-                  {canManageLessons && (
+                  {!isPastOrToday && canManageLessons && (
                     <Tooltip label="Remove lesson">
                       <ActionIcon
                         variant="subtle"
@@ -520,7 +535,7 @@ export default function ClassShow({ swimmingClass, activityBank, canManageLesson
                       </ActionIcon>
                     </Tooltip>
                   )}
-                  {canManageLessons && !canEditLesson && (
+                  {!isPastOrToday && canManageLessons && !canEditLesson && (
                     <Guard for="lesson.activities.manage">
                       <Tooltip label="Edit activities">
                         <ActionIcon
@@ -975,6 +990,11 @@ export default function ClassShow({ swimmingClass, activityBank, canManageLesson
             `${urlFor('swimming_classes.show', { id: swimmingClass.id })}?editLessonId=${lessonId}`
           )
         }}
+      />
+      <AttendanceDrawer
+        lessonId={attendanceLessonId}
+        opened={Boolean(attendanceLessonId)}
+        onClose={() => setAttendanceLessonId(null)}
       />
     </Container>
   )

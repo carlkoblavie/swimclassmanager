@@ -222,6 +222,24 @@ const routes = {
     tokens: [{"old":"/enrolment/withdraw","type":0,"val":"enrolment","end":""},{"old":"/enrolment/withdraw","type":0,"val":"withdraw","end":""}],
     types: placeholder as Registry['enrolment.withdraw']['types'],
   },
+  'enrolment.assign_stages': {
+    methods: ["POST"],
+    pattern: '/enrolment/stages',
+    tokens: [{"old":"/enrolment/stages","type":0,"val":"enrolment","end":""},{"old":"/enrolment/stages","type":0,"val":"stages","end":""}],
+    types: placeholder as Registry['enrolment.assign_stages']['types'],
+  },
+  'enrolment.remove_stages': {
+    methods: ["POST"],
+    pattern: '/enrolment/stages/remove',
+    tokens: [{"old":"/enrolment/stages/remove","type":0,"val":"enrolment","end":""},{"old":"/enrolment/stages/remove","type":0,"val":"stages","end":""},{"old":"/enrolment/stages/remove","type":0,"val":"remove","end":""}],
+    types: placeholder as Registry['enrolment.remove_stages']['types'],
+  },
+  'enrolment.advance_stage': {
+    methods: ["POST"],
+    pattern: '/enrolment/advance',
+    tokens: [{"old":"/enrolment/advance","type":0,"val":"enrolment","end":""},{"old":"/enrolment/advance","type":0,"val":"advance","end":""}],
+    types: placeholder as Registry['enrolment.advance_stage']['types'],
+  },
   'programs.index': {
     methods: ["GET","HEAD"],
     pattern: '/programs',
@@ -497,6 +515,18 @@ const routes = {
     pattern: '/class-lessons/:id',
     tokens: [{"old":"/class-lessons/:id","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['class_lessons.destroy']['types'],
+  },
+  'attendance.show': {
+    methods: ["GET","HEAD"],
+    pattern: '/class-lessons/:id/attendance',
+    tokens: [{"old":"/class-lessons/:id/attendance","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/attendance","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/attendance","type":0,"val":"attendance","end":""}],
+    types: placeholder as Registry['attendance.show']['types'],
+  },
+  'attendance.save': {
+    methods: ["POST"],
+    pattern: '/class-lessons/:id/attendance',
+    tokens: [{"old":"/class-lessons/:id/attendance","type":0,"val":"class-lessons","end":""},{"old":"/class-lessons/:id/attendance","type":1,"val":"id","end":""},{"old":"/class-lessons/:id/attendance","type":0,"val":"attendance","end":""}],
+    types: placeholder as Registry['attendance.save']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 
