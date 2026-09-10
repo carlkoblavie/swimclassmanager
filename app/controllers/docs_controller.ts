@@ -79,6 +79,67 @@ const guides: Guide[] = [
       },
     ],
   },
+  {
+    slug: 'enrol-learners',
+    title: 'Enrolling a learner into stages',
+    intro:
+      'Learners progress through a level one stage at a time. You assign them to the stages they’ll work through — no payment is required to enrol.',
+    steps: [
+      {
+        title: 'Open Enrolment',
+        description:
+          'Go to Enrolment. Every signup appears here, whether or not they’ve paid. Use the tabs (All / Not assigned / Assigned), search, and level filter to find a learner.',
+      },
+      {
+        title: 'Assign stages',
+        description:
+          'Click Assign stages on a learner. Drill down Program → Level, then pick the stages to assign. Stages must be chosen in order from the first — you can’t skip (no gaps like 1, 3, 5).',
+      },
+      {
+        title: 'Review and confirm',
+        description:
+          'Click Review to see a summary of the program, level, and stages, then Confirm & save.',
+      },
+      {
+        title: 'Edit or undo',
+        description:
+          'Reopen a learner with Edit stages to change the selection, or use Unassign inside that drawer to remove the assignment.',
+      },
+      {
+        title: 'See a learner’s details',
+        description:
+          'Click a learner’s name to open their profile — it shows their level, assigned stages, and the lead and assistant instructors of their current stage.',
+      },
+    ],
+  },
+  {
+    slug: 'take-attendance',
+    title: 'Taking attendance',
+    intro:
+      'Once a lesson has been taught (today or earlier) you take attendance instead of editing it. The register lists the learners whose current stage is that lesson’s stage.',
+    steps: [
+      {
+        title: 'Find a taught lesson',
+        description:
+          'On the Lessons page (or a class page), any lesson dated today or earlier shows a Take attendance button. Past lessons can no longer be edited or removed.',
+      },
+      {
+        title: 'Open the register',
+        description:
+          'Click Take attendance. A panel slides in from the right with the lesson’s details at the top and the learners signed up for it.',
+      },
+      {
+        title: 'Mark each learner',
+        description:
+          'Tap P (present), L (late), or A (absent) for each learner. Use All present to mark everyone at once, or Clear to start over. The running totals update as you go.',
+      },
+      {
+        title: 'Save',
+        description:
+          'Click Save attendance. You can reopen the register anytime to update the marks.',
+      },
+    ],
+  },
 ]
 
 export default class DocsController {
